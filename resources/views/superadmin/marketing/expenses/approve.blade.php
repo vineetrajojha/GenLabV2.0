@@ -168,7 +168,7 @@
                     $inAccountQs = array_merge(request()->query(), ['approved_section' => $approvedSection]);
                 @endphp
                 <a href="{{ route('superadmin.marketing.expenses.in_account', $inAccountQs) }}" class="btn btn-sm btn-primary me-2 js-in-account" data-url="{{ route('superadmin.marketing.expenses.in_account', $inAccountQs) }}">In Account</a>
-                <a href="{{ route('superadmin.marketing.expenses.approved', array_merge(request()->query(), ['approved_section' => $approvedSection])) }}" class="btn btn-sm btn-outline-secondary">Refresh</a>
+                <a href="{{ route('superadmin.marketing.expenses.approved', array_merge(request()->query(), ['approved_section' => $approvedSection])) }}" class="btn btn-sm btn-outline-secondary js-approved-refresh" data-url="{{ route('superadmin.marketing.expenses.approved', array_merge(request()->query(), ['approved_section' => $approvedSection])) }}">Refresh</a>
             </div>
         </div>
     </div>
@@ -177,26 +177,8 @@
                 @php
                 $personsForApproved = \App\Models\User::orderBy('name')->get(['name','user_code']);
                 $selectedApprovedPerson = request('marketing_person_code');
-
-                $approvedList = \App\Models\MarketingExpense::query()
-                    ->where('status', 'approved')
-                    ->when($approvedSection === 'personal', fn($q) => $q->where('section', 'personal'))
-                    ->when($approvedSection === 'office', fn($q) => $q->where('section', 'office'))
-                    ->when($approvedSection === 'marketing', fn($q) => $q->where('section', 'marketing'))
-                    ->when($selectedApprovedPerson, function($q) use ($selectedApprovedPerson){
-                        $mp = $selectedApprovedPerson;
-                        $q->where(function($inner) use ($mp){
-                            $inner->where('marketing_person_code', $mp)
-                                  ->orWhereHas('marketingPerson', function($m) use ($mp){
-                                      $m->where('user_code', $mp)->orWhere('id', $mp);
-                                  });
-                        });
-                    })
-                    ->orderBy('created_at', 'desc')
-                    ->take(50)
-                    ->get();
-            @endphp
-            <table class="table table-hover align-middle mb-0">
+                @endphp
+            <table id="approvedTable" class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th colspan="9" class="border-0">
@@ -234,40 +216,8 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse($approvedList as $i => $row)
-                        <tr>
-                            <td>{{ $i + 1 }}</td>
-                            <td>
-                                @if($row->marketingPerson)
-                                    <strong>{{ $row->marketingPerson->name }}</strong><br>
-                                    <small class="text-muted">{{ $row->marketing_person_code ?? '' }}</small>
-                                @else
-                                    {{ $row->person_name ?? 'Personal' }}
-                                @endif
-                                {{-- description removed: show only person name as requested --}}
-                            </td>
-                            <td class="text-end">{{ number_format((float) $row->amount, 2) }}</td>
-                            <td class="text-end">{{ number_format((float) $row->approved_amount, 2) }}</td>
-                            <td>{{ optional($row->from_date)->format('d M Y') }} - {{ optional($row->to_date)->format('d M Y') }}</td>
-                            <td>{{ optional($row->created_at)->format('d M Y H:i') }}</td>
-                            <td>{{ $row->approver?->name ?? ($row->approved_by ?? '-') }}</td>
-                            <td>
-                                @if($row->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($row->file_path))
-                                    <button type="button" class="btn btn-sm btn-outline-secondary js-preview-receipt" data-url="{{ asset('storage/'.$row->file_path) }}">Preview</button>
-                                @elseif($row->file_path)
-                                    <span class="text-muted">Missing</span>
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td><span class="badge bg-success">Approved</span></td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9" class="text-center">No approved expenses found for this sub-section.</td>
-                        </tr>
-                    @endforelse
+                <tbody id="approvedRows">
+                    @include('superadmin.marketing.expenses._approved_rows')
                 </tbody>
             </table>
         </div>
@@ -418,6 +368,13 @@
                         const data = await resp.json();
                         Swal.close();
                         if (data && data.success) {
+                            // Remove cleared expense rows from the Approved Expenses table if ids provided
+                            if (Array.isArray(data.cleared_ids) && data.cleared_ids.length) {
+                                data.cleared_ids.forEach(function(id){
+                                    const tr = document.querySelector(`#approvedTable tbody tr[data-id=\"${id}\"]`) || document.querySelector(`table.table tbody tr[data-id=\"${id}\"]`);
+                                    if (tr) tr.remove();
+                                });
+                            }
                             Swal.fire({icon: 'success', title: 'Done', text: 'PDF saved to Cleared Expenses.'});
                         } else {
                             Swal.fire({icon: 'error', title: 'Failed', text: (data && data.message) ? data.message : 'Unable to save PDF.'});
@@ -454,6 +411,32 @@
                 } catch (err) {
                     Swal.close();
                     Swal.fire({icon: 'error', title: 'Error', text: err.message || 'Network error'});
+                }
+            });
+        });
+
+        // Intercept Approved-card Refresh to fetch rows only (avoids full page reload / white flash)
+        document.querySelectorAll('.js-approved-refresh').forEach(btn => {
+            btn.addEventListener('click', async function(e){
+                e.preventDefault();
+                const url = (btn.dataset.url || btn.href) + ( (btn.dataset.url || btn.href).includes('?') ? '&' : '?') + 'approved_partial=1';
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = 'Refreshing...';
+                try {
+                    const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!resp.ok) throw new Error('Failed to fetch approved rows');
+                    const html = await resp.text();
+                    const tbody = document.getElementById('approvedRows');
+                    if (tbody) {
+                        tbody.innerHTML = html;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire({ icon: 'error', title: 'Refresh failed', text: err.message || 'Unable to refresh' });
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
                 }
             });
         });

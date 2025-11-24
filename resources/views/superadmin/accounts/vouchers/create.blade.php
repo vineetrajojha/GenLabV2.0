@@ -75,7 +75,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>#</th>
-                                <th>User</th>
+                                <th>Person</th>
                                 <th class="text-end">Amount</th>
                                 <th>Purpose</th>
                                    <th>Attachment</th>

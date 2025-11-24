@@ -69,11 +69,38 @@ class MarketingExpenseController extends Controller
             $paginator = $this->paginateCollection($combined);
             $totals = $this->calculateTotals($marketingExpenses->concat($personalPending));
 
+            // Prepare the Approved list (card) showing recent approved items (personal subsection)
+            $approvedCardSection = 'personal';
+            $selectedApprovedPerson = $request->input('marketing_person_code');
+            $approvedList = MarketingExpense::query()
+                ->with(['marketingPerson','approver'])
+                ->where('status', 'approved')
+                ->whereNull('cleared_at')
+                ->when($approvedCardSection === 'personal', fn($q) => $q->where('section', 'personal'))
+                ->when($selectedApprovedPerson, function($q) use ($selectedApprovedPerson){
+                    $mp = $selectedApprovedPerson;
+                    $q->where(function($inner) use ($mp){
+                        $inner->where('marketing_person_code', $mp)
+                              ->orWhereHas('marketingPerson', function($m) use ($mp){
+                                  $m->where('user_code', $mp)->orWhere('id', $mp);
+                              });
+                    });
+                })
+                ->orderBy('created_at', 'desc')
+                ->take(50)
+                ->get();
+
+            // If the approved rows are requested as a partial (AJAX), return just the rows
+            if ($request->ajax() && $request->input('approved_partial')) {
+                return view('superadmin.marketing.expenses._approved_rows', ['approvedList' => $approvedList]);
+            }
+
             return view('superadmin.marketing.expenses.approve', [
                 'expenses' => $paginator,
                 'totals'   => $totals,
                 'status'   => 'pending',
                 'section'  => $section,
+                'approvedList' => $approvedList,
             ]);
         }
 
@@ -85,11 +112,37 @@ class MarketingExpenseController extends Controller
 
         $listing = $this->buildListingFromQuery($query, $section === 'personal');
 
+        // Also prepare the Approved list (card) for the view so the Blade template
+        // does not run database queries while rendering.
+        $mainSection = $section ?? 'marketing';
+        $approvedCardSection = $mainSection === 'marketing' ? 'personal' : $request->input('approved_section', $mainSection);
+        $selectedApprovedPerson = $request->input('marketing_person_code');
+        $approvedList = MarketingExpense::query()
+            ->with(['marketingPerson','approver'])
+            ->where('status', 'approved')
+            ->whereNull('cleared_at')
+            ->when($approvedCardSection === 'personal', fn($q) => $q->where('section', 'personal'))
+            ->when($approvedCardSection === 'office', fn($q) => $q->where('section', 'office'))
+            ->when($approvedCardSection === 'marketing', fn($q) => $q->where('section', 'marketing'))
+            ->when($selectedApprovedPerson, function($q) use ($selectedApprovedPerson){
+                $mp = $selectedApprovedPerson;
+                $q->where(function($inner) use ($mp){
+                    $inner->where('marketing_person_code', $mp)
+                          ->orWhereHas('marketingPerson', function($m) use ($mp){
+                              $m->where('user_code', $mp)->orWhere('id', $mp);
+                          });
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(50)
+            ->get();
+
         return view('superadmin.marketing.expenses.approve', [
             'expenses' => $listing['expenses'],
             'totals'   => $listing['totals'],
             'status'   => 'pending',
             'section'  => $section,
+            'approvedList' => $approvedList,
         ]);
     }
 
@@ -404,6 +457,7 @@ class MarketingExpenseController extends Controller
 
         $query = \App\Models\MarketingExpense::with(['marketingPerson','approver'])
             ->where('status', 'approved')
+            ->whereNull('cleared_at')
             ->when($approvedSection === 'personal', fn($q) => $q->where('section', 'personal'))
             ->when($approvedSection === 'office', fn($q) => $q->where('section', 'office'))
             ->when($approvedSection === 'marketing', fn($q) => $q->where('section', 'marketing'));
@@ -430,6 +484,20 @@ class MarketingExpenseController extends Controller
         }
 
         $expenses = $query->orderByDesc('created_at')->get();
+
+        // If there are no approved (and not already cleared) expenses matching the filters,
+        // return a JSON error for AJAX requests so the frontend won't try to download or
+        // process an empty/old PDF.
+        if ($expenses->isEmpty()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No approved expenses found for the selected filters.',
+                ], 422);
+            }
+            // For non-AJAX requests, redirect back with a flash message
+            return back()->with('error', 'No approved expenses found for the selected filters.');
+        }
 
         $totals = [
             'total_expenses' => $expenses->sum(fn($e) => (float)($e->amount ?? 0)),
@@ -541,6 +609,29 @@ class MarketingExpenseController extends Controller
             }
 
             Storage::disk('public')->put($storagePath . '.json', json_encode($metadata));
+            // After saving the PDF and metadata, mark the involved expense records as cleared
+            try {
+                $expenseIds = $expenses->pluck('id')->filter()->unique()->values()->all();
+                if (!empty($expenseIds)) {
+                    MarketingExpense::whereIn('id', $expenseIds)->update([
+                        'cleared_at' => now(),
+                        'cleared_by' => optional(auth('admin')->user())->id ?? optional(auth('web')->user())->id,
+                    ]);
+                }
+            } catch (\Throwable $_) {
+                // ignore update failures
+            }
+
+            // If the request expects JSON (AJAX), return a JSON success response so the
+            // frontend can remove cleared rows from the Approved table without a full refresh.
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'PDF saved to Cleared Expenses.',
+                    'cleared_ids' => $expenseIds ?? [],
+                ]);
+            }
+
         } catch (\Throwable $e) {
             // if saving fails, continue to return the PDF directly
             return response($mpdf->Output($filename, 'S'), 200)
