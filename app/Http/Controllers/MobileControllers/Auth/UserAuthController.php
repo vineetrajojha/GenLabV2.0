@@ -66,6 +66,11 @@ class UserAuthController extends Controller
     {
         $request->validate([
             'device_token' => 'required|string',
+        ]); 
+        
+        // Print device token in terminal
+        \Log::info("Received Device Token:", [
+            'device_token' => $request->device_token
         ]);
 
         $user = auth()->user();  // Only if using auth

@@ -16,16 +16,14 @@ class BookingCardService
     public function renderCardsForBooking(NewBooking $booking, $item = null)
     {
         try { 
-
-          
             $companyName = SiteSetting::value('company_name');
             try {
                 $companyName_old = SiteSetting::value('company_name_old');
             } catch (\Exception $e) {
-                $companyName_old = "INDINAN TESTING LABBORATORY";
+                $companyName_old = "INDIAN TESTING LABORATORY";
             }
-            
-            // Check if job_order_date is before April 21, 2023
+
+            // Check if job_order_date is before April 23, 2023
             $jobOrderDate = \Carbon\Carbon::parse($booking->job_order_date);
             $cutoffDate = \Carbon\Carbon::parse('2025-04-23');
             

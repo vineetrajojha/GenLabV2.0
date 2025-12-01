@@ -25,9 +25,11 @@ class BookingItem extends Model
         'received_by_name',
         'received_at',
         'issue_date',
+        'job_order_date'
     ];
 
     protected $casts = [
+        'job_order_date' => 'date',
         'lab_expected_date' => 'date',
         'amount' => 'decimal:2',
         'received_at' => 'datetime',
