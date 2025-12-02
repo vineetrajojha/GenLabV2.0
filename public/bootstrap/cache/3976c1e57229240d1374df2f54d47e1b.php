@@ -180,10 +180,23 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                <div class="d-flex justify-content-end mt-3">
-                    <?php echo e($products->appends(['search' => request('search')])->links('pagination::bootstrap-5')); ?>
+                <!-- Pagination with Rows Per Page -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <form method="GET" action="<?php echo e(route('superadmin.viewproduct.viewProduct', $categoryId ?? null)); ?>" class="d-flex align-items-center gap-2">
+                        <?php $__currentLoopData = request()->except(['perPage','page']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <input type="hidden" name="<?php echo e($key); ?>" value="<?php echo e($val); ?>">
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                        <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                            <?php $__currentLoopData = [25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $size): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($size); ?>" <?php echo e(request('perPage',25)==$size ? 'selected' : ''); ?>><?php echo e($size); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                    </form>
+                    <div>
+                        <?php echo e($products->appends(request()->all())->links('pagination::bootstrap-5')); ?>
 
+                    </div>
                 </div>
             </div>
     </div>
@@ -321,4 +334,4 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/viewproduct/viewProduct.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/viewproduct/viewProduct.blade.php ENDPATH**/ ?>

@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Employees'); ?>
 
 <?php $__env->startSection('content'); ?>
@@ -196,4 +194,4 @@
 </style>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/employees/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/employees/index.blade.php ENDPATH**/ ?>

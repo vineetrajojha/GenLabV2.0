@@ -226,6 +226,18 @@
                                                 <label class="form-label">Job Order No *</label>
                                                 <input type="text" name="booking_items[<?php echo e($index); ?>][job_order_no]" class="form-control job_order_no" value="<?php echo e($item['job_order_no'] ?? ''); ?>" required>
                                                 <div class="dropdown-menu w-100 jobOrderList overflow-auto"></div>
+                                            </div> 
+                                            <div class="col-sm-3 col-12">
+                                                <label class="form-label">Job Order Date <span class="text-danger">*</span></label>
+                                                                <input 
+                                                                    type="date" 
+                                                                    class="form-control" 
+                                                                    name="booking_items[<?php echo e($index); ?>][job_order_date]" 
+                                                                    value="<?php echo e(!empty($item['job_order_date']) ? \Carbon\Carbon::parse($item['job_order_date'])->format('Y-m-d') : ''); ?>"
+
+                                                                    required
+                                                                >
+                
                                             </div>
                                             <div class="col-lg-2 col-sm-6 col-12">
                                                 <label class="form-label">Amount *</label>
@@ -313,4 +325,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV1.0\resources\views/superadmin/Bookings/update.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV1.0\resources\views/superadmin/Bookings/update.blade.php ENDPATH**/ ?>

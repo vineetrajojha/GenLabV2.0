@@ -57,7 +57,9 @@ class ShowBookingByLetterController extends Controller
         }
 
         // Get results (paginated)
-        $items = $query->latest()->paginate(7);
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) { $perPage = 25; }
+        $items = $query->latest()->paginate($perPage)->withQueryString();
 
         // Return view
         return view('superadmin.showbooking.bookingByLetter', compact('items', 'search', 'month', 'year'));

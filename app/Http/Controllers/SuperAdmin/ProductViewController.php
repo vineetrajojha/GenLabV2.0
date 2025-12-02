@@ -28,7 +28,7 @@ class ProductViewController extends Controller
                         ->orWhere('product_code', 'like', "%$search%");
                 });
             })
-            ->paginate(10);
+            ->paginate((in_array((int)request('perPage'), [25,50,100]) ? (int)request('perPage') : 25))->withQueryString();
 
         $productCategories = ProductCategory::all();
 

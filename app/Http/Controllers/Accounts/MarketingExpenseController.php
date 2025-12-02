@@ -45,11 +45,12 @@ class MarketingExpenseController extends Controller
         }
 
         if($section === 'marketing'){
+            // Per-page for pending list
+            $perPage = (int) ($request->input('perPage') ?? 15);
             $marketingExpenses = $this->buildExportQuery($request, 'marketing', 'pending')->get();
 
             $personalQuery = $this->buildExportQuery($request, 'personal', 'pending')
                 ->where('submitted_for_approval', true);
-
             $personalPending = $personalQuery->get();
 
             // Show personal expenses individually in approvals (do not combine into summaries)
@@ -57,22 +58,29 @@ class MarketingExpenseController extends Controller
                 ->concat($personalPending)
                 ->sortByDesc(function($expense){
                     $created = $expense->created_at ?? null;
-                    if($created instanceof Carbon){
-                        return $created->timestamp;
-                    }
+                    if($created instanceof Carbon){ return $created->timestamp; }
                     if($created){
-                        return Carbon::parse($created)->timestamp;
+                        try { return Carbon::parse($created)->timestamp; } catch (\Throwable $e) { return 0; }
                     }
                     return 0;
                 })
                 ->values();
-            $paginator = $this->paginateCollection($combined);
+            // Paginate combined collection
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $paginator = new LengthAwarePaginator(
+                $combined->forPage($currentPage, $perPage),
+                $combined->count(),
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
             $totals = $this->calculateTotals($marketingExpenses->concat($personalPending));
 
-            // Prepare the Approved list (card) showing recent approved items (personal subsection)
+            // Per-page for approved list (card)
+            $approvedPerPage = (int) ($request->input('approved_per_page') ?? 15);
             $approvedCardSection = 'personal';
             $selectedApprovedPerson = $request->input('marketing_person_code');
-            $approvedList = MarketingExpense::query()
+            $approvedListQuery = MarketingExpense::query()
                 ->with(['marketingPerson','approver'])
                 ->where('status', 'approved')
                 ->whereNull('cleared_at')
@@ -86,9 +94,8 @@ class MarketingExpenseController extends Controller
                               });
                     });
                 })
-                ->orderBy('created_at', 'desc')
-                ->take(50)
-                ->get();
+                ->orderBy('created_at', 'desc');
+            $approvedList = $approvedListQuery->paginate($approvedPerPage)->withQueryString();
 
             // If the approved rows are requested as a partial (AJAX), return just the rows
             if ($request->ajax() && $request->input('approved_partial')) {
@@ -101,6 +108,8 @@ class MarketingExpenseController extends Controller
                 'status'   => 'pending',
                 'section'  => $section,
                 'approvedList' => $approvedList,
+                'selected_per_page' => $perPage,
+                'selected_approved_per_page' => $approvedPerPage,
             ]);
         }
 
@@ -137,12 +146,44 @@ class MarketingExpenseController extends Controller
             ->take(50)
             ->get();
 
+        // For non-marketing sections, support perPage for main list and approvedList
+        $perPage = (int) ($request->input('perPage') ?? 15);
+        $approvedPerPage = (int) ($request->input('approved_per_page') ?? 15);
+
+        // Main pending list
+        $expenses = $listing['expenses'];
+        if ($expenses instanceof \Illuminate\Pagination\LengthAwarePaginator) {
+            // Already paginated
+        } elseif ($expenses instanceof \Illuminate\Support\Collection) {
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $expenses = new LengthAwarePaginator(
+                $expenses->forPage($currentPage, $perPage),
+                $expenses->count(),
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        }
+
+        // Approved list (card)
+        $approvedList = $approvedList instanceof \Illuminate\Pagination\LengthAwarePaginator
+            ? $approvedList
+            : (new LengthAwarePaginator(
+                collect($approvedList)->forPage(LengthAwarePaginator::resolveCurrentPage(), $approvedPerPage),
+                collect($approvedList)->count(),
+                $approvedPerPage,
+                LengthAwarePaginator::resolveCurrentPage(),
+                ['path' => $request->url(), 'query' => $request->query()]
+            ));
+
         return view('superadmin.marketing.expenses.approve', [
-            'expenses' => $listing['expenses'],
+            'expenses' => $expenses,
             'totals'   => $listing['totals'],
             'status'   => 'pending',
             'section'  => $section,
             'approvedList' => $approvedList,
+            'selected_per_page' => $perPage,
+            'selected_approved_per_page' => $approvedPerPage,
         ]);
     }
 

@@ -144,3 +144,18 @@ Route::middleware('auth:admin')->group(function () {
 });
 
 
+Route::get('/test-fcm', function () {
+
+    $token = "d7i163iGSaOqdfD12LJCBL:APA91bHcK8hn8dWonm6nRwG7oHisBc-oCmAaDllH-3tCNxjdX7rt-3O7t94NTaqyJnroyIEi-xHfg9chiHws79VrgTg6NlS1qVQjf0I-xCrOEV4SQbDx5i4";
+
+    $fcm = new \App\Services\FCMService();
+
+    $response = $fcm->sendNotification(
+        $token,
+        "Test Notification",
+        "Your FCM is connected successfully!",
+        ["debug" => "true"]   // ✅ must be string
+    );
+
+    dd($response);
+});

@@ -132,8 +132,43 @@ class BookingController extends Controller
                 }
 
                 return $booking;
-            });
+            }); 
+
             
+
+            // ---------------------------
+            // SEND NOTIFICATION TO MARKETING USER
+            // ---------------------------
+            $marketingUser = User::where('user_code', $request->marketing_id)->first();
+            
+            // $token = "d7i163iGSaOqdfD12LJCBL:APA91bHcK8hn8dWonm6nRwG7oHisBc-oCmAaDllH-3tCNxjdX7rt-3O7t94NTaqyJnroyIEi-xHfg9chiHws79VrgTg6NlS1qVQjf0I-xCrOEV4SQbDx5i4"; 
+            
+            // $token = $marketingUser->device_token; 
+            $token = "d7i163iGSaOqdfD12LJCBL:APA91bHcK8hn8dWonm6nRwG7oHisBc-oCmAaDllH-3tCNxjdX7rt-3O7t94NTaqyJnroyIEi-xHfg9chiHws79VrgTg6NlS1qVQjf0I-xCrOEV4SQbDx5i4";
+
+            if ($marketingUser && $marketingUser->device_token) {
+
+                // Get response for debugging 
+
+                $fcmResponse = $this->fcmService->sendNotification(
+                    $token,
+                    "New Booking Assigned",
+                    "A new booking has been assigned to you.",
+                    [
+                        "booking_id" => (string) $booking->id, // Convert to string
+                        "created_by" => auth()->user()->name ?? "System",
+                    ]
+                );
+                // // Debug print / Log
+                // Log::info("FCM Response:", [
+                //     "response" => $fcmResponse
+                // ]); 
+                // dd($fcmResponse);    
+                // exit; 
+                // If you want direct output (for testing only):
+                // dd($fcmResponse);
+            }
+
             return $this->bookingCardService->renderCardsForBooking($booking);            
 
         } catch (\Exception $e) {
@@ -204,7 +239,6 @@ class BookingController extends Controller
                     foreach ($request->booking_items as $item) {
                         $new_booking->items()->create($item);
                     } 
-
                 }
             }); 
 
@@ -223,12 +257,12 @@ class BookingController extends Controller
                         "updated_by" => auth()->user()->name ?? "System",
                     ]
                 );
-            }
+            }         
 
-        
             return redirect()
                 ->back()
                 ->with('success', 'Booking updated successfully!');
+
 
         } catch (\Exception $e) {
             Log::error('Booking update failed', [

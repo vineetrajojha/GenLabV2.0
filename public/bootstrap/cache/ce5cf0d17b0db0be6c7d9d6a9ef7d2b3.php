@@ -68,21 +68,21 @@
                                     <label class="form-label">Letter Date <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control" name="letter_date" value="<?php echo e(old('letter_date')); ?>" required>
                                 </div>
-                                <div class="col-sm-4 col-12">
-    <label class="form-label">Job Order Date <span class="text-danger">*</span></label>
-    <input 
-        type="date" 
-        class="form-control" 
-        name="job_order_date" 
-        value="<?php echo e(old('job_order_date', date('Y-m-d'))); ?>"
-        <?php echo e($firstBackedBooking == 0 ? 'min=' . date('Y-m-d') : ''); ?>
+                                <div class="col-sm-4 col-12" >
+                                        <label class="form-label">Job Order Date <span class="text-danger">*</span></label>
+                                        <input 
+                                            type="date" 
+                                            class="form-control" 
+                                            name="job_order_date" 
+                                            value="<?php echo e(old('job_order_date', date('Y-m-d'))); ?>"
+                                            <?php echo e($firstBackedBooking == 0 ? 'min=' . date('Y-m-d') : ''); ?>
 
-        required
-    >
-    <?php if($firstBackedBooking == 0): ?>
-        <small class="text-danger"></small>
-    <?php endif; ?>
-</div>
+                                            required
+                                        >
+                                        <?php if($firstBackedBooking == 0): ?>
+                                            <small class="text-danger"></small>
+                                        <?php endif; ?>
+                                </div>
 
                                 <div class="col-sm-4 col-12">
                                     <label class="form-label">Report Issue To <span class="text-danger">*</span></label>
@@ -110,8 +110,8 @@
                                 </div>
 
                                 <div class="col-lg-4 col-sm-6 col-12 mt-3">
-                                    <label class="form-label">Contact Email <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" name="contact_email" value="<?php echo e(old('contact_email')); ?>" required>
+                                    <label class="form-label">Contact Email <span class="text-danger"></span></label>
+                                    <input type="email" class="form-control" name="contact_email" value="<?php echo e(old('contact_email')); ?>">
                                 </div>
                                 <div class="col-lg-4 col-sm-6 col-12 mt-3">
                                     <label class="form-label">Department<span class="text-danger">*</span></label>
@@ -191,7 +191,13 @@
                         <label class="form-label">Job Order No *</label>
                         <input type="text" name="booking_items[0][job_order_no]" class="form-control job_order_no" autocomplete="off" required>
                         <div class="dropdown-menu w-100 jobOrderList overflow-auto"></div>
-                    </div>
+                    </div> 
+                    
+                    <!-- <div class="col-lg-4 col-sm-6 col-12">
+                        <label class="form-label">Job Order Date *</label>
+                        <input type="date" name="booking_items[0][job_order_date]" class="form-control" required>
+                    </div> -->
+
                     <div class="col-lg-2 col-sm-6 col-12">
                         <label class="form-label">Amount *</label>
                         <input type="text" name="booking_items[0][amount]" class="form-control amount" required>
@@ -206,9 +212,24 @@
                         <input type="hidden" name="booking_items[0][lab_analysis_code]" class="lab_analysis_code_hidden">
                         <div class="dropdown-menu w-100 labAnalysisDropdown overflow-auto" style="display: none; max-height: 200px;"></div>
                     </div>
-                    <div class="col-lg-4 col-sm-6 col-12">
+                    <div class="col-lg-2 col-sm-6 col-12">
                         <label class="form-label">Lab Expected Date *</label>
                         <input type="date" name="booking_items[0][lab_expected_date]" class="form-control" required>
+                    </div>
+                    <div class="col-sm-2 col-12">
+                                        <label class="form-label">Job Order Date <span class="text-danger">*</span></label>
+                                        <input 
+                                            type="date" 
+                                            class="form-control" 
+                                            name="booking_items[0][job_order_date]" 
+                                            value="<?php echo e(old('booking_items[0][job_order_date]', date('Y-m-d'))); ?>"
+                                            <?php echo e($firstBackedBooking == 0 ? 'min=' . date('Y-m-d') : ''); ?>
+
+                                            required
+                                        >
+                                        <?php if($firstBackedBooking == 0): ?>
+                                            <small class="text-danger"></small>
+                                        <?php endif; ?>
                     </div>
                 </div>
                 <button type="button" class="btn btn-danger btn-sm remove-item mt-2" style="display: none;">Remove</button>
@@ -461,4 +482,4 @@
 
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/Bookings/newBooking.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/Bookings/newBooking.blade.php ENDPATH**/ ?>

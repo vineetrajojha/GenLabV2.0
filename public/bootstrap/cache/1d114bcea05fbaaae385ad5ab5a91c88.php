@@ -396,7 +396,7 @@
         </div>
 
     </div>
-    <?php echo $__env->make('components.chatbot', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+    <?php echo $__env->make('components.chatbot', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <link rel="stylesheet" href="/css/superadmin-dashboard.css">
     <link rel="stylesheet" href="/css/chatbot.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -404,4 +404,4 @@
     <script src="/js/chatbot.js"></script>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/dashboard.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/dashboard.blade.php ENDPATH**/ ?>

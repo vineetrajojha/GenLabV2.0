@@ -16,8 +16,8 @@
     <div class="page-header">
         <div class="add-item d-flex justify-content-between w-100">
             <div class="page-title">
-                <h4>Booking</h4>
-                <h6>Booking By Letter</h6>
+                <h4>All Letters</h4>
+                <h6>Assign Client</h6>
             </div>
             
             <!-- 🔹 Register Client Button (opens popup) -->
@@ -103,8 +103,8 @@
                     <thead class="table-light">
                         <tr>
                             <th><input type="checkbox" id="select-all"></th>
-                            <th>Client Name</th>
-                            <th>Reference No</th> 
+                            <th style="width:180px;">Client Name</th>
+                            <th style="width:160px;">Reference No</th>
                             <th>Marketing Person</th>
                             <th>Show Letter</th>
                             <th>Items</th>
@@ -116,8 +116,12 @@
                         @forelse($bookings as $booking)
                         <tr>
                             <td><input type="checkbox"></td>
-                            <td>{{ $booking->client_name }}</td>
-                            <td>{{ $booking->reference_no }}</td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->client_name }}">{{ $booking->client_name }}</div>
+                            </td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->reference_no }}">{{ $booking->reference_no }}</div>
+                            </td>
                             <td>{{ $booking->marketingPerson->name ?? '-' }}</td>
                             <td>
                                 @if($booking->upload_letter_path)
@@ -272,3 +276,19 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    /* Reuse truncate-cell + cell-inner pattern for letters table */
+    .truncate-cell { max-width: 180px; }
+    .truncate-cell .cell-inner{
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+    }
+    @media (max-width: 992px){ .truncate-cell { max-width: 140px; } }
+</style>
+@endpush

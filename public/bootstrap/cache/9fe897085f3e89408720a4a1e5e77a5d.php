@@ -108,7 +108,7 @@
                 </thead>
                 <tbody>
                     <?php $__empty_1 = true; $__currentLoopData = $expenses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $expense): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                        <?php echo $__env->make('superadmin.marketing.expenses._row', ['expense' => $expense, 'serial' => $expenses->firstItem() + $index], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                        <?php echo $__env->make('superadmin.marketing.expenses._row', ['expense' => $expense, 'serial' => $expenses->firstItem() + $index], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="10" class="text-center">No records found.</td>
@@ -134,9 +134,22 @@
         </div>
     </div>
 
-    <div class="card-footer">
-        <?php echo e($expenses->withQueryString()->links('pagination::bootstrap-5')); ?>
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <form method="GET" action="<?php echo e(url()->current()); ?>" class="d-flex align-items-center gap-2">
+            <?php $__currentLoopData = request()->except(['perPage','page']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <input type="hidden" name="<?php echo e($key); ?>" value="<?php echo e($val); ?>">
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+            <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <?php $__currentLoopData = [25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $size): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <option value="<?php echo e($size); ?>" <?php echo e(request('perPage',25)==$size ? 'selected' : ''); ?>><?php echo e($size); ?></option>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </select>
+        </form>
+        <div>
+            <?php echo e($expenses->appends(request()->all())->links('pagination::bootstrap-5')); ?>
 
+        </div>
     </div>
 </div>
 <?php $__env->stopSection(); ?>
@@ -480,4 +493,4 @@
     <?php endif; ?>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/marketing/expenses/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/marketing/expenses/index.blade.php ENDPATH**/ ?>

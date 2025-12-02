@@ -8,6 +8,9 @@
 
 @section('title', $pageTitle)
 
+@section('marketing_shortcuts')
+@endsection
+
 @section('content')
     <div class="content">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">

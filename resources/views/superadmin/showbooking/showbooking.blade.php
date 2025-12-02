@@ -110,8 +110,8 @@
                     <thead class="table-light">
                         <tr>
                             <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
-                            <th>Client Name</th>
-                            <th>Reference No</th> 
+                            <th style="width:200px;">Client Name</th>
+                            <th style="width:160px;">Reference No</th>
                             <th>Marketing Person</th>
                             <th>Show Letter</th>
                             <th>Items</th>
@@ -124,8 +124,12 @@
                             <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
                           
                            
-                            <td>{{ $booking->client_name}}</td>
-                            <td>{{ $booking->reference_no }}</td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->client_name }}">{{ $booking->client_name }}</div>
+                            </td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->reference_no }}">{{ $booking->reference_no }}</div>
+                            </td>
                      
                             <td>{{ $booking->marketingPerson->name }}</td>
                          
@@ -239,9 +243,40 @@
                 </table>
             </div>
 
+            @push('styles')
+            <style>
+                /* Truncate and clamp wrapper to show up to two lines */
+                .truncate-cell { max-width: 200px; }
+                .truncate-cell .cell-inner {
+                    display: -webkit-box;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 2;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: normal;
+                }
+                @media (max-width: 768px){ .truncate-cell { max-width: 140px; } }
+            </style>
+            @endpush
+
             <!-- Pagination -->
             <div class="p-3">
-                {{ $bookings->appends(['search' => request('search')])->links('pagination::bootstrap-5') }}
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <form method="GET" action="{{ route('superadmin.showbooking.showBooking', $department?->id) }}" class="d-flex align-items-center gap-2">
+                        @foreach(request()->except(['perPage','page']) as $key => $val)
+                            <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                        @endforeach
+                        <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                        <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                            @foreach([25,50,100] as $size)
+                                <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                    <div>
+                        {{ $bookings->appends(request()->all())->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

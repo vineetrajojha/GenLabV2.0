@@ -113,8 +113,8 @@
                     <thead class="table-light">
                         <tr>
                             <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
-                            <th>Client Name</th>
-                            <th>Reference No</th> 
+                            <th style="width:200px;">Client Name</th>
+                            <th style="width:160px;">Reference No</th>
                             <th>Marketing Person</th>
                             <th>Show Letter</th>
                             <th>Items</th>
@@ -127,8 +127,12 @@
                             <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
                           
                            
-                            <td><?php echo e($booking->client_name); ?></td>
-                            <td><?php echo e($booking->reference_no); ?></td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($booking->client_name); ?>"><?php echo e($booking->client_name); ?></div>
+                            </td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($booking->reference_no); ?>"><?php echo e($booking->reference_no); ?></div>
+                            </td>
                      
                             <td><?php echo e($booking->marketingPerson->name); ?></td>
                          
@@ -243,13 +247,44 @@
                 </table>
             </div>
 
+            <?php $__env->startPush('styles'); ?>
+            <style>
+                /* Truncate and clamp wrapper to show up to two lines */
+                .truncate-cell { max-width: 200px; }
+                .truncate-cell .cell-inner {
+                    display: -webkit-box;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 2;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: normal;
+                }
+                @media (max-width: 768px){ .truncate-cell { max-width: 140px; } }
+            </style>
+            <?php $__env->stopPush(); ?>
+
             <!-- Pagination -->
             <div class="p-3">
-                <?php echo e($bookings->appends(['search' => request('search')])->links('pagination::bootstrap-5')); ?>
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <form method="GET" action="<?php echo e(route('superadmin.showbooking.showBooking', $department?->id)); ?>" class="d-flex align-items-center gap-2">
+                        <?php $__currentLoopData = request()->except(['perPage','page']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <input type="hidden" name="<?php echo e($key); ?>" value="<?php echo e($val); ?>">
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                        <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                            <?php $__currentLoopData = [25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $size): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($size); ?>" <?php echo e(request('perPage',25)==$size ? 'selected' : ''); ?>><?php echo e($size); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                    </form>
+                    <div>
+                        <?php echo e($bookings->appends(request()->all())->links('pagination::bootstrap-5')); ?>
 
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/showbooking/showbooking.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/showbooking/showbooking.blade.php ENDPATH**/ ?>

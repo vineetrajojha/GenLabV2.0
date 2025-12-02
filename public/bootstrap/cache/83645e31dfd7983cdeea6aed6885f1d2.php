@@ -1,5 +1,3 @@
-
-
 <?php
     $pageTitle = 'Marketing Dashboard';
     $metricLookup = collect($payload['metrics'] ?? [])->pluck('value', 'label');
@@ -7,6 +5,9 @@
 ?>
 
 <?php $__env->startSection('title', $pageTitle); ?>
+
+<?php $__env->startSection('marketing_shortcuts'); ?>
+<?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('content'); ?>
     <div class="content">
@@ -27,8 +28,8 @@
             </div>
         </div>
 
-        <?php echo $__env->make('superadmin.departments.partials.metrics', ['metrics' => $payload['metrics'] ?? []], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
-        <?php echo $__env->make('superadmin.departments.partials.charts', ['charts' => $payload['charts'] ?? []], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+        <?php echo $__env->make('superadmin.departments.partials.metrics', ['metrics' => $payload['metrics'] ?? []], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php echo $__env->make('superadmin.departments.partials.charts', ['charts' => $payload['charts'] ?? []], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         <div class="row g-3">
             <div class="col-xl-6">
@@ -37,7 +38,7 @@
                         <h6 class="mb-0"><i class="ti ti-link me-2"></i>Quick Links</h6>
                     </div>
                     <div class="card-body">
-                        <?php echo $__env->make('superadmin.departments.partials.quick-links', ['quickLinks' => $payload['quick_links'] ?? []], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                        <?php echo $__env->make('superadmin.departments.partials.quick-links', ['quickLinks' => $payload['quick_links'] ?? []], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     </div>
                 </div>
             </div>
@@ -69,4 +70,4 @@
     </div>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/departments/marketing/dashboard.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/departments/marketing/dashboard.blade.php ENDPATH**/ ?>

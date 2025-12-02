@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Employee Salary'); ?>
 
 <?php $__env->startSection('content'); ?>
@@ -149,4 +147,4 @@
 </div>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/accounts/payroll/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/accounts/payroll/index.blade.php ENDPATH**/ ?>

@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Personal Expenses'); ?>
 
 <?php $__env->startSection('content'); ?>
@@ -33,16 +31,21 @@
     </div>
 
     <div class="card-body">
+        <?php
+            if (!isset($approvedRejected)) {
+                $approvedRejected = $expenses ?? null;
+                if (! $approvedRejected) {
+                    $approvedRejected = new \Illuminate\Pagination\LengthAwarePaginator(collect([]), 0, 15, 1, ['path' => request()->url(), 'pageName' => 'page']);
+                }
+            }
+        ?>
         <?php if(($section ?? 'personal') === 'personal'): ?>
             <section class="mb-5" aria-labelledby="daily-expense-heading">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                     <div>
                         <h5 class="mb-1" id="daily-expense-heading">Daily Uploaded Expenses</h5>
                         <small class="text-muted">Every personal expense captured for the selected filters</small>
                     </div>
-                    <button type="button" id="sendForApprovalBtn" class="btn btn-success">
-                        Send This Month for Approval
-                    </button>
                 </div>
                 <div class="table-responsive shadow-sm rounded border">
                     <table class="table table-striped align-middle mb-0" id="personalDailyTable">
@@ -53,15 +56,17 @@
                                 <th>Amount</th>
                                 <th>Expense Date</th>
                                 <th>Receipt</th>
+                                <th>Approved By</th>
+                                <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php $__empty_1 = true; $__currentLoopData = $dailyExpenses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $daily): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                                <?php echo $__env->make('superadmin.personal.expenses._daily_row', ['expense' => $daily, 'serial' => $index + 1], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                                <?php echo $__env->make('superadmin.personal.expenses._daily_row', ['expense' => $daily, 'serial' => $index + 1], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr class="empty-state">
-                                    <td colspan="6" class="text-center">No personal expenses uploaded yet.</td>
+                                    <td colspan="8" class="text-center">No personal expenses uploaded yet.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -70,7 +75,7 @@
                                 <td class="text-end">Total:</td>
                                 <td></td>
                                 <td id="dailyTotalAmount"><?php echo e(number_format($dailyExpenses->sum('amount'), 2)); ?></td>
-                                <td colspan="3"></td>
+                                <td colspan="5"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -78,99 +83,142 @@
             </section>
         <?php endif; ?>
 
-        <section aria-labelledby="monthly-expense-heading">
+        <section aria-labelledby="checkedin-expense-heading">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                 <div>
-                    <h5 class="mb-1" id="monthly-expense-heading">Monthly Summary</h5>
-                    <small class="text-muted">Track approved vs pending expenses for the selected period</small>
+                    <h5 class="mb-1" id="checkedin-expense-heading">Checked In</h5>
+                    <small class="text-muted">Personal expenses that have been Approved (moved to Account)</small>
                 </div>
             </div>
 
-            <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
-                <div class="search-set">
-                    <form method="GET" action="<?php echo e(route('superadmin.personal.expenses.index')); ?>" class="input-group">
-                        <input type="text" name="search" value="<?php echo e(request('search')); ?>" class="form-control" placeholder="Search...">
-                        <button class="btn btn-outline-secondary" type="submit">🔍</button>
-                    </form>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <!-- placeholder for potential actions -->
                 </div>
-
-                <div class="search-set ms-auto">
-                    <form method="GET" action="<?php echo e(route('superadmin.personal.expenses.index')); ?>" class="row g-2 align-items-end flex-nowrap">
-                        <div class="col-auto">
-                            <select name="month" class="form-select">
-                                <option value="">Select Month</option>
-                                <?php $__currentLoopData = range(1,12); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($m); ?>" <?php echo e(request('month') == $m ? 'selected' : ''); ?>>
-                                        <?php echo e(\Carbon\Carbon::create()->month($m)->format('F')); ?>
-
-                                    </option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </select>
-                        </div>
-
-                        <div class="col-auto">
-                            <select name="year" class="form-select">
-                                <option value="">Select Year</option>
-                                <?php $__currentLoopData = range(date('Y'), date('Y') - 10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $y): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($y); ?>" <?php echo e(request('year') == $y ? 'selected' : ''); ?>>
-                                        <?php echo e($y); ?>
-
-                                    </option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </select>
-                        </div>
-
-                        <div class="col-auto">
-                            <button class="btn btn-outline-secondary" type="submit">Filter</button>
-                        </div>
-                    </form>
-                </div>
+                <form method="GET" action="<?php echo e(url()->current()); ?>" class="d-flex g-2 align-items-center">
+                    <input type="hidden" name="section" value="personal">
+                    <label class="me-2 small mb-0">Rows:</label>
+                    <select name="checkedin_per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                        <?php $__currentLoopData = [10,15,25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($pp); ?>" <?php echo e((isset($selected_checkedin_per_page) && (int)$selected_checkedin_per_page === $pp) ? 'selected' : ''); ?>><?php echo e($pp); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </select>
+                    <a href="<?php echo e(url()->current()); ?>" class="btn btn-sm btn-outline-secondary">Reset</a>
+                </form>
             </div>
-
             <div class="table-responsive shadow-sm rounded border">
-                <table class="table table-hover align-middle mb-0" id="expensesTable">
+                <table class="table table-hover align-middle mb-0" id="checkedInTable">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Total <br>Expenses</th>
-                            <th>Approved <br> Expenses</th>
-                            <th>Due <br> Expenses</th>
-                            <th>Upload Date</th>
-                            <th>From To</th>
-                            <th>Approved By</th>
-                            <th>Uploads</th>
-                            <th>Status</th>
+                            <th>Name / File</th>
+                            <th class="text-end">Total Approved Amount</th>
+                            <th>Approver</th>
+                            <th>Generated</th>
+                            <th>PDF</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php $__empty_1 = true; $__currentLoopData = $expenses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $expense): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                            <?php echo $__env->make('superadmin.marketing.expenses._row', ['expense' => $expense, 'serial' => $expenses->firstItem() + $index, 'isApprovalPage' => false, 'showPerson' => false], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <?php
+                            $authUser = Auth::guard('web')->user() ?? Auth::user();
+                            // Normalize checkedIn source (support paginator or plain array)
+                            $checkedSource = (isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator) ? collect($checkedIn->items()) : collect($checkedIn ?? []);
+                            $ownCheckedIn = $checkedSource->filter(function($it) use ($authUser){
+                                if(!$authUser) return false;
+                                $meta = $it['meta'] ?? [];
+                                $filters = $meta['filters'] ?? [];
+                                // direct filter
+                                $mp = $filters['marketing_person_code'] ?? null;
+                                if ($mp && (string)$mp === (string)$authUser->user_code) return true;
+                                // arrays
+                                $personCodes = $meta['person_codes'] ?? [];
+                                $personNames = $meta['person_names'] ?? [];
+                                if (!empty($personCodes) && in_array((string)$authUser->user_code, array_map('strval', $personCodes), true)) return true;
+                                foreach ($personNames as $pn) {
+                                    if (!empty($pn) && stripos($pn, $authUser->name) !== false) return true;
+                                }
+                                // single fields
+                                $personCode = $meta['person_code'] ?? null;
+                                $personName = $meta['person_name'] ?? null;
+                                if ($personCode && (string)$personCode === (string)$authUser->user_code) return true;
+                                if ($personName && stripos($personName, $authUser->name) !== false) return true;
+                                // expense_ids: check if any of the expense ids belong to this user
+                                if (!empty($meta['expense_ids']) && is_array($meta['expense_ids'])){
+                                    $ids = array_map('intval', $meta['expense_ids']);
+                                    $match = \App\Models\MarketingExpense::whereIn('id', $ids)
+                                        ->where(function($q) use ($authUser){
+                                            $q->where('marketing_person_code', $authUser->user_code)
+                                              ->orWhere('person_name', 'like', "%{$authUser->name}%");
+                                        })->exists();
+                                    if($match) return true;
+                                }
+                                // filename fallback
+                                $filename = $it['filename'] ?? '';
+                                if ($filename && (stripos($filename, $authUser->user_code) !== false || stripos($filename, $authUser->name) !== false)) return true;
+                                return false;
+                            })->values();
+                        ?>
+                        <?php if($ownCheckedIn->isNotEmpty()): ?>
+                            <?php
+                                $startIndex = (isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator) ? ($checkedIn->firstItem() ?? 1) : 1;
+                            ?>
+                            <?php $__currentLoopData = $ownCheckedIn; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $it): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <tr>
+                                    <td><?php echo e($startIndex + $i); ?></td>
+                                    <td>
+                                        <?php if(!empty($it['meta']['person_name'])): ?>
+                                            <?php echo e($it['meta']['person_name']); ?><?php if(!empty($it['meta']['person_code'])): ?> (<?php echo e($it['meta']['person_code']); ?>)<?php endif; ?>
+                                            <div class="muted small"><?php echo e($it['filename']); ?></div>
+                                        <?php else: ?>
+                                            <?php echo e($it['meta']['approved_section'] ? ucfirst($it['meta']['approved_section']) : ''); ?> <?php echo e($it['filename']); ?>
+
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end"><?php echo e(number_format((float) ($it['meta']['approved_total'] ?? ($it['meta']['total_expenses'] ?? 0)), 2)); ?></td>
+                                    <td><?php echo e($it['meta']['approver_name'] ?? '-'); ?></td>
+                                    <td><?php echo e($it['meta']['created_at'] ?? '-'); ?></td>
+                                    <td>
+                                        <?php $pdfUrl = asset('storage/' . $it['path']); ?>
+                                        <a href="<?php echo e($pdfUrl); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Open PDF</a>
+                                        <a href="<?php echo e($pdfUrl); ?>" download class="btn btn-sm btn-primary">Download</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php else: ?>
                             <tr>
-                                <td colspan="9" class="text-center">No records found.</td>
+                                <td colspan="6" class="text-center">No checked in personal expenses found.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
-                    <tfoot class="table-light fw-bold">
-                        <tr>
-                            <td class="text-end">Grand Total:</td>
-                            <td id="totalExp"><?php echo e(number_format($totals['total_expenses'], 2)); ?></td>
-                            <td id="totalApproved"><?php echo e(number_format($totals['approved'], 2)); ?></td>
-                            <td class="text-danger" id="totalDue"><?php echo e(number_format($totals['due'], 2)); ?></td>
-                            <td colspan="5"></td>
-                        </tr>
-                    </tfoot>
                 </table>
-            </div>
+                <?php if(isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator): ?>
+                    <div class="d-flex justify-content-end mt-3">
+                        <?php echo e($checkedIn->withQueryString()->links('pagination::bootstrap-5')); ?>
 
-            <div class="d-flex justify-content-end mt-3">
-                <?php echo e($expenses->withQueryString()->links('pagination::bootstrap-5')); ?>
-
+                    </div>
+                <?php endif; ?>
             </div>
         </section>
     </div>
 </div>
 <?php $__env->stopSection(); ?>
+
+<!-- Receipt preview modal (used for daily row previews) -->
+<div class="modal fade" id="receiptPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Receipt Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="receiptPreviewContainer" style="min-height:400px; display:flex; align-items:center; justify-content:center;">
+                    <!-- Content injected by JS: <img> or <iframe> -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php $__env->startPush('scripts'); ?>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -375,7 +423,31 @@
                     temp.innerHTML = data.rowHtml.trim();
                     const newRow = temp.firstElementChild;
                     if(newRow){
-                        tbody.insertBefore(newRow, tbody.firstChild);
+                        try {
+                            const newGroup = newRow.dataset.group;
+                            const newId = newRow.dataset.id;
+
+                            let replaced = false;
+                            if(newGroup){
+                                const existing = tbody.querySelector('tr[data-group="' + newGroup + '"]');
+                                if(existing){ existing.replaceWith(newRow); replaced = true; }
+                            }
+
+                            if(!replaced && newId){
+                                const existingById = tbody.querySelector('tr[data-id="' + newId + '"]');
+                                if(existingById){ existingById.replaceWith(newRow); replaced = true; }
+                                else {
+                                    const groupedRows = Array.from(tbody.querySelectorAll('tr[data-group]'));
+                                    for(const r of groupedRows){
+                                        const groupAttr = r.dataset.group || '';
+                                        const parts = groupAttr.split(',').map(s => s.trim()).filter(Boolean);
+                                        if(parts.includes(String(newId))){ r.replaceWith(newRow); replaced = true; break; }
+                                    }
+                                }
+                            }
+
+                            if(!replaced){ tbody.insertBefore(newRow, tbody.firstChild); }
+                        } catch(e){ tbody.insertBefore(newRow, tbody.firstChild); }
                     }
                 }
 
@@ -401,6 +473,64 @@
             }catch(err){
                 Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Failed to upload expense' });
             }
+        });
+
+        // Receipt preview for daily rows
+        function showReceiptPreview(url){
+            const container = document.getElementById('receiptPreviewContainer');
+            if(!container) return;
+            container.innerHTML = '';
+
+            // Ensure we use an absolute URL so the browser can fetch it reliably
+            let absUrl = url;
+            try{
+                absUrl = new URL(url, window.location.origin).href;
+            }catch(e){
+                // fallback to given URL
+                absUrl = url;
+            }
+
+            const ext = (absUrl.split('.').pop() || '').split(/[#?]/)[0].toLowerCase();
+                if(['jpg','jpeg','png','gif','bmp','webp'].includes(ext)){
+                const img = document.createElement('img');
+                img.src = encodeURI(absUrl);
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '80vh';
+                img.className = 'img-fluid';
+                img.addEventListener('error', () => {
+                    container.innerHTML = `<div class="p-4 text-center text-muted">Unable to load image. <a href="${absUrl}" target="_blank" rel="noopener noreferrer">Open in new tab</a></div>`;
+                });
+                container.appendChild(img);
+            } else if(ext === 'pdf'){
+                const iframe = document.createElement('iframe');
+                iframe.src = encodeURI(absUrl);
+                iframe.style.width = '100%';
+                iframe.style.height = '80vh';
+                iframe.frameBorder = '0';
+                iframe.addEventListener('error', () => {
+                    container.innerHTML = `<div class="p-4 text-center text-muted">Unable to load PDF. <a href="${absUrl}" target="_blank" rel="noopener noreferrer">Open in new tab</a></div>`;
+                });
+                container.appendChild(iframe);
+            } else {
+                // fallback: open in new tab
+                window.open(absUrl, '_blank');
+                return;
+            }
+
+            const modalEl = document.getElementById('receiptPreviewModal');
+            if(modalEl){
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
+
+        document.addEventListener('click', function(e){
+            const btn = e.target.closest('.js-preview-receipt');
+            if(!btn) return;
+            e.preventDefault();
+            const url = btn.dataset.url;
+            if(!url) return;
+            showReceiptPreview(url);
         });
 
         if(document.querySelector('#personalDailyTable')){
@@ -637,55 +767,8 @@
             }
         });
 
-        document.getElementById('sendForApprovalBtn')?.addEventListener('click', async () => {
-            if(!hasDailyRows()){
-                Swal.fire({ icon: 'info', title: 'Nothing to send', text: 'No personal expenses available for the selected month.' });
-                return;
-            }
-
-            const monthSelect = document.querySelector('select[name="month"]');
-            const yearSelect = document.querySelector('select[name="year"]');
-            const fd = new FormData();
-            fd.append('_token', csrfToken());
-            if(monthSelect && monthSelect.value){ fd.append('month', monthSelect.value); }
-            if(yearSelect && yearSelect.value){ fd.append('year', yearSelect.value); }
-
-            try{
-                const resp = await fetch(`<?php echo e(route('superadmin.personal.expenses.send')); ?>`, {
-                    method: 'POST',
-                    body: fd,
-                });
-
-                const contentType = resp.headers.get('content-type') || '';
-                if(contentType.includes('application/pdf')){
-                    const blob = await resp.blob();
-                    const disposition = resp.headers.get('content-disposition') || '';
-                    let filename = 'personal-expenses.pdf';
-                    const match = disposition.match(/filename="?([^";]+)"?/i);
-                    if(match && match[1]){
-                        filename = match[1];
-                    }
-
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    URL.revokeObjectURL(url);
-
-                    await Swal.fire({ icon: 'success', title: 'Sent for approval', text: 'Monthly expenses exported and forwarded for approval.' });
-                    window.location.reload();
-                } else {
-                    const data = await resp.json();
-                    throw new Error(data.message || 'Failed to send for approval');
-                }
-            }catch(err){
-                Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Unable to send expenses for approval.' });
-            }
-        });
+        // 'Send This Month for Approval' functionality removed.
     </script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/personal/expenses/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/personal/expenses/index.blade.php ENDPATH**/ ?>

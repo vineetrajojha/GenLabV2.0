@@ -69,7 +69,8 @@ class ReportingController extends Controller
         $month = $request->has('month') ? (int) $request->get('month') : null;
         $year = $request->has('year') ? (int) $request->get('year') : null;
         $overdue = $request->boolean('overdue');
-        $today = now()->toDateString();
+        $beforeDate = $request->get('before_date');
+        $cutoff = $beforeDate ?: now()->toDateString();
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing'); // user_code of marketing person
         $mode = $request->get('mode', 'job'); // job | reference
@@ -81,20 +82,29 @@ class ReportingController extends Controller
             ->orderBy('name')
             ->get(['id','name','user_code']);
 
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) {
+            $perPage = 25;
+        }
+
         if ($mode === 'reference') {
             // Aggregate by booking (reference_no) where at least one pending/overdue item
-            $bookingQuery = \App\Models\NewBooking::query()->withCount(['items as pending_items_count' => function($q) use ($overdue, $today) {
+            $bookingQuery = \App\Models\NewBooking::query()->withCount(['items as pending_items_count' => function($q) use ($overdue, $cutoff) {
                 if ($overdue) {
-                    $q->whereNotNull('received_at')->whereNull('issue_date')->whereNotNull('lab_expected_date')->whereDate('lab_expected_date', '<', $today);
+                    $q->whereNull('issue_date')
+                        ->where('lab_expected_date', '!=', '0000-00-00')
+                        ->whereDate('lab_expected_date', '<', $cutoff);
                 } else {
-                    // Pendings are items that have been received but not yet issued
-                    $q->whereNotNull('received_at')->whereNull('issue_date');
+                    // Pendings are items that do not have an issue date
+                    $q->whereNull('issue_date');
                 }
-            }])->with(['items' => function($q) use ($overdue, $today){
+            }])->with(['items' => function($q) use ($overdue, $cutoff){
                 if ($overdue) {
-                    $q->whereNotNull('received_at')->whereNull('issue_date')->whereNotNull('lab_expected_date')->whereDate('lab_expected_date', '<', $today);
+                    $q->whereNull('issue_date')
+                        ->where('lab_expected_date', '!=', '0000-00-00')
+                        ->whereDate('lab_expected_date', '<', $cutoff);
                 } else {
-                    $q->whereNotNull('received_at')->whereNull('issue_date');
+                    $q->whereNull('issue_date');
                 }
             }]);
             if ($departmentId) { $bookingQuery->where('department_id', $departmentId); }
@@ -110,19 +120,18 @@ class ReportingController extends Controller
                 if ($year) { $bookingQuery->whereHas('items', function($qi) use ($year){ $qi->whereYear('received_at',$year); }); }
             }
             $bookingQuery->having('pending_items_count','>',0)->latest('id');
-            $bookings = $bookingQuery->paginate(20)->withQueryString();
+            $bookings = $bookingQuery->paginate($perPage)->withQueryString();
             $items = collect();
             return view('superadmin.reporting.pendings', compact('items','bookings','departments','departmentId','mode','marketingPersons','marketing'));
         } else {
             $q = BookingItem::query()->with(['booking']);
             if ($overdue) {
-                $q->whereNotNull('received_at')
-                  ->whereNull('issue_date')
-                  ->whereNotNull('lab_expected_date')
-                  ->whereDate('lab_expected_date','<', $today);
+                $q->whereNull('issue_date')
+                  ->where('lab_expected_date', '!=', '0000-00-00')
+                  ->whereDate('lab_expected_date','<', $cutoff);
             } else {
-                // Pending items: received but not yet issued
-                $q->whereNotNull('received_at')->whereNull('issue_date');
+                // Pending items: items without an issue date
+                $q->whereNull('issue_date');
             }
             if ($departmentId) {
                 $q->whereHas('booking', function($b) use ($departmentId) { $b->where('department_id', $departmentId); });
@@ -142,7 +151,7 @@ class ReportingController extends Controller
                 if ($year) { $q->whereYear('received_at', $year); }
             }
             $q->latest('id');
-            $items = $q->paginate(20)->withQueryString();
+            $items = $q->paginate($perPage)->withQueryString();
             $bookings = collect();
             return view('superadmin.reporting.pendings', compact('items','bookings','departments','departmentId','mode','marketingPersons','marketing'));
         }
@@ -156,17 +165,17 @@ class ReportingController extends Controller
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing');
         $overdue = $request->boolean('overdue');
-        $today = now()->toDateString();
+        $beforeDate = $request->get('before_date');
+        $cutoff = $beforeDate ?: now()->toDateString();
 
         $q = BookingItem::query()->with(['booking']);
         if ($overdue) {
-            $q->whereNotNull('received_at')
-              ->whereNull('issue_date')
-              ->whereNotNull('lab_expected_date')
-              ->whereDate('lab_expected_date','<', $today);
+            $q->whereNull('issue_date')
+              ->where('lab_expected_date', '!=', '0000-00-00')
+              ->whereDate('lab_expected_date','<', $cutoff);
         } else {
-            // Pending when received but issue date not set
-            $q->whereNotNull('received_at')->whereNull('issue_date');
+            // Pending when issue date not set
+            $q->whereNull('issue_date');
         }
         if ($departmentId) {
             $q->whereHas('booking', function($b) use ($departmentId) { $b->where('department_id', $departmentId); });

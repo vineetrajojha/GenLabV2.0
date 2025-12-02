@@ -242,6 +242,15 @@
                     'type'=>'without_bill',
                     'route'=>route('superadmin.marketing.withoutBill',$marketingPerson->user_code).'?transaction_status=3&with_payment=1'
                 ],
+                [
+                    'id'=>'allClients',
+                    'title'=>'Clients',
+                    'count'=>$stats['allClients'] ?? 0,
+                    'amount'=>'Total Amount :'.'₹'.number_format($stats['totalBookingAmount'] ?? 0,2),
+                    'class'=>'success',
+                    'type'=>'all',
+                    'route'=>route('superadmin.marketing.allClients',$marketingPerson->user_code)
+                ],
             ];
         ?>
 
@@ -348,4 +357,4 @@ document.addEventListener("DOMContentLoaded", function() {
 </script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/accounts/marketingPerson/profile.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV1.0\resources\views/superadmin/accounts/marketingPerson/profile.blade.php ENDPATH**/ ?>

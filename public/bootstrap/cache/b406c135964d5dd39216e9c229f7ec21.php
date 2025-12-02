@@ -138,7 +138,7 @@
     </div>
 </div>
 
-<?php echo $__env->make('superadmin.layouts.include.chat', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+<?php echo $__env->make('superadmin.layouts.include.chat', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 <script>
 // Toggle fullscreen on expand icon
