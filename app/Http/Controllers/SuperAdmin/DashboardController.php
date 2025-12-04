@@ -15,11 +15,14 @@ use App\Models\NewBooking;
 use App\Models\Leave;
 use App\Models\Product;
 use App\Models\Client;
+use App\Models\InvoiceTds;
+use App\Models\CashLetterPayment;
 use App\Models\Approval;
 use App\Services\GetUserActiveDepartment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class DashboardController extends Controller
@@ -211,157 +214,231 @@ class DashboardController extends Controller
             ];
         }
 
-        $bookingQuery = NewBooking::where('marketing_id', $userCode);
-        $expenseBaseQuery = MarketingExpense::where('marketing_person_code', $userCode);
+        $cacheKey = "marketing_payload:{$userCode}";
 
-        $pendingExpenses = (clone $expenseBaseQuery)->where('status', 'pending')->count();
-        $approvedExpenseAmount = (clone $expenseBaseQuery)->where('status', 'approved')->sum('approved_amount');
-        $rejectedExpenses = (clone $expenseBaseQuery)->where('status', 'rejected')->count();
-        $expensesThisMonth = (clone $expenseBaseQuery)
-            ->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
-            ->sum('amount');
+        return Cache::remember($cacheKey, 60, function () use ($user, $userCode) {
+            $bookingQuery = NewBooking::where('marketing_id', $userCode);
+            $expenseBaseQuery = MarketingExpense::where('marketing_person_code', $userCode);
 
-        $trendStart = Carbon::now()->subMonths(5)->startOfMonth();
-        $trendEnd = Carbon::now()->endOfMonth();
+            $pendingExpenses = (clone $expenseBaseQuery)->where('status', 'pending')->count();
+            $approvedExpenseAmount = (clone $expenseBaseQuery)->where('status', 'approved')->sum('approved_amount');
+            $rejectedExpenses = (clone $expenseBaseQuery)->where('status', 'rejected')->count();
+            $expensesThisMonth = (clone $expenseBaseQuery)
+                ->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
+                ->sum('amount');
 
-        $expenseTrendRaw = (clone $expenseBaseQuery)
-            ->whereBetween('created_at', [$trendStart, $trendEnd])
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as ym, COALESCE(SUM(amount), 0) as total')
-            ->groupBy('ym')
-            ->orderBy('ym')
-            ->pluck('total', 'ym');
+            $trendStart = Carbon::now()->subMonths(5)->startOfMonth();
+            $trendEnd = Carbon::now()->endOfMonth();
 
-        $expenseTrendLabels = [];
-        $expenseTrendData = [];
-        for ($i = 0; $i < 6; $i++) {
-            $month = $trendStart->copy()->addMonths($i);
-            $key = $month->format('Y-m');
-            $expenseTrendLabels[] = $month->format('M Y');
-            $expenseTrendData[] = (float) ($expenseTrendRaw[$key] ?? 0);
-        }
+            $expenseTrendRaw = (clone $expenseBaseQuery)
+                ->whereBetween('created_at', [$trendStart, $trendEnd])
+                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as ym, COALESCE(SUM(amount), 0) as total')
+                ->groupBy('ym')
+                ->orderBy('ym')
+                ->pluck('total', 'ym');
 
-        $statusBreakdown = (clone $expenseBaseQuery)
-            ->select('status', DB::raw('COUNT(*) as total'))
-            ->groupBy('status')
-            ->get();
+            $expenseTrendLabels = [];
+            $expenseTrendData = [];
+            for ($i = 0; $i < 6; $i++) {
+                $month = $trendStart->copy()->addMonths($i);
+                $key = $month->format('Y-m');
+                $expenseTrendLabels[] = $month->format('M Y');
+                $expenseTrendData[] = (float) ($expenseTrendRaw[$key] ?? 0);
+            }
 
-        $statusLabels = [];
-        $statusData = [];
-        foreach ($statusBreakdown as $row) {
-            $label = $row->status ? Str::title(str_replace(['_', '-'], ' ', $row->status)) : 'Unspecified';
-            $statusLabels[] = $label;
-            $statusData[] = (int) $row->total;
-        }
-        if (empty($statusLabels)) {
-            $statusLabels = ['No Data'];
-            $statusData = [0];
-        }
+            $statusBreakdown = (clone $expenseBaseQuery)
+                ->select('status', DB::raw('COUNT(*) as total'))
+                ->groupBy('status')
+                ->get();
 
-        $rangeStart = Carbon::today()->subDays(6);
-        $rangeEnd = Carbon::today();
+            $statusLabels = [];
+            $statusData = [];
+            foreach ($statusBreakdown as $row) {
+                $label = $row->status ? Str::title(str_replace(['_', '-'], ' ', $row->status)) : 'Unspecified';
+                $statusLabels[] = $label;
+                $statusData[] = (int) $row->total;
+            }
+            if (empty($statusLabels)) {
+                $statusLabels = ['No Data'];
+                $statusData = [0];
+            }
 
-        $bookingTrendRaw = (clone $bookingQuery)
-            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
-            ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
-            ->groupBy('day')
-            ->orderBy('day')
-            ->pluck('total', 'day');
+            $rangeStart = Carbon::today()->subDays(6);
+            $rangeEnd = Carbon::today();
 
-        $bookingTrendLabels = [];
-        $bookingTrendData = [];
-        for ($i = 0; $i < 7; $i++) {
-            $day = $rangeStart->copy()->addDays($i);
-            $key = $day->format('Y-m-d');
-            $bookingTrendLabels[] = $day->format('d M');
-            $bookingTrendData[] = (int) ($bookingTrendRaw[$key] ?? 0);
-        }
+            $bookingTrendRaw = (clone $bookingQuery)
+                ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
+                ->groupBy('day')
+                ->orderBy('day')
+                ->pluck('total', 'day');
 
-        $primaryColor = $this->chartColors(1)[0] ?? '#4e79a7';
+            $bookingTrendLabels = [];
+            $bookingTrendData = [];
+            for ($i = 0; $i < 7; $i++) {
+                $day = $rangeStart->copy()->addDays($i);
+                $key = $day->format('Y-m-d');
+                $bookingTrendLabels[] = $day->format('d M');
+                $bookingTrendData[] = (int) ($bookingTrendRaw[$key] ?? 0);
+            }
 
-        return [
-            'metrics' => [
-                [
-                    'label' => 'Active Bookings',
-                    'value' => $bookingQuery->count(),
-                    'icon' => 'ti ti-briefcase',
-                    'type' => 'primary',
-                    'description' => 'Total bookings linked with your marketing code.',
+            // --- Per-marketing-person detailed stats (for profile section) ---
+            $allBookingsQuery = (clone $bookingQuery);
+            $totalBookings = $allBookingsQuery->count();
+            $allBookingsCollection = $allBookingsQuery->get();
+            $totalBookingAmount = $allBookingsCollection->sum(fn($b) => $b->total_amount ?? 0);
+
+            $billBookingsQuery = (clone $bookingQuery)->where('payment_option', 'bill');
+            $billBookings = $billBookingsQuery->count();
+            $totalBillBookingAmount = $billBookingsQuery->get()->sum(fn($b) => $b->total_amount ?? 0);
+
+            $withoutBillBookingsQuery = (clone $bookingQuery)->where(function ($q) {
+                $q->where('payment_option', '!=', 'bill')->orWhereNull('payment_option');
+            });
+            $withoutBillBookings = $withoutBillBookingsQuery->count();
+            $totalWithoutBillBookings = $withoutBillBookingsQuery->get()->sum(fn($b) => $b->total_amount ?? 0);
+
+            $notGeneratedInvoicesCount = (clone $bookingQuery)->whereDoesntHave('generatedInvoice')->count();
+            $totalNotGeneratedInvoicesAmount = (clone $bookingQuery)->whereDoesntHave('generatedInvoice')->get()->sum(fn($b) => $b->total_amount ?? 0);
+
+            $invoiceBase = Invoice::where('marketing_user_code', $userCode);
+            $unpaidInvoices = (clone $invoiceBase)->whereDoesntHave('transactions')->count();
+            $totalUnpaidInvoiceAmount = (clone $invoiceBase)->whereDoesntHave('transactions')->sum('total_amount');
+            $paidInvoicesAmount = (clone $invoiceBase)->whereHas('transactions')->sum('total_amount');
+
+            $transactionsQuery = InvoiceTransaction::where('marketing_person_id', $userCode);
+            $transactionsCount = $transactionsQuery->count();
+            $totalTransactionsAmount = $transactionsQuery->sum('amount_received');
+
+            $tdsAmount = InvoiceTds::where('marketing_person_id', $userCode)->sum('tds_amount');
+
+            $cashPaymentsBase = CashLetterPayment::where('marketing_person_id', $userCode);
+            $cashPaidLetters = (clone $cashPaymentsBase)->where('transaction_status', 2)->count();
+            $totalCashPaidLettersAmount = (clone $cashPaymentsBase)->where('transaction_status', 2)->sum('amount_received');
+            $cashUnpaidLetters = (clone $cashPaymentsBase)->where('transaction_status', 0)->count();
+            $totalCashUnpaidAmounts = (clone $cashPaymentsBase)->where('transaction_status', 0)->sum('amount_received');
+            $cashPartialLetters = (clone $cashPaymentsBase)->where('transaction_status', 1)->count();
+            $totalDueAmount = (clone $cashPaymentsBase)->where('transaction_status', 1)->sum('amount_received');
+            $cashSettledLetters = (clone $cashPaymentsBase)->where('transaction_status', 3)->count();
+            $totalSettledAmount = (clone $cashPaymentsBase)->where('transaction_status', 3)->sum('amount_received');
+
+            $clientsCount = Client::whereIn('id', NewBooking::where('marketing_id', $userCode)->pluck('client_id')->filter()->unique())->count();
+
+            $stats = [
+                'transactions' => $transactionsCount,
+                'totalTransactionsAmount' => (float) $totalTransactionsAmount,
+                'totalBookings' => $totalBookings,
+                'totalBookingAmount' => (float) $totalBookingAmount,
+                'billBookings' => $billBookings,
+                'totalBillBookingAmount' => (float) $totalBillBookingAmount,
+                'withoutBillBookings' => $withoutBillBookings,
+                'totalWithoutBillBookings' => (float) $totalWithoutBillBookings,
+                'notGeneratedInvoices' => $notGeneratedInvoicesCount,
+                'totalNotGeneratedInvoicesAmount' => (float) $totalNotGeneratedInvoicesAmount,
+                'unpaidInvoices' => $unpaidInvoices,
+                'totalUnpaidInvoiceAmount' => (float) $totalUnpaidInvoiceAmount,
+                'totalPaidInvoiceAmount' => (float) $paidInvoicesAmount,
+                'tdsAmount' => (float) $tdsAmount,
+                'cashPaidLetters' => $cashPaidLetters,
+                'totalCashPaidLettersAmount' => (float) $totalCashPaidLettersAmount,
+                'cashUnpaidLetters' => $cashUnpaidLetters,
+                'totalCashUnpaidAmounts' => (float) $totalCashUnpaidAmounts,
+                'cashPartialLetters' => $cashPartialLetters,
+                'totalDueAmount' => (float) $totalDueAmount,
+                'cashSettledLetters' => $cashSettledLetters,
+                'totalSettledAmount' => (float) $totalSettledAmount,
+                'allClients' => $clientsCount,
+            ];
+
+            $primaryColor = $this->chartColors(1)[0] ?? '#4e79a7';
+            return [
+                'metrics' => [
+                    [
+                        'label' => 'Active Bookings',
+                        'value' => $bookingQuery->count(),
+                        'icon' => 'ti ti-briefcase',
+                        'type' => 'primary',
+                        'description' => 'Total bookings linked with your marketing code.',
+                    ],
+                    [
+                        'label' => 'Pending Expenses',
+                        'value' => $pendingExpenses,
+                        'icon' => 'ti ti-report-money',
+                        'type' => 'warning',
+                        'description' => 'Awaiting approval in expense workflow.',
+                    ],
+                    [
+                        'label' => 'Approved Amount (₹)',
+                        'value' => number_format((float) $approvedExpenseAmount, 2),
+                        'icon' => 'ti ti-circle-check',
+                        'type' => 'success',
+                        'description' => 'Total approved claims till date.',
+                    ],
+                    [
+                        'label' => 'Spend This Month (₹)',
+                        'value' => number_format((float) $expensesThisMonth, 2),
+                        'icon' => 'ti ti-calendar-event',
+                        'type' => 'info',
+                        'description' => 'Expense submissions in the current month.',
+                    ],
+                    [
+                        'label' => 'Rejected Requests',
+                        'value' => $rejectedExpenses,
+                        'icon' => 'ti ti-circle-x',
+                        'type' => 'danger',
+                        'description' => 'Requests needing rework or clarification.',
+                    ],
                 ],
-                [
-                    'label' => 'Pending Expenses',
-                    'value' => $pendingExpenses,
-                    'icon' => 'ti ti-report-money',
-                    'type' => 'warning',
-                    'description' => 'Awaiting approval in expense workflow.',
+                // include marketingPerson and detailed stats for profile partial
+                'marketingPerson' => $user,
+                'stats' => $stats,
+                'quick_links' => $this->marketingQuickLinks(),
+                'insights' => [
+                    'message' => 'Track expense submissions and follow up on pending approvals to keep campaigns moving.',
                 ],
-                [
-                    'label' => 'Approved Amount (₹)',
-                    'value' => number_format((float) $approvedExpenseAmount, 2),
-                    'icon' => 'ti ti-circle-check',
-                    'type' => 'success',
-                    'description' => 'Total approved claims till date.',
+                'charts' => [
+                    [
+                        'id' => 'marketingExpenseTrend',
+                        'type' => 'line',
+                        'title' => 'Expense Submissions (Last 6 Months)',
+                        'labels' => $expenseTrendLabels,
+                        'datasets' => [[
+                            'label' => 'Amount (₹)',
+                            'data' => $expenseTrendData,
+                            'borderColor' => $primaryColor,
+                            'backgroundColor' => 'rgba(78,121,167,0.15)',
+                            'tension' => 0.35,
+                            'fill' => true,
+                        ]],
+                        'height' => 320,
+                    ],
+                    [
+                        'id' => 'marketingExpenseStatus',
+                        'type' => 'doughnut',
+                        'title' => 'Expense Status Mix',
+                        'labels' => $statusLabels,
+                        'datasets' => [[
+                            'label' => 'Expenses',
+                            'data' => $statusData,
+                            'backgroundColor' => $this->chartColors(count($statusLabels)),
+                        ]],
+                        'height' => 280,
+                    ],
+                    [
+                        'id' => 'marketingBookingTrend',
+                        'type' => 'bar',
+                        'title' => 'Bookings Captured (Last 7 Days)',
+                        'labels' => $bookingTrendLabels,
+                        'datasets' => [[
+                            'label' => 'Bookings',
+                            'data' => $bookingTrendData,
+                            'backgroundColor' => $this->chartColors(7),
+                        ]],
+                        'height' => 320,
+                    ],
                 ],
-                [
-                    'label' => 'Spend This Month (₹)',
-                    'value' => number_format((float) $expensesThisMonth, 2),
-                    'icon' => 'ti ti-calendar-event',
-                    'type' => 'info',
-                    'description' => 'Expense submissions in the current month.',
-                ],
-                [
-                    'label' => 'Rejected Requests',
-                    'value' => $rejectedExpenses,
-                    'icon' => 'ti ti-circle-x',
-                    'type' => 'danger',
-                    'description' => 'Requests needing rework or clarification.',
-                ],
-            ],
-            'quick_links' => $this->marketingQuickLinks(),
-            'insights' => [
-                'message' => 'Track expense submissions and follow up on pending approvals to keep campaigns moving.',
-            ],
-            'charts' => [
-                [
-                    'id' => 'marketingExpenseTrend',
-                    'type' => 'line',
-                    'title' => 'Expense Submissions (Last 6 Months)',
-                    'labels' => $expenseTrendLabels,
-                    'datasets' => [[
-                        'label' => 'Amount (₹)',
-                        'data' => $expenseTrendData,
-                        'borderColor' => $primaryColor,
-                        'backgroundColor' => 'rgba(78,121,167,0.15)',
-                        'tension' => 0.35,
-                        'fill' => true,
-                    ]],
-                    'height' => 320,
-                ],
-                [
-                    'id' => 'marketingExpenseStatus',
-                    'type' => 'doughnut',
-                    'title' => 'Expense Status Mix',
-                    'labels' => $statusLabels,
-                    'datasets' => [[
-                        'label' => 'Expenses',
-                        'data' => $statusData,
-                        'backgroundColor' => $this->chartColors(count($statusLabels)),
-                    ]],
-                    'height' => 280,
-                ],
-                [
-                    'id' => 'marketingBookingTrend',
-                    'type' => 'bar',
-                    'title' => 'Bookings Captured (Last 7 Days)',
-                    'labels' => $bookingTrendLabels,
-                    'datasets' => [[
-                        'label' => 'Bookings',
-                        'data' => $bookingTrendData,
-                        'backgroundColor' => $this->chartColors(7),
-                    ]],
-                    'height' => 320,
-                ],
-            ],
-        ];
+            ];
+        });
     }
 
     protected function marketingQuickLinks(): array

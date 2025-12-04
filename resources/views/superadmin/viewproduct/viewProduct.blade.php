@@ -180,9 +180,22 @@
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                <div class="d-flex justify-content-end mt-3">
-                    {{ $products->appends(['search' => request('search')])->links('pagination::bootstrap-5') }}
+                <!-- Pagination with Rows Per Page -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <form method="GET" action="{{ route('superadmin.viewproduct.viewProduct', $categoryId ?? null) }}" class="d-flex align-items-center gap-2">
+                        @foreach(request()->except(['perPage','page']) as $key => $val)
+                            <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                        @endforeach
+                        <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                        <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                            @foreach([25,50,100] as $size)
+                                <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                    <div>
+                        {{ $products->appends(request()->all())->links('pagination::bootstrap-5') }}
+                    </div>
                 </div>
             </div>
     </div>

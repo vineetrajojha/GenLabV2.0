@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('booking_items', function (Blueprint $table) {
-            $table->date('job_order_date')->nullable()->after('job_order_no');
-        });
+        if (!Schema::hasColumn('booking_items', 'job_order_date')) {
+            Schema::table('booking_items', function (Blueprint $table) {
+                $table->date('job_order_date')->nullable()->after('job_order_no');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('booking_items', function (Blueprint $table) {
-            $table->dropColumn('job_order_data');
-        });
+        if (Schema::hasColumn('booking_items', 'job_order_date')) {
+            Schema::table('booking_items', function (Blueprint $table) {
+                $table->dropColumn('job_order_date');
+            });
+        }
     }
 };

@@ -29,10 +29,114 @@
 
     <div class="sidebar-inner slimscroll">
         <div id="sidebar-menu" class="sidebar-menu">
-            <ul>
-                <li class="submenu-open">
-                    <h6 class="submenu-hdr">Main</h6>
-                    <ul>
+                @php
+                $roleName = null;
+                if ($user && isset($user->role)) {
+                    if (is_object($user->role)) {
+                        $roleName = $user->role->role_name ?? $user->role->name ?? null;
+                    } else {
+                        $roleName = $user->role;
+                    }
+                }
+
+                // consider any role containing 'market' as marketing (case-insensitive)
+                $isMarketing = $roleName && stripos($roleName, 'market') !== false;
+                // default marketing filter token for sidebar links
+                $uc = $uc ?? ($isMarketing && $user ? ($user->user_code ?? null) : null);
+                $invoiceParams = ['type' => 'tax_invoice', 'payment_status' => '0'];
+                if ($uc) { $invoiceParams['marketing'] = $uc; }
+                // booking params (used for Show Booking / Booking By Letter links)
+                $bookingParams = [];
+                if ($uc) { $bookingParams['marketing'] = $uc; }
+            @endphp
+
+            @if($isMarketing)
+                <ul>
+                    <li class="submenu-open">
+                        <h6 class="submenu-hdr">Main</h6>
+                        <ul>
+                            <li>
+                                <a href="{{ route('superadmin.dashboard.index') }}" class="{{ Request::routeIs('superadmin.dashboard.index') ? 'active' : '' }}">
+                                    <i class="ti ti-layout-grid fs-16 me-2"></i><span>Dashboard</span>
+                                </a>
+                            </li>
+
+                            <li class="submenu {{ Request::routeIs('superadmin.bookings.*') || Request::routeIs('superadmin.showbooking.*') ? 'submenu-open' : '' }}">
+                                <a href="#"><i class="ti ti-calendar fs-16 me-2"></i><span>Booking</span><span class="menu-arrow"></span></a>
+                                <ul>
+                                    <li><a href="{{ route('superadmin.bookings.bookingByLetter.index', $bookingParams) }}" class="{{ Request::routeIs('superadmin.bookings.bookingByLetter.index') ? 'active' : '' }}">Show Booking</a></li>
+                                    <li><a href="{{ route('superadmin.showbooking.showBooking', $bookingParams) }}" class="{{ Request::routeIs('superadmin.showbooking.showBooking') ? 'active' : '' }}">Booking By Letter</a></li>
+                                </ul>
+                            </li>
+
+                            <li>
+                                @if(!empty($uc))
+                                    <a href="{{ route('superadmin.reporting.generate', ['marketing' => $uc]) }}" class="{{ Request::routeIs('superadmin.reporting.*') ? 'active' : '' }}">
+                                        <i class="ti ti-report fs-16 me-2"></i><span>Reports</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('superadmin.reporting.generate') }}" class="{{ Request::routeIs('superadmin.reporting.*') ? 'active' : '' }}">
+                                        <i class="ti ti-report fs-16 me-2"></i><span>Reports</span>
+                                    </a>
+                                @endif
+                            </li>
+
+                            <li>
+                                <a href="{{ route('superadmin.invoices.index', $invoiceParams) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
+                                    <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="{{ route('superadmin.invoices.index', $invoiceParams) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
+                                    <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices Payments</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                @if($isMarketing && $user)
+                                    <a href="{{ route('superadmin.marketing-person-ledger.index', ['person_id' => $user->id]) }}" class="{{ Request::routeIs('superadmin.marketing-person-ledger.*') ? 'active' : '' }}">
+                                        <i class="ti ti-wallet fs-16 me-2"></i><span>Your Ledger</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('superadmin.marketing-person-ledger.index') }}" class="{{ Request::routeIs('superadmin.marketing-person-ledger.*') ? 'active' : '' }}">
+                                        <i class="ti ti-wallet fs-16 me-2"></i><span>Your Ledger</span>
+                                    </a>
+                                @endif
+                            </li>
+
+                            <li>
+                                <a href="{{route('superadmin.client-ledger.index')}}" class="{{ Request::routeIs('superadmin.client-ledger.*') ? 'active' : '' }}">
+                                    <i data-feather="book" class="feather-16 me-2"></i><span>Client Ledger</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                <a href="{{ route('superadmin.personal.expenses.index') }}" class="{{ Request::routeIs('superadmin.personal.expenses.*') ? 'active' : '' }}">
+                                    <i class="ti ti-target fs-16 me-2"></i><span>Expense</span>
+                                </a>
+                            </li>
+
+                            <li>
+                                @if(!empty($uc))
+                                    <a href="{{ route('superadmin.reporting.pendings', ['marketing' => $uc]) }}" class="{{ Request::routeIs('superadmin.reporting.pendings') ? 'active' : '' }}">
+                                        <i class="ti ti-alert-circle fs-16 me-2"></i><span>Pendings</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('superadmin.reporting.pendings') }}" class="{{ Request::routeIs('superadmin.reporting.pendings') ? 'active' : '' }}">
+                                        <i class="ti ti-alert-circle fs-16 me-2"></i><span>Pendings</span>
+                                    </a>
+                                @endif
+                            </li>
+
+                        </ul>
+                    </li>
+                </ul>
+            @else
+                <ul>
+                    <li class="submenu-open">
+                        <h6 class="submenu-hdr">Main</h6>
+                        <ul>
                         <!-- Dashboard -->
                         <li>
                             <a href="{{ route('superadmin.dashboard.index') }}" class="{{ Request::routeIs('superadmin.dashboard.index') ? 'active' : '' }}">
@@ -166,18 +270,13 @@
                                             All Letters
                                         </a>
                                     </li>
-                                    <li>
-                                        <a href="{{ route('superadmin.vouchers.create') }}" class="">Generate Vouchers</a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('superadmin.vouchers.approve') }}" class="">Approve Vouchers</a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('superadmin.accounts.cleared_expenses') }}" class="{{ Request::routeIs('superadmin.accounts.cleared_expenses') ? 'active' : '' }}">Cleared Expenses</a>
-                                    </li>
-                                    <li>
-                                        <a href="{{ route('superadmin.cheques.index') }}" class="{{ Request::routeIs('superadmin.cheques.*') ? 'active' : '' }}">Cheques</a>
-                                    </li>
+
+                                    @if(Route::has('superadmin.accounts.approved_amounts'))
+                                        <li>
+                                            <a href="{{ route('superadmin.accounts.approved_amounts') }}" class="{{ Request::routeIs('superadmin.accounts.approved_amounts') ? 'active' : '' }}">Approved Amount</a>
+                                        </li>
+                                    @endif
+
                                     <li>
                                         <a href="{{ route('superadmin.cheques.index') }}" class="{{ Request::routeIs('superadmin.cheques.*') ? 'active' : '' }}">Cheques</a>
                                     </li>
@@ -198,7 +297,7 @@
                                     <li><a href="{{route('superadmin.cashPayments.index')}}">Invoice Transaction</a></li>
                                     <li><a href="{{route('superadmin.client-ledger.index')}}">Client Ledger</a></li>
                                     <li><a href="{{ route('superadmin.marketing-person-ledger.index') }}">Marketing Person Ledger</a></li>
-                                    <li><a href="{{ route('superadmin.purchase_bills.index') }}" class="{{ Request::routeIs('superadmin.purchase_bills.*') ? 'active' : '' }}">Purchase Bill</a></li>
+                                    <li><a href="#">Purchase Bill</a></li> 
                                     <li><a href="{{ route('superadmin.bank.upload') }}">Bank Transactions</a></li>
                                     <li>
                                         <a href="{{ route('superadmin.accounts.payroll.index') }}" class="{{ Request::routeIs('superadmin.accounts.payroll.*') ? 'active' : '' }}">
@@ -276,7 +375,8 @@
                                 </li>
                                 <li><a href="{{ route('superadmin.marketing.expenses.view') }}" class="{{ Request::routeIs('superadmin.marketing.expenses.view') ? 'active' : '' }}">Marketing Expenses</a></li>
                                 <li><a href="{{ route('superadmin.office.expenses.view') }}" class="{{ Request::routeIs('superadmin.office.expenses.view') ? 'active' : '' }}">Office Expenses</a></li>
-                                <li><a href="{{ route('superadmin.marketing.expenses.approved') }}" class="{{ Request::routeIs('superadmin.marketing.expenses.approved') ? 'active' : '' }}">Approve Expenses</a></li>
+                                <li><a href="{{ route('superadmin.marketing.expenses.approved', ['status' => 'pending']) }}" class="{{ (Request::routeIs('superadmin.marketing.expenses.approved') && request('status','pending') === 'pending') ? 'active' : '' }}">Approve Expenses</a></li>
+                                <li><a href="{{ route('superadmin.marketing.expenses.approved', ['status' => 'approved']) }}" class="{{ (Request::routeIs('superadmin.marketing.expenses.approved') && request('status') === 'approved') ? 'active' : '' }}">Approved Expenses</a></li>
                                 <li><a href="{{ route('superadmin.marketing.expenses.rejected') }}" class="{{ Request::routeIs('superadmin.marketing.expenses.rejected') ? 'active' : '' }}">Rejected Expenses</a></li>
                             </ul>
                         </li>
@@ -404,6 +504,7 @@
                     </ul>
                 </li>
             </ul>
+            @endif
         </div>
     </div>
 </div>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\MobileControllers\Auth\UserAuthController;
 use App\Http\Controllers\MobileControllers\Auth\AdminAuthController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Api\Attendance\EsslWebhookController;
 use App\Http\Controllers\Api\ChatApiController;
 use App\Http\Controllers\MobileControllers\Accounts\MarketingPersonInfo; 
 use App\Http\Controllers\Api\ExpenseApiController;
@@ -18,6 +19,8 @@ Route::get('static/test-file', function() {
     }
     return response()->file($path);
 });
+
+Route::post('attendance/essl/webhook', EsslWebhookController::class)->name('api.attendance.essl.webhook');
 
 // User Auth Routes
 Route::prefix('user')->group(function () {

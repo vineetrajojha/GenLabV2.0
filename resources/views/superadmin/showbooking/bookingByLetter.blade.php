@@ -28,10 +28,12 @@
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
             <li class="list-inline-item">
-                <a href="{{ route('superadmin.bookings.bookingByLetter.exportPdf', request()->only(['search','month','year'])) }}" data-bs-toggle="tooltip" title="PDF"><div class="fa fa-file-pdf"></div></a>
+                @php $q = http_build_query(array_filter(request()->only(['search','month','year']))); @endphp
+                <a href="{{ route('superadmin.bookings.bookingByLetter.exportPdf') }}{{ $q ? ('?'.$q) : '' }}" data-bs-toggle="tooltip" title="PDF"><div class="fa fa-file-pdf"></div></a>
             </li>
             <li class="list-inline-item">
-                <a href="{{ route('superadmin.bookings.bookingByLetter.exportExcel', request()->only(['search','month','year'])) }}" data-bs-toggle="tooltip" title="Excel">
+                @php $q = http_build_query(array_filter(request()->only(['search','month','year']))); @endphp
+                <a href="{{ route('superadmin.bookings.bookingByLetter.exportExcel') }}{{ $q ? ('?'.$q) : '' }}" data-bs-toggle="tooltip" title="Excel">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" fill="green" viewBox="0 0 24 24">
                         <path d="M19 2H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 14-2-3 2-3H9l-1.5 2.25L6 10H4l2.5 3L4 16h2l1.5-2.25L9 16h1.5zM19 20H8V4h11v16z"/>
                     </svg>
@@ -90,11 +92,11 @@
                         <tr>
                             <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
                             <th>Job Order No</th>
-                            <th>Client Name</th>
-                            <th>Sample Description</th>
+                            <th style="width:180px;">Client Name</th>
+                            <th style="width:240px;">Sample Description</th>
                             <th>Sample Quality</th>
-                            <th>Particulars</th>
-                      
+                            <th style="width:240px;">Particulars</th>
+  
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -102,11 +104,19 @@
                         @forelse($items as $item)
                         <tr>
                             <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
-                            <td>{{ $item->job_order_no }}</td>
-                            <td>{{ $item->booking?->client_name ?? '-' }}</td>
-                            <td>{{ $item->sample_description }}</td>
-                            <td>{{ $item->sample_quality }}</td>
-                            <td>{{ $item->particulars }}</td>
+                            <td class="job-order-cell" data-bs-toggle="tooltip" title="{{ $item->job_order_no }}">{{ $item->job_order_no }}</td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->booking?->client_name ?? '-' }}">{{ $item->booking?->client_name ?? '-' }}</div>
+                            </td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->sample_description }}">{{ $item->sample_description }}</div>
+                            </td>
+                            <td>
+                                <div class="cell-inner">{{ $item->sample_quality }}</div>
+                            </td>
+                            <td class="truncate-cell">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->particulars }}">{{ $item->particulars }}</div>
+                            </td>
                            
                            
                             <td class="d-flex"> 
@@ -162,12 +172,46 @@
 
                 <!-- Pagination -->
                 <div class="p-3">
-                    {{ $items->appends(request()->only(['search', 'month', 'year']))->links('pagination::bootstrap-5') }}
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                        <form method="GET" action="{{ route('superadmin.bookings.bookingByLetter.index') }}" class="d-flex align-items-center gap-2">
+                            @foreach(request()->except(['perPage','page']) as $key => $val)
+                                <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                            @endforeach
+                            <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                            <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                                @foreach([25,50,100] as $size)
+                                    <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                        <div>
+                            {{ $items->appends(request()->all())->links('pagination::bootstrap-5') }}
+                        </div>
+                    </div>
                 </div>
                
             </div>
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* clamp/truncate wrappers used for client/sample/particulars */
+    .truncate-cell { max-width: 240px; }
+    .truncate-cell .cell-inner{
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+    }
+    @media (max-width: 992px){ .truncate-cell { max-width: 160px; } }
+
+    /* job order short single-line truncation */
+    .job-order-cell{ max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style>
+@endpush
 
 @endsection

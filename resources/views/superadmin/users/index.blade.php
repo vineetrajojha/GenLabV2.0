@@ -23,8 +23,24 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 bg-light border-bottom">
                         <h3 class="card-title mb-0">User List</h3>
+                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
+                            <form method="GET" action="{{ route('superadmin.users.index') }}" class="d-flex align-items-center gap-2 mb-0">
+                                @foreach(request()->except(['perPage','page']) as $key => $val)
+                                    <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                                @endforeach
+                                <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+                                <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                                    @foreach([25,50,100] as $size)
+                                        <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                            <!-- <div class="mb-0">
+                                {{ $users->appends(request()->all())->links('pagination::bootstrap-5') }}
+                            </div> -->
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">

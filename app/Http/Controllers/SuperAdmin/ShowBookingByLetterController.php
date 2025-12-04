@@ -57,7 +57,9 @@ class ShowBookingByLetterController extends Controller
         }
 
         // Get results (paginated)
-        $items = $query->latest()->paginate(7);
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) { $perPage = 25; }
+        $items = $query->latest()->paginate($perPage)->withQueryString();
 
         // Return view
         return view('superadmin.showbooking.bookingByLetter', compact('items', 'search', 'month', 'year'));
@@ -100,6 +102,14 @@ class ShowBookingByLetterController extends Controller
 
         if (!empty($year)) {
             $query->whereYear('lab_expected_date', $year);
+        }
+
+        // If marketing filter is provided (user_code), limit to bookings for that marketing person
+        if ($request->filled('marketing')) {
+            $marketing = $request->input('marketing');
+            $query->whereHas('booking', function ($bq) use ($marketing) {
+                $bq->where('marketing_id', $marketing);
+            });
         }
 
         return $query;
