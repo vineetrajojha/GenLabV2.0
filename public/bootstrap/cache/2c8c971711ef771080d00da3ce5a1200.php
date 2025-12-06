@@ -10,13 +10,13 @@
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
             <li class="list-inline-item">
-                <a href="<?php echo e(route('superadmin.reporting.pendings.exportPdf', request()->only(['search','month','year','department','overdue']))); ?>" data-bs-toggle="tooltip" title="PDF"><i class="ti ti-file-type-pdf"></i></a>
+                <a href="<?php echo e(route('superadmin.reporting.pendings.exportPdf', request()->only(['search','month','year','department','overdue','marketing']))); ?>" data-bs-toggle="tooltip" title="PDF"><i class="ti ti-file-type-pdf"></i></a>
             </li>
             <li class="list-inline-item">
-                <a href="<?php echo e(route('superadmin.reporting.pendings.exportExcel', request()->only(['search','month','year','department','overdue']))); ?>" data-bs-toggle="tooltip" title="Excel"><i class="ti ti-file-spreadsheet"></i></a>
+                <a href="<?php echo e(route('superadmin.reporting.pendings.exportExcel', request()->only(['search','month','year','department','overdue','marketing']))); ?>" data-bs-toggle="tooltip" title="Excel"><i class="ti ti-file-spreadsheet"></i></a>
             </li>
             <li class="list-inline-item">
-                <a href="<?php echo e(route('superadmin.reporting.pendings', request()->only(['search','month','year','department','overdue']))); ?>" data-bs-toggle="tooltip" title="Refresh"><i class="ti ti-refresh"></i></a>
+                <a href="<?php echo e(route('superadmin.reporting.pendings', request()->only(['search','month','year','department','overdue','marketing']))); ?>" data-bs-toggle="tooltip" title="Refresh"><i class="ti ti-refresh"></i></a>
             </li>
         </ul>
     </div>
@@ -36,6 +36,7 @@
                     <?php if(request('month')): ?><input type="hidden" name="month" value="<?php echo e(request('month')); ?>"><?php endif; ?>
                     <?php if(request('year')): ?><input type="hidden" name="year" value="<?php echo e(request('year')); ?>"><?php endif; ?>
                     <?php if(request('overdue')): ?><input type="hidden" name="overdue" value="1"><?php endif; ?>
+                    <?php if(request('marketing')): ?><input type="hidden" name="marketing" value="<?php echo e(request('marketing')); ?>"><?php endif; ?>
                     <input type="text" name="search" value="<?php echo e(request('search')); ?>" class="form-control" placeholder="Search job/order/sample...">
                     <button class="btn btn-outline-secondary" type="submit">🔍</button>
                 </form>
@@ -93,6 +94,13 @@
                     <a href="<?php echo e(route('superadmin.reporting.pendings', array_filter(['department'=>$dept->id,'search'=>request('search'),'month'=>request('month'),'year'=>request('year'),'marketing'=>request('marketing'),'mode'=>request('mode'),'overdue'=>request('overdue')]))); ?>" class="btn btn-sm <?php echo e((int)$currentDept === $dept->id ? 'btn-warning text-white' : 'btn-outline-warning'); ?>"><?php echo e($dept->name); ?></a>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 <?php if(isset($marketingPersons) && $marketingPersons->count()): ?>
+                    <?php
+                        $authUser = auth('admin')->user() ?: auth()->user();
+                        $roleName = $authUser->role->role_name ?? $authUser->role ?? null;
+                        $isMarketingUser = $roleName && stripos($roleName, 'market') !== false;
+                        $lockedMarketingCode = $isMarketingUser ? ($authUser->user_code ?? null) : null;
+                        $marketingOptions = $lockedMarketingCode ? $marketingPersons->where('user_code', $lockedMarketingCode) : $marketingPersons;
+                    ?>
                     <form method="GET" action="<?php echo e(route('superadmin.reporting.pendings')); ?>" class="ms-auto d-flex align-items-center gap-2 marketing-filter-form">
                         <input type="hidden" name="mode" value="<?php echo e(request('mode','job')); ?>">
                         <?php if(request('department')): ?><input type="hidden" name="department" value="<?php echo e(request('department')); ?>"><?php endif; ?>
@@ -100,13 +108,18 @@
                         <?php if(request('year')): ?><input type="hidden" name="year" value="<?php echo e(request('year')); ?>"><?php endif; ?>
                         <?php if(request('overdue')): ?><input type="hidden" name="overdue" value="1"><?php endif; ?>
                         <?php if(request('search')): ?><input type="hidden" name="search" value="<?php echo e(request('search')); ?>"><?php endif; ?>
-                        <select name="marketing" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px;">
-                            <option value="">Select Marketing Person</option>
-                            <?php $__currentLoopData = $marketingPersons; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php if($lockedMarketingCode): ?>
+                            <input type="hidden" name="marketing" value="<?php echo e($lockedMarketingCode); ?>">
+                        <?php endif; ?>
+                        <select name="marketing" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px;" <?php echo e($lockedMarketingCode ? 'disabled' : ''); ?>>
+                            <?php if(!$lockedMarketingCode): ?>
+                                <option value="">Select Marketing Person</option>
+                            <?php endif; ?>
+                            <?php $__currentLoopData = $marketingOptions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <option value="<?php echo e($mp->user_code); ?>" <?php echo e(request('marketing') == $mp->user_code ? 'selected' : ''); ?>><?php echo e($mp->user_code); ?> - <?php echo e($mp->name); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
-                        <?php if(request('marketing')): ?>
+                        <?php if(request('marketing') && !$lockedMarketingCode): ?>
                             <a href="<?php echo e(route('superadmin.reporting.pendings', array_filter(['mode'=>request('mode'),'department'=>request('department'),'search'=>request('search'),'month'=>request('month'),'year'=>request('year'),'overdue'=>request('overdue')]))); ?>" class="btn btn-sm btn-outline-secondary">Clear</a>
                         <?php endif; ?>
                     </form>

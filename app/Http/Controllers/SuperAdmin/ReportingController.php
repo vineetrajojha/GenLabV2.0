@@ -311,6 +311,7 @@ class ReportingController extends Controller
      */
     public function pendings(Request $request)
     {    
+        $user = Auth::guard('admin')->user() ?: Auth::user();
         $search = trim((string) $request->get('search'));
         $month = $request->has('month') ? (int) $request->get('month') : null;
         $year = $request->has('year') ? (int) $request->get('year') : null;
@@ -319,14 +320,23 @@ class ReportingController extends Controller
         $cutoff = $beforeDate ?: now()->toDateString();
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing'); // user_code of marketing person
+        if ($this->isMarketingUser($user)) {
+            $marketing = $marketing ?: ($user->user_code ?? null);
+            if ($marketing) {
+                $request->merge(['marketing' => $marketing]);
+            }
+        }
         $mode = $request->get('mode', 'job'); // job | reference
         if (!in_array($mode, ['job','reference'], true)) { $mode = 'job'; }
         if ($month !== null && ($month < 1 || $month > 12)) { $month = null; }
         if ($year !== null && ($year < 2000 || $year > 2100)) { $year = null; }
         $departments = \App\Models\Department::orderBy('name')->get(['id','name']);
-        $marketingPersons = \App\Models\User::whereHas('marketingBookings')
-            ->orderBy('name')
-            ->get(['id','name','user_code']);
+        $marketingPersonsQuery = \App\Models\User::whereHas('marketingBookings')
+            ->orderBy('name');
+        if ($this->isMarketingUser($user) && $marketing) {
+            $marketingPersonsQuery->where('user_code', $marketing);
+        }
+        $marketingPersons = $marketingPersonsQuery->get(['id','name','user_code']);
 
         $perPage = (int) $request->get('perPage', 25);
         if (!in_array($perPage, [25, 50, 100])) {
@@ -405,11 +415,18 @@ class ReportingController extends Controller
 
     protected function buildPendingsQuery(Request $request)
     {
+        $user = Auth::guard('admin')->user() ?: Auth::user();
         $search = trim((string) $request->get('search'));
         $month = $request->has('month') ? (int) $request->get('month') : null;
         $year = $request->has('year') ? (int) $request->get('year') : null;
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing');
+        if ($this->isMarketingUser($user)) {
+            $marketing = $marketing ?: ($user->user_code ?? null);
+            if ($marketing) {
+                $request->merge(['marketing' => $marketing]);
+            }
+        }
         $overdue = $request->boolean('overdue');
         $beforeDate = $request->get('before_date');
         $cutoff = $beforeDate ?: now()->toDateString();

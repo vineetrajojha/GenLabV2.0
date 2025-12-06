@@ -2,7 +2,9 @@
     <thead>
         <tr>
             <th>#</th>
-            <th><?php echo e($isClient ? 'Marketing Person' : 'Client'); ?></th>
+            <?php if (! ($isClient)): ?>
+                <th>Client</th>
+            <?php endif; ?>
             <th>Reference No</th>
             <th>Booking Date</th>
             <th>Amount</th>
@@ -14,15 +16,9 @@
         <?php $__currentLoopData = $bookings; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $booking): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <tr>
                 <td><?php echo e($i+1); ?></td>
-                <td> 
-                 <?php if($isClient): ?>
-                        <?php echo e($booking->marketingPerson->name ?? 'N/A'); ?>
-
-                    <?php else: ?>
-                         <?php echo e($booking->client->name ?? 'N/A'); ?>
-
-                    <?php endif; ?>
-                </td>
+                <?php if (! ($isClient)): ?>
+                    <td><?php echo e($booking->client->name ?? 'N/A'); ?></td>
+                <?php endif; ?>
                 <td><?php echo e($booking->reference_no); ?></td>
                 <td><?php echo e($booking->created_at->format('d-M-Y')); ?></td>
                 <td>₹<?php echo e(number_format($booking->total_amount, 2)); ?></td>
@@ -95,7 +91,8 @@
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </tbody>
 </table>
+<?php if($bookings->hasPages()): ?>
+    <?php echo $bookings->links('pagination::bootstrap-5'); ?>
 
-<?php echo $bookings->links('pagination::bootstrap-5'); ?>
-
+<?php endif; ?>
 <?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/marketingPerson/partials_bookings.blade.php ENDPATH**/ ?>

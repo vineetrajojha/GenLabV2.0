@@ -11,13 +11,13 @@
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
             <li class="list-inline-item">
-                <a href="{{ route('superadmin.reporting.pendings.exportPdf', request()->only(['search','month','year','department','overdue'])) }}" data-bs-toggle="tooltip" title="PDF"><i class="ti ti-file-type-pdf"></i></a>
+                <a href="{{ route('superadmin.reporting.pendings.exportPdf', request()->only(['search','month','year','department','overdue','marketing'])) }}" data-bs-toggle="tooltip" title="PDF"><i class="ti ti-file-type-pdf"></i></a>
             </li>
             <li class="list-inline-item">
-                <a href="{{ route('superadmin.reporting.pendings.exportExcel', request()->only(['search','month','year','department','overdue'])) }}" data-bs-toggle="tooltip" title="Excel"><i class="ti ti-file-spreadsheet"></i></a>
+                <a href="{{ route('superadmin.reporting.pendings.exportExcel', request()->only(['search','month','year','department','overdue','marketing'])) }}" data-bs-toggle="tooltip" title="Excel"><i class="ti ti-file-spreadsheet"></i></a>
             </li>
             <li class="list-inline-item">
-                <a href="{{ route('superadmin.reporting.pendings', request()->only(['search','month','year','department','overdue'])) }}" data-bs-toggle="tooltip" title="Refresh"><i class="ti ti-refresh"></i></a>
+                <a href="{{ route('superadmin.reporting.pendings', request()->only(['search','month','year','department','overdue','marketing'])) }}" data-bs-toggle="tooltip" title="Refresh"><i class="ti ti-refresh"></i></a>
             </li>
         </ul>
     </div>
@@ -37,6 +37,7 @@
                     @if(request('month'))<input type="hidden" name="month" value="{{ request('month') }}">@endif
                     @if(request('year'))<input type="hidden" name="year" value="{{ request('year') }}">@endif
                     @if(request('overdue'))<input type="hidden" name="overdue" value="1">@endif
+                    @if(request('marketing'))<input type="hidden" name="marketing" value="{{ request('marketing') }}">@endif
                     <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search job/order/sample...">
                     <button class="btn btn-outline-secondary" type="submit">🔍</button>
                 </form>
@@ -94,6 +95,13 @@
                     <a href="{{ route('superadmin.reporting.pendings', array_filter(['department'=>$dept->id,'search'=>request('search'),'month'=>request('month'),'year'=>request('year'),'marketing'=>request('marketing'),'mode'=>request('mode'),'overdue'=>request('overdue')])) }}" class="btn btn-sm {{ (int)$currentDept === $dept->id ? 'btn-warning text-white' : 'btn-outline-warning' }}">{{ $dept->name }}</a>
                 @endforeach
                 @if(isset($marketingPersons) && $marketingPersons->count())
+                    @php
+                        $authUser = auth('admin')->user() ?: auth()->user();
+                        $roleName = $authUser->role->role_name ?? $authUser->role ?? null;
+                        $isMarketingUser = $roleName && stripos($roleName, 'market') !== false;
+                        $lockedMarketingCode = $isMarketingUser ? ($authUser->user_code ?? null) : null;
+                        $marketingOptions = $lockedMarketingCode ? $marketingPersons->where('user_code', $lockedMarketingCode) : $marketingPersons;
+                    @endphp
                     <form method="GET" action="{{ route('superadmin.reporting.pendings') }}" class="ms-auto d-flex align-items-center gap-2 marketing-filter-form">
                         <input type="hidden" name="mode" value="{{ request('mode','job') }}">
                         @if(request('department'))<input type="hidden" name="department" value="{{ request('department') }}">@endif
@@ -101,13 +109,18 @@
                         @if(request('year'))<input type="hidden" name="year" value="{{ request('year') }}">@endif
                         @if(request('overdue'))<input type="hidden" name="overdue" value="1">@endif
                         @if(request('search'))<input type="hidden" name="search" value="{{ request('search') }}">@endif
-                        <select name="marketing" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px;">
-                            <option value="">Select Marketing Person</option>
-                            @foreach($marketingPersons as $mp)
+                        @if($lockedMarketingCode)
+                            <input type="hidden" name="marketing" value="{{ $lockedMarketingCode }}">
+                        @endif
+                        <select name="marketing" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:220px;" {{ $lockedMarketingCode ? 'disabled' : '' }}>
+                            @if(!$lockedMarketingCode)
+                                <option value="">Select Marketing Person</option>
+                            @endif
+                            @foreach($marketingOptions as $mp)
                                 <option value="{{ $mp->user_code }}" {{ request('marketing') == $mp->user_code ? 'selected' : '' }}>{{ $mp->user_code }} - {{ $mp->name }}</option>
                             @endforeach
                         </select>
-                        @if(request('marketing'))
+                        @if(request('marketing') && !$lockedMarketingCode)
                             <a href="{{ route('superadmin.reporting.pendings', array_filter(['mode'=>request('mode'),'department'=>request('department'),'search'=>request('search'),'month'=>request('month'),'year'=>request('year'),'overdue'=>request('overdue')])) }}" class="btn btn-sm btn-outline-secondary">Clear</a>
                         @endif
                     </form>

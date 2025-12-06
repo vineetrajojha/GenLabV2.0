@@ -1,3 +1,4 @@
+
 <?php $__env->startSection('title', 'Invoice List'); ?>
 <?php $__env->startSection('content'); ?>
 
@@ -20,9 +21,7 @@
 
     <div class="page-header ps-3 px-3">
         <div class="d-flex justify-content-end mt-3 me-3 mb-4">
-            <a href="<?php echo e(route('superadmin.blank-invoices.create')); ?>" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Generate Blank PI
-            </a>
+             <h1>Invoices</h1>
         </div>  
 
         <ul class="table-top-head list-inline d-flex gap-3">
@@ -88,20 +87,35 @@
 <!-- Table List -->
 <div class="card mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
+        <?php
+            $authUser = auth()->user();
+            $marketingCode = $authUser->user_code ?? null;
+        ?>
         <h5 class="card-title">Generated <?php echo e($type ?? 'Invoices'); ?></h5>
+        <a href="<?php echo e(route('superadmin.bookingInvoiceStatuses.index', array_filter(['context' => 'marketing', 'marketing_person' => $marketingCode], fn($v) => filled($v)))); ?>" class="btn btn-primary">Yet to be Generate</a>
 
         <!-- Filters + Search bar -->
         <form method="GET" action="<?php echo e(route('superadmin.invoices.index')); ?>" class="d-flex gap-2" role="search">
             <input type="hidden" name="type" value="<?php echo e(request('type', $type ?? '')); ?>">
-            <!-- Marketing Person Filter -->
-            <select name="marketing_person" class="form-select" onchange="this.form.submit()">
-                <option value="">All Marketing Persons</option>
+            <!-- Marketing Person Filter (locked to logged-in marketing user) -->
+            <?php
+                $authUser = auth()->user();
+                $lockedMarketingId = $authUser?->id;
+            ?>
+            <select name="marketing_person" class="form-select" onchange="this.form.submit()" <?php echo e($lockedMarketingId ? 'disabled' : ''); ?>>
+                <?php if(!$lockedMarketingId): ?>
+                    <option value="">All Marketing Persons</option>
+                <?php endif; ?>
                 <?php $__currentLoopData = $marketingPersons; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $person): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <option value="<?php echo e($person->id); ?>" <?php echo e(request('marketing_person') == $person->id ? 'selected' : ''); ?>>
+                    <?php $isLockedOption = $lockedMarketingId === $person->id; ?>
+                    <option value="<?php echo e($person->id); ?>" <?php echo e(($lockedMarketingId ? $isLockedOption : request('marketing_person') == $person->id) ? 'selected' : ''); ?>>
                         <?php echo e($person->name); ?> (<?php echo e($person->user_code); ?>)
                     </option>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </select> 
+            </select>
+            <?php if($lockedMarketingId): ?>
+                <input type="hidden" name="marketing_person" value="<?php echo e($lockedMarketingId); ?>">
+            <?php endif; ?> 
           
             <!-- Client Filter -->
             <select name="client_id" class="form-select" onchange="this.form.submit()">
@@ -156,12 +170,10 @@
                         <th>#</th>
                         <th>Invoice No</th>
                         <th>Assigned Client</th>
-                        <th>Marketing Person</th>      
                         <th>GST Amount</th>
                         <th>Total Amount</th>
                         <th>Letter Date</th>
                         <th>items </th> 
-                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -171,8 +183,6 @@
                             <td><?php echo e($loop->iteration); ?></td>
                             <td><?php echo e($invoice->invoice_no); ?></td>
                             <td><?php echo e($invoice->relatedBooking->client->name ?? 'N/A'); ?></td>
-                            <td><?php echo e($invoice->relatedBooking->marketingPerson->name ?? 'N/A'); ?></td>
-                       
                             <td><?php echo e($invoice->gst_amount); ?></td>
                             <td><?php echo e($invoice->total_amount); ?></td>
                             <td><?php echo e(\Carbon\Carbon::parse($invoice->letter_date)->format('d-m-Y')); ?></td>
@@ -231,68 +241,26 @@
                                 <?php endif; ?>
                             </td>
                             
-                            <td>
-                                <?php if($invoice->status == 0): ?>
-                                    <a href="<?php echo e(route('superadmin.cashPayments.create', $invoice->id)); ?>">
-                                        <span class="badge bg-warning">Pay <i class="fa fa-credit-card ms-2"></i></span>
-
-
-                                    </a>
-                                <?php elseif($invoice->status == 1): ?>
-                                    <span class="badge bg-success">Paid</span>
-                                <?php elseif($invoice->status == 2): ?>
-                                    <span class="badge bg-danger">Cancelled</span>
-                                <?php elseif($invoice->status == 3): ?>
-                                    <a href="<?php echo e(route('superadmin.cashPayments.repay', $invoice->id)); ?>">
-                                       <span class="badge bg-info">Partial <i class="fa fa-hand-holding-dollar ms-2"></i></span> 
-                                    </a>    
-                                <?php elseif($invoice->status == 4): ?>
-                                    <span class="badge bg-primary">Settled</span>
-                                <?php endif; ?> 
-                                
-                            </td>
                             <td class="d-flex"> 
-                               
-                               <?php if($invoice->invoice_letter_path): ?>
+                                <?php if(!empty($invoice->invoice_letter_path)): ?>
                                     <a href="<?php echo e(url($invoice->invoice_letter_path)); ?>" 
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none" 
-                                    target="_blank" 
-                                    title="View PDF">
-                                         <i data-feather="file-text"></i>
+                                       class="border rounded d-flex align-items-center p-2 text-decoration-none" 
+                                       target="_blank" 
+                                       title="View Generated Invoice">
+                                        <i class="ti ti-file-invoice"></i>
                                     </a>
+                                <?php elseif($invoice->relatedBooking): ?>
+                                    <form action="<?php echo e(route('superadmin.bookingInvoiceStatuses.generateInvoice', $invoice->relatedBooking->id)); ?>" method="POST" target="_blank" class="m-0">
+                                        <?php echo csrf_field(); ?>
+                                        <button type="submit" class="border rounded d-flex align-items-center p-2 bg-white" title="Generate & View Invoice">
+                                            <i class="ti ti-file-invoice"></i>
+                                        </button>
+                                    </form>
                                 <?php else: ?>
-                                    <span class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none" title="No File">
-                                         <i data-feather="file-text"></i>
+                                    <span class="border rounded d-flex align-items-center p-2 text-decoration-none" title="No linked booking">
+                                        <i class="ti ti-file-invoice"></i>
                                     </span>
-                                <?php endif; ?>  
-
-                                <form action="<?php echo e(route('superadmin.invoices.cancel', $invoice->id)); ?>" method="POST" class="d-inline">
-                                    <?php echo csrf_field(); ?>
-                                    <?php echo method_field('PATCH'); ?>
-                                    <button type="submit" 
-                                            class="me-2 border rounded d-flex align-items-center p-2 btn btn-link text-danger"
-                                            title="Cancel">
-                                        <i data-feather="x-circle"></i>
-                                    </button>
-                                </form> 
-                                
-                                  <?php if($invoice->status == 0): ?>
-                                    <!-- Edit Button -->
-                                    <a href="<?php echo e(route('superadmin.invoices.edit', $invoice->id)); ?>" 
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
-                                    title="Edit">
-                                        <i data-feather="edit" class="feather-edit"></i>
-                                    </a> 
-                                   
-                                 <!-- Delete Button -->
-                                    <button type="button" 
-                                            class="p-2 border rounded d-flex align-items-center btn-delete" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal<?php echo e($invoice->id); ?>"
-                                            title="Delete">
-                                        <i data-feather="trash-2" class="feather-trash-2"></i>
-                                    </button>   
-                                <?php endif; ?>                    
+                                <?php endif; ?>
                             </td>
                         </tr>
                         
@@ -335,4 +303,4 @@
 
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/invoiceList/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/invoiceList/marketing/index.blade.php ENDPATH**/ ?>

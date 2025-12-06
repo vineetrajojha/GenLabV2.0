@@ -99,16 +99,16 @@
                             </li>
 
                             <li>
-                                <a href="{{ route('superadmin.invoices.index', $invoiceParams) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
+                                <a href="{{ route('superadmin.invoices.index', array_merge($invoiceParams, ['context' => 'marketing'])) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
                                     <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices</span>
                                 </a>
                             </li>
 
-                            <li>
-                                <a href="{{ route('superadmin.invoices.index', $invoiceParams) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
+                            <!-- <li>
+                                <a href="{{ route('superadmin.invoices.index', array_merge($invoiceParams, ['context' => 'marketing'])) }}" class="{{ Request::routeIs('superadmin.invoices.*') ? 'active' : '' }}">
                                     <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices Payments</span>
                                 </a>
-                            </li>
+                            </li> -->
 
                             <li>
                                 @if($isMarketing && $user)

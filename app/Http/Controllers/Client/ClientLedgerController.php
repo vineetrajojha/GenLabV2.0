@@ -126,6 +126,25 @@ class ClientLedgerController extends Controller
         }
     }
 
+    /**
+     * Simple role detector for marketing users.
+     */
+    private function isMarketingUser($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $roleName = null;
+        if (isset($user->role)) {
+            $roleName = is_object($user->role)
+                ? ($user->role->role_name ?? $user->role->name ?? null)
+                : $user->role;
+        }
+
+        return $roleName && stripos($roleName, 'market') !== false;
+    }
+
 
     
 
@@ -133,9 +152,16 @@ class ClientLedgerController extends Controller
     public function fetchBookings(Request $request, $id)
     {
         $client = Client::findOrFail($id);
-        
+        $user = auth('admin')->user() ?: auth()->user();
+        $marketingCode = ($this->isMarketingUser($user)) ? ($user->user_code ?? null) : null;
+
         $query = NewBooking::with(['marketingPerson', 'items', 'generatedInvoice'])
-            ->where('client_id', $id); 
+            ->where('client_id', $id);
+
+        // Enforce scope for marketing users
+        if ($marketingCode) {
+            $query->where('marketing_id', $marketingCode);
+        }
 
         if ($request->filled('payment_option')) {
             $query->where('payment_option', $request->payment_option); 
@@ -163,6 +189,8 @@ class ClientLedgerController extends Controller
     public function fetchWithoutBillBookings(Request $request, $id)
     {
         $client = Client::findOrFail($id);
+        $user = auth('admin')->user() ?: auth()->user();
+        $marketingCode = ($this->isMarketingUser($user)) ? ($user->user_code ?? null) : null;
 
         $cashPayments = CashLetterPayment::where('client_id', $client->id)
             ->when($request->filled('transaction_status'), function ($q) use ($request) {
@@ -192,6 +220,10 @@ class ClientLedgerController extends Controller
         // Base query → all client bookings with "without_bill"
         $query = NewBooking::where('client_id', $client->id)
             ->where('payment_option', 'without_bill');
+
+        if ($marketingCode) {
+            $query->where('marketing_id', $marketingCode);
+        }
 
         // If user explicitly filters by with_payment
         if ($request->get('with_payment') == 1) {
@@ -234,8 +266,14 @@ class ClientLedgerController extends Controller
     public function fetchInvoices(Request $request, $id)
     {
         $client = Client::findOrFail($id);
+        $user = auth('admin')->user() ?: auth()->user();
+        $marketingCode = ($this->isMarketingUser($user)) ? ($user->user_code ?? null) : null;
 
         $query = $client->invoices(); 
+
+        if ($marketingCode) {
+            $query->where('marketing_user_code', $marketingCode);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);

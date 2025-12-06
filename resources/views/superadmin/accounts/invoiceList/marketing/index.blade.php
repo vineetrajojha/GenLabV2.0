@@ -19,9 +19,7 @@
 
     <div class="page-header ps-3 px-3">
         <div class="d-flex justify-content-end mt-3 me-3 mb-4">
-            <a href="{{ route('superadmin.blank-invoices.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Generate Blank PI
-            </a>
+             <h1>Invoices</h1>
         </div>  
 
         <ul class="table-top-head list-inline d-flex gap-3">
@@ -85,20 +83,35 @@
 <!-- Table List -->
 <div class="card mt-4">
     <div class="card-header d-flex justify-content-between align-items-center">
+        @php
+            $authUser = auth()->user();
+            $marketingCode = $authUser->user_code ?? null;
+        @endphp
         <h5 class="card-title">Generated {{ $type ?? 'Invoices' }}</h5>
+        <a href="{{ route('superadmin.bookingInvoiceStatuses.index', array_filter(['context' => 'marketing', 'marketing_person' => $marketingCode], fn($v) => filled($v))) }}" class="btn btn-primary">Yet to be Generate</a>
 
         <!-- Filters + Search bar -->
         <form method="GET" action="{{ route('superadmin.invoices.index') }}" class="d-flex gap-2" role="search">
             <input type="hidden" name="type" value="{{ request('type', $type ?? '') }}">
-            <!-- Marketing Person Filter -->
-            <select name="marketing_person" class="form-select" onchange="this.form.submit()">
-                <option value="">All Marketing Persons</option>
+            <!-- Marketing Person Filter (locked to logged-in marketing user) -->
+            @php
+                $authUser = auth()->user();
+                $lockedMarketingId = $authUser?->id;
+            @endphp
+            <select name="marketing_person" class="form-select" onchange="this.form.submit()" {{ $lockedMarketingId ? 'disabled' : '' }}>
+                @if(!$lockedMarketingId)
+                    <option value="">All Marketing Persons</option>
+                @endif
                 @foreach($marketingPersons as $person)
-                    <option value="{{ $person->id }}" {{ request('marketing_person') == $person->id ? 'selected' : '' }}>
+                    @php $isLockedOption = $lockedMarketingId === $person->id; @endphp
+                    <option value="{{ $person->id }}" {{ ($lockedMarketingId ? $isLockedOption : request('marketing_person') == $person->id) ? 'selected' : '' }}>
                         {{ $person->name }} ({{ $person->user_code }})
                     </option>
                 @endforeach
-            </select> 
+            </select>
+            @if($lockedMarketingId)
+                <input type="hidden" name="marketing_person" value="{{ $lockedMarketingId }}">
+            @endif 
           
             <!-- Client Filter -->
             <select name="client_id" class="form-select" onchange="this.form.submit()">
@@ -151,12 +164,10 @@
                         <th>#</th>
                         <th>Invoice No</th>
                         <th>Assigned Client</th>
-                        <th>Marketing Person</th>      
                         <th>GST Amount</th>
                         <th>Total Amount</th>
                         <th>Letter Date</th>
                         <th>items </th> 
-                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -166,8 +177,6 @@
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $invoice->invoice_no }}</td>
                             <td>{{ $invoice->relatedBooking->client->name ?? 'N/A' }}</td>
-                            <td>{{ $invoice->relatedBooking->marketingPerson->name ?? 'N/A' }}</td>
-                       
                             <td>{{ $invoice->gst_amount }}</td>
                             <td>{{ $invoice->total_amount }}</td>
                             <td>{{ \Carbon\Carbon::parse($invoice->letter_date)->format('d-m-Y') }}</td>
@@ -225,68 +234,26 @@
                                 @endif
                             </td>
                             
-                            <td>
-                                @if($invoice->status == 0)
-                                    <a href="{{ route('superadmin.cashPayments.create', $invoice->id) }}">
-                                        <span class="badge bg-warning">Pay <i class="fa fa-credit-card ms-2"></i></span>
-
-
-                                    </a>
-                                @elseif($invoice->status == 1)
-                                    <span class="badge bg-success">Paid</span>
-                                @elseif($invoice->status == 2)
-                                    <span class="badge bg-danger">Cancelled</span>
-                                @elseif($invoice->status == 3)
-                                    <a href="{{ route('superadmin.cashPayments.repay', $invoice->id) }}">
-                                       <span class="badge bg-info">Partial <i class="fa fa-hand-holding-dollar ms-2"></i></span> 
-                                    </a>    
-                                @elseif($invoice->status == 4)
-                                    <span class="badge bg-primary">Settled</span>
-                                @endif 
-                                
-                            </td>
                             <td class="d-flex"> 
-                               
-                               @if($invoice->invoice_letter_path)
+                                @if(!empty($invoice->invoice_letter_path))
                                     <a href="{{ url($invoice->invoice_letter_path) }}" 
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none" 
-                                    target="_blank" 
-                                    title="View PDF">
-                                         <i data-feather="file-text"></i>
+                                       class="border rounded d-flex align-items-center p-2 text-decoration-none" 
+                                       target="_blank" 
+                                       title="View Generated Invoice">
+                                        <i class="ti ti-file-invoice"></i>
                                     </a>
+                                @elseif($invoice->relatedBooking)
+                                    <form action="{{ route('superadmin.bookingInvoiceStatuses.generateInvoice', $invoice->relatedBooking->id) }}" method="POST" target="_blank" class="m-0">
+                                        @csrf
+                                        <button type="submit" class="border rounded d-flex align-items-center p-2 bg-white" title="Generate & View Invoice">
+                                            <i class="ti ti-file-invoice"></i>
+                                        </button>
+                                    </form>
                                 @else
-                                    <span class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none" title="No File">
-                                         <i data-feather="file-text"></i>
+                                    <span class="border rounded d-flex align-items-center p-2 text-decoration-none" title="No linked booking">
+                                        <i class="ti ti-file-invoice"></i>
                                     </span>
-                                @endif  
-
-                                <form action="{{ route('superadmin.invoices.cancel', $invoice->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" 
-                                            class="me-2 border rounded d-flex align-items-center p-2 btn btn-link text-danger"
-                                            title="Cancel">
-                                        <i data-feather="x-circle"></i>
-                                    </button>
-                                </form> 
-                                
-                                  @if($invoice->status == 0)
-                                    <!-- Edit Button -->
-                                    <a href="{{ route('superadmin.invoices.edit', $invoice->id) }}" 
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
-                                    title="Edit">
-                                        <i data-feather="edit" class="feather-edit"></i>
-                                    </a> 
-                                   
-                                 <!-- Delete Button -->
-                                    <button type="button" 
-                                            class="p-2 border rounded d-flex align-items-center btn-delete" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal{{ $invoice->id }}"
-                                            title="Delete">
-                                        <i data-feather="trash-2" class="feather-trash-2"></i>
-                                    </button>   
-                                @endif                    
+                                @endif
                             </td>
                         </tr>
                         

@@ -541,6 +541,17 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // Intercept pagination clicks inside the dynamic section to keep AJAX navigation
+    if (dynamicContainer) {
+        dynamicContainer.addEventListener('click', function(ev){
+            const link = ev.target.closest('.pagination a');
+            if (!link) return;
+            ev.preventDefault();
+            const url = link.getAttribute('href');
+            if (url) { loadContent(url); }
+        });
+    }
+
     // Keyboard accessibility: activate card on Enter/Space
     clickableCards.forEach(card => {
         card.addEventListener('keydown', function(e) {

@@ -1,3 +1,4 @@
+
 <?php $__env->startSection('title', 'Generate Invoice'); ?>
 <?php $__env->startSection('content'); ?>
 
@@ -22,8 +23,8 @@
     <div class="page-header">
         <div class="add-item d-flex">
             <div class="page-title">
-                <h4>Generate Invoice</h4>
-                <h6>Generate Invoice By Letter</h6>
+                <h4>Invoices</h4>
+                <h6>Yet to be Generated</h6>
             </div>                            
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
@@ -44,14 +45,7 @@
 
     <!-- Bulk Generate Invoice Form START -->
     <form id="bulkInvoiceForm" action="<?php echo e(route('superadmin.bookingInvoiceStatuses.bulkGenerate')); ?>" method="GET">
-    
-        <!-- Bulk Generate Invoice Button -->
-        <div class="mb-3 ms-3">
-            <button type="submit" class="btn btn-primary">
-                Generate Invoice for Selected
-            </button>
-        </div>
-
+      
         <div class="card">
             <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
 
@@ -66,17 +60,32 @@
                 <!-- Marketing Person, Client, Month & Year Filter Form -->
                 <div class="search-set">
                     <form method="GET" action="<?php echo e(route('superadmin.bookingInvoiceStatuses.index', $department?->id)); ?>" class="d-flex gap-2">
-                        
+
+                        <?php
+                            $authUser = auth()->user();
+                            $roleName = null;
+                            if ($authUser && isset($authUser->role)) {
+                                $roleName = is_object($authUser->role)
+                                    ? ($authUser->role->role_name ?? $authUser->role->name ?? $authUser->role->slug ?? null)
+                                    : $authUser->role;
+                            }
+                            $isMarketingUser = $roleName && stripos($roleName, 'market') !== false;
+                            $lockedMarketingCode = $isMarketingUser ? ($authUser->user_code ?? null) : null;
+                        ?>
+
                         <!-- Marketing Person Filter -->
-                        <select name="marketing_person" class="form-control">
+                        <select name="marketing_person" class="form-control" style="<?php echo e($lockedMarketingCode ? 'pointer-events: none;' : ''); ?>">
                             <option value="">Select Marketing Person</option>
                             <?php $__currentLoopData = $marketingPersons; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <option value="<?php echo e($mp->user_code); ?>" <?php echo e(request('marketing_person') == $mp->user_code ? 'selected' : ''); ?>>
+                                <option value="<?php echo e($mp->user_code); ?>" <?php echo e(($lockedMarketingCode ? $lockedMarketingCode == $mp->user_code : request('marketing_person') == $mp->user_code) ? 'selected' : ''); ?>>
                                     <?php echo e($mp->label); ?>
 
                                 </option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
+                        <?php if($lockedMarketingCode): ?>
+                            <input type="hidden" name="marketing_person" value="<?php echo e($lockedMarketingCode); ?>">
+                        <?php endif; ?>
 
                         <!-- Client Filter -->
                         <select name="client_id" class="form-control">
@@ -148,10 +157,8 @@
                                 </th>
                                 <th>Assigned Client</th>
                                 <th>Reference No</th> 
-                                <th>Marketing Person</th>
                                 <th>Booking Date</th>
                                 <th>Items</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -165,7 +172,6 @@
                                 </td>
                                 <td><?php echo e($booking->client->name ?? ''); ?></td>
                                 <td><?php echo e($booking->reference_no ?? ''); ?></td>
-                                <td><?php echo e($booking->marketingPerson->name ?? ''); ?></td>
                                 <td>
                                    <?php echo e(\Carbon\Carbon::parse($booking->job_order_date)->format('d-m-Y')); ?>
 
@@ -224,53 +230,6 @@
                                     <?php endif; ?>
                                 </td> 
 
-                                <td class="d-flex align-items-center gap-2">
-                                    <a href="<?php echo e(route('superadmin.bookingInvoiceStatuses.edit', $booking->id)); ?>" 
-                                       class="btn btn-success d-flex align-items-center p-2" 
-                                       title="Generate Invoice">
-                                        <i data-feather="file-text"></i>
-                                    </a>
-
-                                    <a href="<?php echo e(route('superadmin.bookings.edit', $booking->id)); ?>" 
-                                       class="btn btn-outline-primary d-flex align-items-center p-2">
-                                        <i data-feather="edit"></i>
-                                    </a>
-
-                                    <button type="button" class="btn btn-outline-danger d-flex align-items-center p-2" 
-                                            data-bs-toggle="modal" data-bs-target="#deleteModal-<?php echo e($booking->id); ?>">
-                                        <i data-feather="trash-2"></i>
-                                    </button>
-
-                                    <!-- Move / Transfer -->
-                                    <a href="#" 
-                                       class="btn btn-warning d-flex align-items-center p-2" 
-                                       title="Without Bill">
-                                        <i data-feather="corner-up-right"></i>
-                                    </a>
-
-                                    <!-- Delete Modal -->
-                                    <div class="modal fade" id="deleteModal-<?php echo e($booking->id); ?>" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-body text-center p-4">
-                                                    <div class="icon-success bg-danger-transparent text-danger mb-2">
-                                                        <i class="ti ti-trash"></i>
-                                                    </div>
-                                                    <h5 class="mb-3">Are you sure you want to delete this booking?</h5>
-                                                    <div class="d-flex justify-content-center gap-2">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <form action="<?php echo e(route('superadmin.bookings.destroy', $booking->id)); ?>" method="POST">
-                                                            <?php echo csrf_field(); ?>
-                                                            <?php echo method_field('DELETE'); ?>
-                                                            <button type="submit" class="btn btn-danger">Delete</button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </td>
                             </tr>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
@@ -315,4 +274,4 @@
 
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/generateInvoice/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/generateInvoice/marketing/index.blade.php ENDPATH**/ ?>

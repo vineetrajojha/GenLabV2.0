@@ -282,7 +282,7 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    <?php echo e($items->links()); ?>
+                    <?php echo e($items->appends(request()->all())->links('pagination::bootstrap-5')); ?>
 
                 </div>
                 <div class="d-flex gap-2">

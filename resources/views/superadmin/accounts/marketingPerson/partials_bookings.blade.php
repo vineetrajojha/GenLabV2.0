@@ -2,7 +2,9 @@
     <thead>
         <tr>
             <th>#</th>
-            <th>{{ $isClient ? 'Marketing Person' : 'Client' }}</th>
+            @unless($isClient)
+                <th>Client</th>
+            @endunless
             <th>Reference No</th>
             <th>Booking Date</th>
             <th>Amount</th>
@@ -14,13 +16,9 @@
         @foreach($bookings as $i => $booking)
             <tr>
                 <td>{{ $i+1 }}</td>
-                <td> 
-                 @if($isClient)
-                        {{ $booking->marketingPerson->name ?? 'N/A' }}
-                    @else
-                         {{ $booking->client->name ?? 'N/A' }}
-                    @endif
-                </td>
+                @unless($isClient)
+                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
+                @endunless
                 <td>{{ $booking->reference_no }}</td>
                 <td>{{ $booking->created_at->format('d-M-Y') }}</td>
                 <td>₹{{ number_format($booking->total_amount, 2) }}</td>
@@ -91,5 +89,6 @@
         @endforeach
     </tbody>
 </table>
-
-{!! $bookings->links('pagination::bootstrap-5') !!}
+@if($bookings->hasPages())
+    {!! $bookings->links('pagination::bootstrap-5') !!}
+@endif
