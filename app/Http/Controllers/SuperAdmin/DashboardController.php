@@ -283,46 +283,87 @@ class DashboardController extends Controller
             }
 
             // --- Per-marketing-person detailed stats (for profile section) ---
-            $allBookingsQuery = (clone $bookingQuery);
-            $totalBookings = $allBookingsQuery->count();
-            $allBookingsCollection = $allBookingsQuery->get();
-            $totalBookingAmount = $allBookingsCollection->sum(fn($b) => $b->total_amount ?? 0);
+            $bookingStats = DB::table('new_bookings')
+                ->leftJoin('booking_items', function($join) {
+                    $join->on('new_bookings.id', '=', 'booking_items.new_booking_id')
+                         ->whereNull('booking_items.deleted_at');
+                })
+                ->where('new_bookings.marketing_id', $userCode)
+                ->whereNull('new_bookings.deleted_at')
+                ->selectRaw('COUNT(DISTINCT new_bookings.id) as total_bookings')
+                ->selectRaw('COALESCE(SUM(booking_items.amount), 0) as total_booking_amount')
+                ->selectRaw("COUNT(DISTINCT CASE WHEN new_bookings.payment_option = 'bill' THEN new_bookings.id END) as bill_bookings")
+                ->selectRaw("COALESCE(SUM(CASE WHEN new_bookings.payment_option = 'bill' THEN booking_items.amount ELSE 0 END), 0) as bill_amount")
+                ->selectRaw("COUNT(DISTINCT CASE WHEN new_bookings.payment_option <> 'bill' OR new_bookings.payment_option IS NULL THEN new_bookings.id END) as without_bill_bookings")
+                ->selectRaw("COALESCE(SUM(CASE WHEN new_bookings.payment_option <> 'bill' OR new_bookings.payment_option IS NULL THEN booking_items.amount ELSE 0 END), 0) as without_bill_amount")
+                ->first();
 
-            $billBookingsQuery = (clone $bookingQuery)->where('payment_option', 'bill');
-            $billBookings = $billBookingsQuery->count();
-            $totalBillBookingAmount = $billBookingsQuery->get()->sum(fn($b) => $b->total_amount ?? 0);
+            $totalBookings = (int) ($bookingStats?->total_bookings ?? 0);
+            $totalBookingAmount = (float) ($bookingStats?->total_booking_amount ?? 0);
+            $billBookings = (int) ($bookingStats?->bill_bookings ?? 0);
+            $totalBillBookingAmount = (float) ($bookingStats?->bill_amount ?? 0);
+            $withoutBillBookings = (int) ($bookingStats?->without_bill_bookings ?? 0);
+            $totalWithoutBillBookings = (float) ($bookingStats?->without_bill_amount ?? 0);
 
-            $withoutBillBookingsQuery = (clone $bookingQuery)->where(function ($q) {
-                $q->where('payment_option', '!=', 'bill')->orWhereNull('payment_option');
-            });
-            $withoutBillBookings = $withoutBillBookingsQuery->count();
-            $totalWithoutBillBookings = $withoutBillBookingsQuery->get()->sum(fn($b) => $b->total_amount ?? 0);
+            $notGeneratedStats = DB::table('new_bookings')
+                ->leftJoin('booking_items', function($join) {
+                    $join->on('new_bookings.id', '=', 'booking_items.new_booking_id')
+                         ->whereNull('booking_items.deleted_at');
+                })
+                ->leftJoin('invoices', 'new_bookings.id', '=', 'invoices.new_booking_id')
+                ->where('new_bookings.marketing_id', $userCode)
+                ->whereNull('new_bookings.deleted_at')
+                ->whereNull('invoices.id')
+                ->selectRaw('COUNT(DISTINCT new_bookings.id) as total')
+                ->selectRaw('COALESCE(SUM(booking_items.amount), 0) as amount')
+                ->first();
 
-            $notGeneratedInvoicesCount = (clone $bookingQuery)->whereDoesntHave('generatedInvoice')->count();
-            $totalNotGeneratedInvoicesAmount = (clone $bookingQuery)->whereDoesntHave('generatedInvoice')->get()->sum(fn($b) => $b->total_amount ?? 0);
+            $notGeneratedInvoicesCount = (int) ($notGeneratedStats?->total ?? 0);
+            $totalNotGeneratedInvoicesAmount = (float) ($notGeneratedStats?->amount ?? 0);
 
             $invoiceBase = Invoice::where('marketing_user_code', $userCode);
-            $unpaidInvoices = (clone $invoiceBase)->whereDoesntHave('transactions')->count();
-            $totalUnpaidInvoiceAmount = (clone $invoiceBase)->whereDoesntHave('transactions')->sum('total_amount');
-            $paidInvoicesAmount = (clone $invoiceBase)->whereHas('transactions')->sum('total_amount');
+            $unpaidInvoiceStats = (clone $invoiceBase)
+                ->whereDoesntHave('transactions')
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('COALESCE(SUM(total_amount), 0) as amount')
+                ->first();
+            $unpaidInvoices = (int) ($unpaidInvoiceStats?->total ?? 0);
+            $totalUnpaidInvoiceAmount = (float) ($unpaidInvoiceStats?->amount ?? 0);
+            $paidInvoicesAmount = (float) (clone $invoiceBase)->whereHas('transactions')->sum('total_amount');
 
-            $transactionsQuery = InvoiceTransaction::where('marketing_person_id', $userCode);
-            $transactionsCount = $transactionsQuery->count();
-            $totalTransactionsAmount = $transactionsQuery->sum('amount_received');
+            $transactionsSummary = InvoiceTransaction::where('marketing_person_id', $userCode)
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('COALESCE(SUM(amount_received), 0) as amount')
+                ->first();
+            $transactionsCount = (int) ($transactionsSummary?->total ?? 0);
+            $totalTransactionsAmount = (float) ($transactionsSummary?->amount ?? 0);
 
-            $tdsAmount = InvoiceTds::where('marketing_person_id', $userCode)->sum('tds_amount');
+            $tdsAmount = (float) InvoiceTds::where('marketing_person_id', $userCode)->sum('tds_amount');
 
-            $cashPaymentsBase = CashLetterPayment::where('marketing_person_id', $userCode);
-            $cashPaidLetters = (clone $cashPaymentsBase)->where('transaction_status', 2)->count();
-            $totalCashPaidLettersAmount = (clone $cashPaymentsBase)->where('transaction_status', 2)->sum('amount_received');
-            $cashUnpaidLetters = (clone $cashPaymentsBase)->where('transaction_status', 0)->count();
-            $totalCashUnpaidAmounts = (clone $cashPaymentsBase)->where('transaction_status', 0)->sum('amount_received');
-            $cashPartialLetters = (clone $cashPaymentsBase)->where('transaction_status', 1)->count();
-            $totalDueAmount = (clone $cashPaymentsBase)->where('transaction_status', 1)->sum('amount_received');
-            $cashSettledLetters = (clone $cashPaymentsBase)->where('transaction_status', 3)->count();
-            $totalSettledAmount = (clone $cashPaymentsBase)->where('transaction_status', 3)->sum('amount_received');
+            $cashPaymentSummary = CashLetterPayment::where('marketing_person_id', $userCode)
+                ->selectRaw('SUM(CASE WHEN transaction_status = 2 THEN 1 ELSE 0 END) as paid_letters')
+                ->selectRaw('COALESCE(SUM(CASE WHEN transaction_status = 2 THEN amount_received ELSE 0 END), 0) as paid_amount')
+                ->selectRaw('SUM(CASE WHEN transaction_status = 0 THEN 1 ELSE 0 END) as unpaid_letters')
+                ->selectRaw('COALESCE(SUM(CASE WHEN transaction_status = 0 THEN amount_received ELSE 0 END), 0) as unpaid_amount')
+                ->selectRaw('SUM(CASE WHEN transaction_status = 1 THEN 1 ELSE 0 END) as partial_letters')
+                ->selectRaw('COALESCE(SUM(CASE WHEN transaction_status = 1 THEN amount_received ELSE 0 END), 0) as partial_amount')
+                ->selectRaw('SUM(CASE WHEN transaction_status = 3 THEN 1 ELSE 0 END) as settled_letters')
+                ->selectRaw('COALESCE(SUM(CASE WHEN transaction_status = 3 THEN amount_received ELSE 0 END), 0) as settled_amount')
+                ->first();
 
-            $clientsCount = Client::whereIn('id', NewBooking::where('marketing_id', $userCode)->pluck('client_id')->filter()->unique())->count();
+            $cashPaidLetters = (int) ($cashPaymentSummary?->paid_letters ?? 0);
+            $totalCashPaidLettersAmount = (float) ($cashPaymentSummary?->paid_amount ?? 0);
+            $cashUnpaidLetters = (int) ($cashPaymentSummary?->unpaid_letters ?? 0);
+            $totalCashUnpaidAmounts = (float) ($cashPaymentSummary?->unpaid_amount ?? 0);
+            $cashPartialLetters = (int) ($cashPaymentSummary?->partial_letters ?? 0);
+            $totalDueAmount = (float) ($cashPaymentSummary?->partial_amount ?? 0);
+            $cashSettledLetters = (int) ($cashPaymentSummary?->settled_letters ?? 0);
+            $totalSettledAmount = (float) ($cashPaymentSummary?->settled_amount ?? 0);
+
+            $clientsCount = (clone $bookingQuery)
+                ->whereNotNull('client_id')
+                ->distinct()
+                ->count('client_id');
 
             $stats = [
                 'transactions' => $transactionsCount,

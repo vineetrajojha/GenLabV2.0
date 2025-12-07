@@ -69,7 +69,7 @@ class AttendanceController extends Controller
 
         $esslSync = [
             'enabled' => (bool) config('attendance.essl.webhook_secret'),
-            'webhook_url' => route('api.attendance.essl.webhook'),
+            'adms_endpoint' => url('/iclock/cdata'),
             'default_status' => AttendanceRecord::statusLabels()[config('attendance.essl.default_status', AttendanceRecord::STATUS_PRESENT)] ?? 'Present',
             'secret_configured' => filled(config('attendance.essl.webhook_secret')),
             'allowed_ips' => config('attendance.essl.allowed_ips', []),

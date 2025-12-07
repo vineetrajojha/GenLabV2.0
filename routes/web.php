@@ -14,6 +14,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Superadmin\ProfileController;
 use App\Http\Controllers\Accounts\MarketingExpenseController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\Api\Attendance\EsslAdmsController;
 use App\Events\MessageSent;
 use Illuminate\Http\Request;
 
@@ -32,6 +33,9 @@ use Illuminate\Http\Request;
 // Root auth
 Route::get('/', [UserLoginController::class, 'index'])->name('login');
 Route::post('/', [UserLoginController::class, 'login'])->name('login.submit');
+
+// eSSL ADMS default endpoint (/iclock/cdata)
+Route::any('/iclock/cdata', EsslAdmsController::class)->name('attendance.essl.adms');
 
 
 // User dashboard

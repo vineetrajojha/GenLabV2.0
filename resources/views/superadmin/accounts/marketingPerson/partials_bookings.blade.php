@@ -2,7 +2,9 @@
     <thead>
         <tr>
             <th>#</th>
-            <th>{{ $isClient ? 'Marketing Person' : 'Client' }}</th>
+            @unless($isClient)
+                <th>Client</th>
+            @endunless
             <th>Reference No</th>
             <th>Booking Date</th>
             <th>Amount</th>
@@ -14,13 +16,9 @@
         @foreach($bookings as $i => $booking)
             <tr>
                 <td>{{ $i+1 }}</td>
-                <td> 
-                 @if($isClient)
-                        {{ $booking->marketingPerson->name ?? 'N/A' }}
-                    @else
-                         {{ $booking->client->name ?? 'N/A' }}
-                    @endif
-                </td>
+                @unless($isClient)
+                    <td>{{ $booking->client->name ?? 'N/A' }}</td>
+                @endunless
                 <td>{{ $booking->reference_no }}</td>
                 <td>{{ $booking->created_at->format('d-M-Y') }}</td>
                 <td>₹{{ number_format($booking->total_amount, 2) }}</td>
@@ -47,25 +45,25 @@
                                             <table class="table table-bordered">
                                                 <thead>
                                                     <tr>
+                                                        <th>Job Order No</th>
                                                         <th>Sample Description</th>
                                                         <th>Sample Quality</th>
                                                         <th>Lab Analyst</th>
                                                         <th>Particulars</th>
                                                         <th>Expected Date</th>
                                                         <th>Amount</th>
-                                                        <th>Job Order No</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @foreach($booking->items as $item)
                                                     <tr>
+                                                        <td>{{ $item->job_order_no }}</td>
                                                         <td>{{ $item->sample_description }}</td>
                                                         <td>{{ $item->sample_quality }}</td>
                                                         <td>{{ $item->lab_analysis_code }}</td>
                                                         <td>{{ $item->particulars }}</td>
                                                         <td>{{ \Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y') }}</td>
                                                         <td>₹{{ number_format($item->amount, 2) }}</td>
-                                                        <td>{{ $item->job_order_no }}</td>
                                                     </tr>
                                                     @endforeach
                                                 </tbody>
@@ -84,15 +82,13 @@
                         {{ $booking->generatedInvoice?->status ? 'Completed' : 'Pending' }}
                     </span> 
                         @if(!$booking->generatedInvoice?->status)
-                        <a href="{{ route('superadmin.bookingInvoiceStatuses.edit', $booking->id) }}" 
-                        class="btn btn-sm btn-outline-primary ms-2">
-                            <i class="bi bi-pencil"></i> Update
-                        </a>
+                         
                     @endif
                 </td>
             </tr>
         @endforeach
     </tbody>
 </table>
-
-{!! $bookings->links('pagination::bootstrap-5') !!}
+@if($bookings->hasPages())
+    {!! $bookings->links('pagination::bootstrap-5') !!}
+@endif

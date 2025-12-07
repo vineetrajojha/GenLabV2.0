@@ -4,11 +4,13 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\BookingItem;
 use App\Models\NewBooking;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Models\ReportEditorFile;  
+use Illuminate\Support\Facades\Storage;
 
 
 class ReportingController extends Controller
@@ -60,11 +62,256 @@ class ReportingController extends Controller
     }
 
     /**
+     * Booking-by-letter style listing (grouped by booking, with filters).
+     */
+    public function viewByLetter(Request $request)
+    {
+        $search = trim((string) $request->get('search'));
+        $month = $request->get('month');
+        $year = $request->get('year');
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100], true)) {
+            $perPage = 25;
+        }
+
+        $departmentId = $request->get('department');
+        $marketing = $request->get('marketing');
+
+        $departments = \App\Models\Department::orderBy('name')->get(['id','name']);
+        $department = $departmentId ? $departments->firstWhere('id', (int) $departmentId) : null;
+
+        $baseQuery = \App\Models\NewBooking::query()->with(['items']);
+
+        if ($department) {
+            $baseQuery->where('department_id', $department->id);
+        }
+        if ($marketing) {
+            $baseQuery->where('marketing_id', $marketing);
+        }
+        if ($search !== '') {
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('client_name', 'like', "%{$search}%")
+                  ->orWhere('reference_no', 'like', "%{$search}%");
+            });
+        }
+        if (is_numeric($month)) {
+            $baseQuery->whereMonth('created_at', (int) $month);
+        }
+        if (is_numeric($year)) {
+            $baseQuery->whereYear('created_at', (int) $year);
+        }
+
+        // Restrict to bookings that have at least one uploaded report in Received Reports (letters storage)
+        $withLettersIds = (clone $baseQuery)
+            ->select(['id', 'reference_no'])
+            ->get()
+            ->filter(function ($booking) {
+                return $this->bookingHasUploadedReport($booking->reference_no);
+            })
+            ->pluck('id')
+            ->all();
+
+        $bookings = (clone $baseQuery)
+            ->whereIn('id', $withLettersIds)
+            ->latest('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        // Collect all uploaded report links per booking
+        $letterFiles = [];
+        foreach ($bookings as $bk) {
+            $letterFiles[$bk->id] = $this->uploadedReportsForReference($bk->reference_no);
+        }
+
+        return view('superadmin.reporting.view-by-letter', [
+            'bookings' => $bookings,
+            'departments' => $departments,
+            'department' => $department,
+            'letterFiles' => $letterFiles,
+        ]);
+    }
+
+    /**
+     * Job-order centric listing for reporting submenu.
+     */
+    public function viewByJobOrder(Request $request)
+    {
+        $user = Auth::guard('admin')->user() ?: Auth::user();
+        $search = trim((string) $request->get('search'));
+        $month = $request->get('month');
+        $year = $request->get('year');
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100], true)) {
+            $perPage = 25;
+        }
+
+        // Enforce marketing scoping: marketing users only see their own bookings
+        $marketingFilter = $request->get('marketing');
+        if ($this->isMarketingUser($user)) {
+            $marketingFilter = $marketingFilter ?: ($user->user_code ?? null);
+            if ($marketingFilter) {
+                // Persist to request so pagination/export keep the filter
+                $request->merge(['marketing' => $marketingFilter]);
+            }
+        }
+
+        // Show only items that have a generated report (pdf_path on pivot)
+        $items = BookingItem::query()
+            ->with(['booking', 'reports'])
+            ->whereHas('reports', function ($q) {
+                $q->whereNotNull('booking_item_report.pdf_path');
+            })
+            ->latest('id');
+
+        if ($search !== '') {
+            $items->where(function ($q) use ($search) {
+                $q->where('job_order_no', 'like', "%{$search}%")
+                  ->orWhere('sample_description', 'like', "%{$search}%")
+                  ->orWhere('sample_quality', 'like', "%{$search}%")
+                  ->orWhere('particulars', 'like', "%{$search}%")
+                  ->orWhereHas('booking', function ($b) use ($search) {
+                        $b->where('client_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if (is_numeric($month)) {
+            $items->whereMonth('created_at', (int) $month);
+        }
+        if (is_numeric($year)) {
+            $items->whereYear('created_at', (int) $year);
+        }
+
+        if (!empty($marketingFilter)) {
+            $items->whereHas('booking', function ($b) use ($marketingFilter) {
+                $b->where('marketing_id', $marketingFilter);
+            });
+        }
+
+        $items = $items->paginate($perPage)->withQueryString();
+
+        return view('superadmin.reporting.view-by-job-order', [
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * Determine if the authenticated user is a marketing user.
+     */
+    private function isMarketingUser($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $roleName = null;
+        if (isset($user->role)) {
+            if (is_object($user->role)) {
+                $roleName = $user->role->role_name ?? $user->role->name ?? null;
+            } else {
+                $roleName = $user->role;
+            }
+        }
+
+        return $roleName && stripos($roleName, 'market') !== false;
+    }
+
+    /**
+     * Check if a booking reference has any uploaded report file (stored under letters directory).
+     */
+    private function bookingHasUploadedReport(?string $reference): bool
+    {
+        $key = $this->sanitizeLetterKey((string) $reference);
+        if ($key === '') {
+            return false;
+        }
+
+        $dir = "public/letters/{$key}";
+        if (!Storage::exists($dir)) {
+            return false;
+        }
+
+        foreach (Storage::files($dir) as $path) {
+            $base = basename($path);
+            if ($base === '_meta.json' || str_starts_with($base, '_')) {
+                continue;
+            }
+            $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+            if (in_array($ext, ['pdf','jpg','jpeg','png','doc','docx'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all uploaded report links for a reference.
+     */
+    private function uploadedReportsForReference(?string $reference): array
+    {
+        $key = $this->sanitizeLetterKey((string) $reference);
+        if ($key === '') {
+            return [];
+        }
+
+        $dir = "public/letters/{$key}";
+        if (!Storage::exists($dir)) {
+            return [];
+        }
+
+        // Load meta to recover original filenames and uploader info
+        $meta = [];
+        $metaPath = $dir.'/_meta.json';
+        if (Storage::exists($metaPath)) {
+            $rawMeta = json_decode(Storage::get($metaPath), true);
+            if (is_array($rawMeta)) {
+                $meta = $rawMeta;
+            }
+        }
+
+        $links = [];
+        $files = Storage::files($dir);
+        // Sort by last modified desc so newest uploads appear first
+        usort($files, function ($a, $b) {
+            return Storage::lastModified($b) <=> Storage::lastModified($a);
+        });
+
+        foreach ($files as $path) {
+            $base = basename($path);
+            if ($base === '_meta.json' || str_starts_with($base, '_')) {
+                continue;
+            }
+            $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['pdf','jpg','jpeg','png','doc','docx'], true)) {
+                continue;
+            }
+            $original = $meta[$base]['original'] ?? $base;
+            $links[] = [
+                'url' => route('superadmin.reporting.letters.show', ['job' => $reference, 'filename' => $base]),
+                'name' => $original,
+                'stored' => $base,
+            ];
+        }
+
+        return $links;
+    }
+
+    /**
+     * Sanitize reference into a storage-safe key (align with ReportingLettersController logic).
+     */
+    private function sanitizeLetterKey(string $input): string
+    {
+        return preg_replace('/[^A-Za-z0-9_\-]/', '-', trim($input)) ?: '';
+    }
+
+    /**
      * Pendings: show items that have been received but not yet issued (issue_date null).
      * Supports optional search by job order no (search), and month/year filters based on received_at.
      */
     public function pendings(Request $request)
     {    
+        $user = Auth::guard('admin')->user() ?: Auth::user();
         $search = trim((string) $request->get('search'));
         $month = $request->has('month') ? (int) $request->get('month') : null;
         $year = $request->has('year') ? (int) $request->get('year') : null;
@@ -73,14 +320,23 @@ class ReportingController extends Controller
         $cutoff = $beforeDate ?: now()->toDateString();
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing'); // user_code of marketing person
+        if ($this->isMarketingUser($user)) {
+            $marketing = $marketing ?: ($user->user_code ?? null);
+            if ($marketing) {
+                $request->merge(['marketing' => $marketing]);
+            }
+        }
         $mode = $request->get('mode', 'job'); // job | reference
         if (!in_array($mode, ['job','reference'], true)) { $mode = 'job'; }
         if ($month !== null && ($month < 1 || $month > 12)) { $month = null; }
         if ($year !== null && ($year < 2000 || $year > 2100)) { $year = null; }
         $departments = \App\Models\Department::orderBy('name')->get(['id','name']);
-        $marketingPersons = \App\Models\User::whereHas('marketingBookings')
-            ->orderBy('name')
-            ->get(['id','name','user_code']);
+        $marketingPersonsQuery = \App\Models\User::whereHas('marketingBookings')
+            ->orderBy('name');
+        if ($this->isMarketingUser($user) && $marketing) {
+            $marketingPersonsQuery->where('user_code', $marketing);
+        }
+        $marketingPersons = $marketingPersonsQuery->get(['id','name','user_code']);
 
         $perPage = (int) $request->get('perPage', 25);
         if (!in_array($perPage, [25, 50, 100])) {
@@ -159,11 +415,18 @@ class ReportingController extends Controller
 
     protected function buildPendingsQuery(Request $request)
     {
+        $user = Auth::guard('admin')->user() ?: Auth::user();
         $search = trim((string) $request->get('search'));
         $month = $request->has('month') ? (int) $request->get('month') : null;
         $year = $request->has('year') ? (int) $request->get('year') : null;
         $departmentId = $request->get('department');
         $marketing = $request->get('marketing');
+        if ($this->isMarketingUser($user)) {
+            $marketing = $marketing ?: ($user->user_code ?? null);
+            if ($marketing) {
+                $request->merge(['marketing' => $marketing]);
+            }
+        }
         $overdue = $request->boolean('overdue');
         $beforeDate = $request->get('before_date');
         $cutoff = $beforeDate ?: now()->toDateString();

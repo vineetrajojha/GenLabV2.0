@@ -96,7 +96,7 @@
 
 .chat-popup-header{ background: var(--chat-primary); color:#fff; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
 /* Expanded styling driven by JS-calculated bounds (no full-viewport sizing here) */
-.chat-popup.expanded{ border-radius:0; box-shadow:none; }
+.chat-popup.expanded{ border-radius:0; box-shadow:none; z-index:1100 !important; }
 
 @media (max-width: 576px){
   .chat-popup{ right:10px; bottom:10px; width: calc(100vw - 20px); height: calc(100dvh - 20px); border-radius:10px; }
@@ -276,7 +276,7 @@
 }
 
 /* Override in expanded mode: layout handled via JS bounds on main body */
-.chat-popup.expanded { box-shadow: none; }
+.chat-popup.expanded { box-shadow: none; z-index:1100 !important; }
 /* Stacking fix to ensure chat is above content but below modals */
 .chat-popup{ z-index: 990 !important; }
 /* Ensure composer remains visible and layout can shrink properly */
@@ -607,7 +607,12 @@
     // Groups
     function renderGroups(list){
         groupsEl.innerHTML = '';
-        const sorted = Array.isArray(list) ? list.slice().sort((a,b)=> (b.last_msg_id||0) - (a.last_msg_id||0)) : [];
+        const sorted = Array.isArray(list) ? list.slice().sort((a,b)=>{
+            const la = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
+            const lb = b.last_msg_at ? new Date(b.last_msg_at).getTime() : 0;
+            if (lb !== la) return lb - la;
+            return (b.last_msg_id||0) - (a.last_msg_id||0);
+        }) : [];
         sorted.forEach(g => {
             const item = document.createElement('a');
             item.href = '#'; item.className = 'list-group-item d-flex align-items-center';
@@ -707,7 +712,7 @@
             const g = await res.json();
             // Update/add group with plain name
             const existing = allGroups.find(x=> x.id === g.id);
-            if (existing){ existing.name = g.name; }
+            if (existing){ Object.assign(existing, g); }
             else { allGroups.push(g); }
             renderGroups(allGroups);
             const item = groupsEl.querySelector(`.list-group-item[data-group-id="${g.id}"]`);
@@ -724,11 +729,19 @@
             if (!res.ok) throw new Error('dm-open-fail');
             const g = await res.json();
             const exist = allGroups.find(x=> x.id === g.id);
-            if (exist) exist.name = g.name; else allGroups.unshift(g);
+            if (exist) { Object.assign(exist, g); } else { allGroups.unshift(g); }
             renderGroups(allGroups);
             const item = groupsEl.querySelector(`.list-group-item[data-group-id="${g.id}"]`);
             selectGroup(g.id, g.name, item);
         } catch(e){ alert('Failed to open chat'); }
+    }
+
+    function upsertGroup(g){
+        if (!g) return;
+        const existing = allGroups.find(x=> String(x.id) === String(g.id));
+        if (existing) { Object.assign(existing, g); }
+        else { allGroups.unshift(g); }
+        renderGroups(allGroups);
     }
 
     // Keep ONLY this async search handler (remote search)
@@ -929,6 +942,46 @@
         return Array.isArray(cache) ? cache.find(x => x && x.id === id) : null;
     }
 
+    // Normalize ownership flag for correct incoming/outgoing alignment
+    function flagMine(m){
+        if (!m) return false;
+        // If backend already sent a boolean, honor it
+        if (typeof m.mine === 'boolean') return m.mine;
+        const uid = (window.currentUser && window.currentUser.id != null) ? Number(window.currentUser.id) : null;
+        if (uid === null || Number.isNaN(uid)) { m.mine = false; return false; }
+        const candidates = [
+            m.user_id,
+            m.sender_id,
+            m.senderId,
+            m.sent_by,
+            m.sent_by_id,
+            m.sentBy,
+            m.sentById,
+            m.admin_id,
+            m.adminId,
+            m.user && m.user.id,
+            m.sender && m.sender.id,
+            m.admin && m.admin.id
+        ].filter(v => v !== undefined && v !== null);
+        let mine = false;
+        for (const c of candidates){
+            const n = Number(c);
+            if (!Number.isNaN(n) && n === uid) { mine = true; break; }
+        }
+        // If still unknown and current user is root/super admin, trust sender_guard admin variants as self (admin panel use-case)
+        const guard = (m.sender_guard || '').toString().toLowerCase();
+        const isAdminGuard = guard === 'admin' || guard === 'superadmin' || guard === 'super_admin';
+        if (!mine && isAdminGuard && (window.isRootAdmin || window.isSuperAdmin)) mine = true;
+        // Fallback: match by name (last resort to avoid left/right swap in legacy data)
+        if (!mine){
+            const senderName = (m.sender_name || m.senderName || (m.user && m.user.name) || '').trim().toLowerCase();
+            const meName = (window.currentUser && window.currentUser.name || '').trim().toLowerCase();
+            if (senderName && meName && senderName === meName) mine = true;
+        }
+        m.mine = mine;
+        return mine;
+    }
+
     function findRootMessageId(fromId){
         let guard = 0;
         let cur = getMsgById(fromId);
@@ -959,8 +1012,14 @@
             });
         }
         const content = document.createElement('div'); content.className = 'wa-content';
-        // Show sender's name only (no sender_guard)
-        const senderNameText = m.sender_name || (m.user && m.user.name) || 'User';
+        // Show sender name with admin-aware fallback
+        const guard = (m.sender_guard || '').toString().toLowerCase();
+        const senderNameText =
+            m.sender_name ||
+            m.admin_name ||
+            (m.admin && m.admin.name) ||
+            (m.user && m.user.name) ||
+            (guard === 'superadmin' || guard === 'super_admin' ? 'Super Admin' : (guard === 'admin' ? 'Admin' : 'User'));
         const nameEl = document.createElement('div'); nameEl.className = 'wa-sender'; nameEl.textContent = senderNameText;
         // Only real admin should open legacy direct chats on name click
         if (isRootAdmin && m.user && m.user.id){
@@ -1458,8 +1517,8 @@
             if (!res.ok) throw new Error('messages-http-' + res.status);
             let data;
             try { data = await res.json(); } catch { throw new Error('messages-json-parse'); }
-            // Build fresh cache and id index
-            cache = Array.isArray(data) ? data : [];
+            // Build fresh cache and id index, tagging ownership for alignment
+            cache = Array.isArray(data) ? data.map(m=>{ flagMine(m); return m; }) : [];
             idIndex = new Set(cache.map(m=> m && m.id));
             lastMessageId = cache.length ? cache[cache.length-1].id : 0;
             window.lastMessageId = lastMessageId;
@@ -1493,7 +1552,12 @@
             try { data = await res.json(); } catch { data = []; }
             if (Array.isArray(data) && data.length){
                 const fresh = [];
-                for (const m of data){ if (!m || idIndex.has(m.id)) continue; idIndex.add(m.id); fresh.push(m); }
+                for (const m of data){
+                    if (!m || idIndex.has(m.id)) continue;
+                    flagMine(m);
+                    idIndex.add(m.id);
+                    fresh.push(m);
+                }
                 if (fresh.length){
                     cache = cache.concat(fresh);
                     lastMessageId = cache[cache.length-1].id;
@@ -1515,7 +1579,8 @@
         try {
             const res = await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' }, body: formData });
             if (!res.ok) throw new Error('send-fail');
-            await res.json();
+            const data = await res.json();
+            if (data && data.group) { upsertGroup(data.group); }
             if (activeGroupId) fetchMessages(activeGroupId);
         } catch(e){ alert('Failed to send message.'); }
     }
@@ -1538,7 +1603,8 @@
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error('json-fail');
-            await res.json();
+            const data = await res.json();
+            if (data && data.group) { upsertGroup(data.group); }
             fetchMessages(activeGroupId);
         } catch(err){
             const fd = new FormData();
@@ -1668,6 +1734,8 @@
 
     function applyExpandedBounds(){
         if (!popupEl.classList.contains('expanded')) return;
+        const vw = window.innerWidth || document.documentElement.clientWidth || screen.width || 1200;
+        const vh = window.innerHeight || document.documentElement.clientHeight || screen.height || 800;
         const headerSelectors = ['.header','header','.topbar','.navbar','.app-header','.main-header','#header','.page-header'];
         const sidebarSelectors = [
             '.sidebar','.sidebar-menu','.sidebar-wrapper','.sidebar-main','.app-sidebar','aside.sidebar',
@@ -1690,6 +1758,10 @@
         let headerBottom = pickMaxBottom(headerSelectors);
         headerBottom = Math.max(headerBottom, detectTopChrome());
         let leftEdge = pickMaxRight(sidebarSelectors);
+        const hardHeader = document.querySelector('.header');
+        if (hardHeader){ const r = hardHeader.getBoundingClientRect(); headerBottom = Math.max(headerBottom, r.bottom); }
+        const hardSidebar = document.querySelector('.sidebar');
+        if (hardSidebar){ const r = hardSidebar.getBoundingClientRect(); leftEdge = Math.max(leftEdge, r.right); }
         // If no sidebar matched but there is a column taking left side, probe common layout columns
         if (!leftEdge){
             const probe = Array.from(document.body.children).filter(n=>{
@@ -1699,34 +1771,47 @@
         // Prefer explicit bounds container if present
         let boundsEl = null;
         for (const sel of boundsSelectors){ const c = document.querySelector(sel); if (c){ boundsEl = c; break; } }
+        let top = Math.max(0, headerBottom);
+        let left = Math.max(0, leftEdge);
+        let width = Math.max(320, vw - left);
+        let height = Math.max(300, vh - top);
+
         if (boundsEl){
             const br = boundsEl.getBoundingClientRect();
-            const top = Math.max(0, Math.max(br.top, headerBottom));
-            const bottomLimit = Math.min(window.innerHeight, br.bottom);
-            const left = Math.max(br.left, leftEdge);
-            const width = Math.max(320, window.innerWidth - left);
-            const height = Math.max(300, bottomLimit - top);
-            popupEl.style.top = top + 'px';
-            popupEl.style.left = left + 'px';
-            popupEl.style.width = width + 'px';
-            popupEl.style.height = height + 'px';
-            popupEl.style.right = '';
-            popupEl.style.bottom = '';
-            popupEl.style.borderRadius = '0';
-            return;
+            top = Math.max(0, Math.max(br.top, headerBottom));
+            const bottomLimit = Math.min(vh, br.bottom);
+            left = Math.max(br.left, leftEdge);
+            width = Math.max(320, vw - left);
+            height = Math.max(300, bottomLimit - top);
         }
-        // Fallback using viewport
-        const top = Math.max(0, headerBottom);
-        const left = Math.max(0, leftEdge);
-        const width = Math.max(320, window.innerWidth - left);
-        const height = Math.max(300, window.innerHeight - top);
-        popupEl.style.top = top + 'px';
-        popupEl.style.left = left + 'px';
-        popupEl.style.width = width + 'px';
-        popupEl.style.height = height + 'px';
+
+        // Prefer the main content area if present (so header/sidebar remain visible)
+        const pageWrapper = document.querySelector('.page-wrapper');
+        if (pageWrapper){
+            const br = pageWrapper.getBoundingClientRect();
+            top = Math.max(top, Math.max(br.top, headerBottom));
+            left = Math.max(left, Math.max(br.left, leftEdge));
+            const bottomLimit = Math.min(vh, br.bottom);
+            width = Math.max(320, Math.min(vw - left, br.width));
+            height = Math.max(300, bottomLimit - top);
+        }
+
+        const offscreen = top >= vh || left >= vw;
+        if (offscreen){ top = 0; left = 0; width = vw; height = vh; }
+
+        const clampedTop = Math.max(0, Math.min(top, Math.max(0, vh - 200)));
+        const clampedLeft = Math.max(0, Math.min(left, Math.max(0, vw - 240)));
+        const clampedWidth = Math.max(320, Math.min(width, vw - clampedLeft));
+        const clampedHeight = Math.max(300, Math.min(height, vh - clampedTop));
+
+        popupEl.style.top = clampedTop + 'px';
+        popupEl.style.left = clampedLeft + 'px';
+        popupEl.style.width = clampedWidth + 'px';
+        popupEl.style.height = clampedHeight + 'px';
         popupEl.style.right = '';
         popupEl.style.bottom = '';
         popupEl.style.borderRadius = '0';
+        popupEl.style.zIndex = '1100';
     }
 
     // Hook after open to re-evaluate once layout settles
@@ -1747,7 +1832,8 @@
     // On load, restore persisted state
     (function restorePersisted(){
         const state = getState();
-        if (state.expanded) { popupEl.classList.add('expanded'); }
+        if (state.expanded) { popupEl.classList.add('expanded'); popupEl.style.zIndex = '1100'; }
+        else { popupEl.style.zIndex = ''; }
         if (state.open) {
             popupEl.style.display = 'flex';
             if (popupEl.classList.contains('expanded')) { applyExpandedBounds(); requestAnimationFrame(applyExpandedBounds); setTimeout(applyExpandedBounds, 120); }
@@ -1761,12 +1847,20 @@
     });
     closeBtn && closeBtn.addEventListener('click', function(){ popupEl.style.display = 'none'; setState({ open: false }); });
     expandBtn && expandBtn.addEventListener('click', function(){
+        popupEl.style.display = 'flex';
         popupEl.classList.toggle('expanded');
-        setState({ expanded: popupEl.classList.contains('expanded') });
+        const expanded = popupEl.classList.contains('expanded');
+        setState({ open: true, expanded });
         const i = this.querySelector('i');
-        if (popupEl.classList.contains('expanded')) { i.classList.remove('fa-expand'); i.classList.add('fa-compress'); applyExpandedBounds(); }
+        if (expanded) {
+            if (i){ i.classList.remove('fa-expand'); i.classList.add('fa-compress'); }
+            popupEl.style.zIndex = '1100';
+            applyExpandedBounds();
+            requestAnimationFrame(applyExpandedBounds);
+        }
         else {
-            i.classList.remove('fa-compress'); i.classList.add('fa-expand');
+            if (i){ i.classList.remove('fa-compress'); i.classList.add('fa-expand'); }
+            popupEl.style.zIndex = '';
             popupEl.style.top = ''; popupEl.style.left = ''; popupEl.style.right = ''; popupEl.style.bottom = ''; popupEl.style.width = ''; popupEl.style.height = ''; popupEl.style.borderRadius = '';
         }
     });
@@ -1846,13 +1940,18 @@
     function openPopup(){
         popupEl.style.display = 'flex';
         setState({ open: true });
-        if (popupEl.classList.contains('expanded')) { applyExpandedBounds(); requestAnimationFrame(applyExpandedBounds); }
+        if (popupEl.classList.contains('expanded')) {
+            popupEl.style.zIndex = '1100';
+            applyExpandedBounds();
+            requestAnimationFrame(applyExpandedBounds);
+        }
         else if (lastPos.top !== null && lastPos.left !== null){
             popupEl.style.top = lastPos.top + 'px';
             popupEl.style.left = lastPos.left + 'px';
             popupEl.style.right = '';
             popupEl.style.bottom = '';
         }
+        else { popupEl.style.zIndex = ''; }
         if (!allGroups.length) { fetchGroups(); }
     }
     window.openChat = openPopup; window.openPopup = openPopup;
@@ -1907,7 +2006,7 @@
     var channel = pusher.subscribe('chat');
     function handleChatEvent(data) {
         var msg = data && data.message ? data.message : data;
-        msg.mine = window.currentUser && Number(msg.user_id) === Number(window.currentUser.id);
+        flagMine(msg);
 
         if (Array.isArray(window.allGroups)) {
             let found = false;
@@ -1937,25 +2036,30 @@
                 }
             }
             if (!found) {
-                window.allGroups.unshift({
-                    id: msg.group_id,
-                    slug: msg.group_slug || '',
-                    name: msg.sender_name || 'Chat',
-                    avatar: (msg.user && msg.user.avatar) || '',
-                    latest: {
-                        id: msg.id,
-                        type: msg.type,
-                        content: msg.content,
-                        original_name: msg.original_name,
-                        sender_guard: msg.sender_guard,
-                        sender_name: msg.sender_name,
-                        user: msg.user || null,
-                        created_at: msg.created_at
-                    },
-                    last_msg_id: msg.id,
-                    last_msg_at: msg.created_at,
-                    unread: (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) ? 1 : 0
-                });
+                // If we don't know the group yet (likely a DM the user can see), refetch groups to pull proper metadata
+                if (typeof window.fetchGroups === 'function') {
+                    window.fetchGroups();
+                } else {
+                    window.allGroups.unshift({
+                        id: msg.group_id,
+                        slug: msg.group_slug || '',
+                        name: msg.sender_name || 'Chat',
+                        avatar: (msg.user && msg.user.avatar) || '',
+                        latest: {
+                            id: msg.id,
+                            type: msg.type,
+                            content: msg.content,
+                            original_name: msg.original_name,
+                            sender_guard: msg.sender_guard,
+                            sender_name: msg.sender_name,
+                            user: msg.user || null,
+                            created_at: msg.created_at
+                        },
+                        last_msg_id: msg.id,
+                        last_msg_at: msg.created_at,
+                        unread: (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) ? 1 : 0
+                    });
+                }
             }
             if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
         }

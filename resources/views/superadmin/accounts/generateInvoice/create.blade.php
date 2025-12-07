@@ -1,6 +1,6 @@
 @extends('superadmin.layouts.app')
 
-@section('title', 'Create New User')
+@section('title', 'Generate Invoice')
 
 @section('content')
 @if ($errors->any())

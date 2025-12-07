@@ -60,14 +60,15 @@
             </div>
 
             <div class="row g-3 align-items-end mt-2">
-                <div class="col-12 col-lg-6">
-                    <label class="form-label small text-muted mb-1">Webhook URL</label>
+                <div class="col-12 col-lg-6 offset-lg-0">
+                    <label class="form-label small text-muted mb-1">ADMS Endpoint (fixed)</label>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" value="{{ $esslSync['webhook_url'] }}" readonly>
-                        <button class="btn btn-outline-secondary" type="button" data-copy="{{ $esslSync['webhook_url'] }}">
+                        <input type="text" class="form-control" value="{{ $esslSync['adms_endpoint'] }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" data-copy="{{ $esslSync['adms_endpoint'] }}">
                             <i class="ti ti-copy"></i>
                         </button>
                     </div>
+                    <p class="text-muted small mt-1 mb-0">Point basic eSSL devices to this path (default /iclock/cdata).</p>
                 </div>
                 <div class="col-6 col-lg-3">
                     <p class="text-muted small mb-1">Default Status</p>

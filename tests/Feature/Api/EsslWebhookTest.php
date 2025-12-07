@@ -62,4 +62,34 @@ class EsslWebhookTest extends TestCase
             'source' => AttendanceRecord::SOURCE_ESSL,
         ]);
     }
+
+    public function test_adms_endpoint_processes_attlog_payload(): void
+    {
+        $employee = Employee::factory()->create(['employee_code' => 'ADMS01']);
+        $timestamp = now()->setSeconds(0);
+
+        $body = sprintf(
+            "PIN=%s\tTime=%s\tStatus=0",
+            $employee->employee_code,
+            $timestamp->format('Y-m-d H:i:s')
+        );
+
+        $response = $this->call(
+            'POST',
+            '/iclock/cdata?SN=ADMS-DEVICE&table=ATTLOG',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'text/plain'],
+            $body
+        );
+
+        $response->assertOk()->assertSee('OK');
+
+        $this->assertDatabaseHas('attendance_records', [
+            'employee_id' => $employee->getKey(),
+            'attendance_date' => $timestamp->toDateString(),
+            'source' => AttendanceRecord::SOURCE_ESSL,
+        ]);
+    }
 }

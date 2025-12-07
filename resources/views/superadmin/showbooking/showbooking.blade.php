@@ -1,5 +1,5 @@
 @extends('superadmin.layouts.app')
-@section('title', 'Show Booking List')
+@section('title', 'Booking By Letter')
 @section('content')
 
 @if ($errors->any())
@@ -161,25 +161,25 @@
                                                         <table class="table table-bordered">
                                                             <thead>
                                                                 <tr>
+                                                                    <th>Job Order No</th>
                                                                     <th>Sample Description</th>
                                                                     <th>Sample Quality</th>
                                                                     <th>Lab Analyst</th>
                                                                     <th>Particulars</th>
                                                                     <th>Expected Date</th>
                                                                     <th>Amount</th>
-                                                                    <th>Job Order No</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 @foreach($booking->items as $item)
                                                                 <tr>
+                                                                    <td>{{ $item->job_order_no }}</td>
                                                                     <td>{{ $item->sample_description }}</td>
                                                                     <td>{{ $item->sample_quality }}</td>
                                                                     <td>{{ $item->lab_analysis_code }}</td>
                                                                     <td>{{ $item->particulars }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y') }}</td>
                                                                     <td>{{ $item->amount }}</td>
-                                                                    <td>{{ $item->job_order_no }}</td>
                                                                 </tr>
                                                                 @endforeach
                                                             </tbody>

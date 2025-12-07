@@ -163,6 +163,7 @@ class EsslLogIngestor
             'datetime',
             'punch_at',
             'scan_time',
+            'time',
         ]);
         $punchAt = $this->parseDateTime($punchAtRaw);
 
@@ -219,6 +220,7 @@ class EsslLogIngestor
             'user_id',
             'timestamp',
             'punch_time',
+            'time',
             'io_mode',
             'direction',
             'device_serial',

@@ -1,5 +1,5 @@
 @extends('superadmin.layouts.app')
-@section('title', 'Show Booking List')
+@section('title', 'Generate Invoice')
 @section('content')
 
 @if ($errors->any())

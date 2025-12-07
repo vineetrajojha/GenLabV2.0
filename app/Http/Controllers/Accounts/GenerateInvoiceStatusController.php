@@ -82,7 +82,22 @@ class GenerateInvoiceStatusController extends Controller
         }
 
 
-        // Marketing person filter (by marketing_id)
+        // Determine marketing context
+        $authUser = $request->user();
+        $roleName = null;
+        if ($authUser && isset($authUser->role)) {
+            $roleName = is_object($authUser->role)
+                ? ($authUser->role->role_name ?? $authUser->role->name ?? null)
+                : $authUser->role;
+        }
+        $isMarketing = $roleName && stripos($roleName, 'market') !== false;
+
+        // Lock marketing filter to logged-in marketing user by default
+        if ($isMarketing && !$request->filled('marketing_person')) {
+            $request->merge(['marketing_person' => $authUser->user_code ?? null]);
+        }
+
+        // Marketing person filter (by marketing_id / user_code stored on booking)
         if ($request->filled('marketing_person')) {
             $query->where('marketing_id', $request->marketing_person);
         }
@@ -109,7 +124,9 @@ class GenerateInvoiceStatusController extends Controller
         $departments = $this->departmentService->getDepartment();
 
         $view = ($request->payment_option ?? 'bill') === 'bill'
-            ? 'superadmin.accounts.generateInvoice.index'
+            ? ($isMarketing || $request->context === 'marketing'
+                ? 'superadmin.accounts.generateInvoice.marketing.index'
+                : 'superadmin.accounts.generateInvoice.index')
             : 'superadmin.accounts.cashLetter.index';
         
 

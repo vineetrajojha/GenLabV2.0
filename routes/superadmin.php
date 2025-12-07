@@ -176,6 +176,7 @@ Route::middleware(['multi_auth:web,admin'])->prefix('superadmin')->name('superad
             Route::get('/users/role/{roleSlug}', [UserController::class, 'getUsersByRole'])->name('get.userByRole');
 
             Route::get('/bookingByLetter', [ShowBookingByLetterController::class, 'index'])->name('bookingByLetter.index');
+            Route::get('/marketing/bookingByLetter', [ShowBookingByLetterController::class, 'marketingIndex'])->name('bookingByLetter.marketing');
             Route::delete('/bookingByLetter/{bookingItem}', [ShowBookingByLetterController::class, 'destroy'])->name('bookingByLetter.destroy');
             Route::get('/bookingByLetter/export/pdf', [ShowBookingByLetterController::class, 'exportPdf'])->name('bookingByLetter.exportPdf');
             Route::get('/bookingByLetter/export/excel', [ShowBookingByLetterController::class, 'exportExcel'])->name('bookingByLetter.exportExcel');
@@ -715,6 +716,7 @@ Route::middleware(['multi_auth:web,admin'])->prefix('superadmin')->name('superad
 
             // ShowBooking List
             Route::prefix('showbooking')->name('showbooking.')->group(function () {
+                Route::get('/marketing/{department?}', [ShowBookingController::class, 'marketing'])->name('marketing.showBooking');
                 Route::get('/{department?}', [ShowBookingController::class, 'index'])->name('showBooking');
                 Route::get('/export/pdf/{department?}', [ShowBookingController::class, 'exportPdf'])->name('exportPdf');
                 Route::get('/export/excel/{department?}', [ShowBookingController::class, 'exportExcel'])->name('exportExcel');
@@ -793,6 +795,8 @@ Route::middleware(['multi_auth:web,admin'])->prefix('superadmin')->name('superad
                 Route::post('/account-receive-bulk', [ReportingController::class, 'accountReceiveBulk'])->name('accountReceiveBulk');
                 Route::post('/submit-all', [ReportingController::class, 'submitAll'])->name('submitAll');
                 Route::get('/generate', [ReportingController::class, 'generate'])->name('generate');
+                Route::get('/view-by-letter', [ReportingController::class, 'viewByLetter'])->name('viewByLetter');
+                Route::get('/view-by-job-order', [ReportingController::class, 'viewByJobOrder'])->name('viewByJobOrder');
 
                 Route::patch('/header/{booking}', [ReportingController::class, 'updateHeader'])->name('header.update');
 

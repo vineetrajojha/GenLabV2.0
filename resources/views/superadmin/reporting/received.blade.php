@@ -17,8 +17,8 @@
         <div class="card-body">
             <form method="GET" action="{{ route('superadmin.reporting.received') }}" class="row g-2 align-items-end">
                 <div class="col-sm-4">
-                    <label class="form-label">Job Order No</label>
-                    <input type="text" name="job" value="{{ $job }}" class="form-control" placeholder="Enter Job Order No">
+                    <label class="form-label">Reference No</label>
+                    <input type="text" name="job" value="{{ $job }}" class="form-control" placeholder="Enter Reference No">
                 </div>
                 <div class="col-sm-2">
                     <button type="submit" class="btn btn-primary w-100">Search</button>
@@ -74,14 +74,15 @@
                 </div>
                 {{-- Upload Letter(s) box inserted after M/s --}}
                 @php
+                    $letterKey = $header['reference_no'] ?? $job;
                     $uploadRoute = \Illuminate\Support\Facades\Route::has('superadmin.reporting.letters.upload') ? route('superadmin.reporting.letters.upload') : '#';
-                    $listRoute = \Illuminate\Support\Facades\Route::has('superadmin.reporting.letters.index') ? route('superadmin.reporting.letters.index', ['job' => $job]) : '';
+                    $listRoute = \Illuminate\Support\Facades\Route::has('superadmin.reporting.letters.index') ? route('superadmin.reporting.letters.index', ['job' => $letterKey]) : '';
                 @endphp
                 <div class="col-md-5">
                     <label class="form-label">Upload Report</label>
                     <form method="POST" action="{{ $uploadRoute }}" enctype="multipart/form-data" id="upload-letters-form" class="d-flex gap-2 align-items-start flex-wrap" data-list-url="{{ $listRoute }}">
                         @csrf
-                        <input type="hidden" name="job" value="{{ $job }}">
+                        <input type="hidden" name="job" value="{{ $letterKey }}">
                         <input type="file" name="letters[]" id="upload-letters-input" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" {{ $uploadRoute === '#' ? 'disabled' : '' }}>
                         <div class="d-flex gap-2 align-items-center">
                             <button type="submit" class="btn btn-primary" {{ $uploadRoute === '#' ? 'disabled' : '' }}>Upload</button>
@@ -97,7 +98,7 @@
                     <label class="form-label">Upload docx</label>
                     <form method="POST" action="#" enctype="multipart/form-data" id="upload-letters-form" class="d-flex gap-2 align-items-start flex-wrap" data-list-url="{{ $listRoute }}">
                         @csrf
-                        <input type="hidden" name="job" value="{{ $job }}">
+                        <input type="hidden" name="job" value="{{ $letterKey }}">
                         <input type="file" name="letters[]" id="upload-letters-input" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" {{ $uploadRoute === '#' ? 'disabled' : '' }}>
                         <div class="d-flex gap-2 align-items-center">
                             <button type="submit" class="btn btn-primary" {{ $uploadRoute === '#' ? 'disabled' : '' }}>Upload</button>
@@ -281,7 +282,7 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
-                    {{ $items->links() }}
+                    {{ $items->appends(request()->all())->links('pagination::bootstrap-5') }}
                 </div>
                 <div class="d-flex gap-2">
                     @php
@@ -297,7 +298,7 @@
                     @endif
                     <form method="POST" action="{{ route('superadmin.reporting.receiveAll') }}" id="receive-all-form" class="d-inline">
                         @csrf
-                        <input type="hidden" name="job" value="{{ $job }}">
+                        <input type="hidden" name="job" value="{{ $letterKey ?? $job }}">
                         <button class="btn bulk-action-btn" type="submit" id="receive-all-btn" style="background-color:#092C4C;border-color:#092C4C;color:#fff; {{ $allReceived ? 'display:none;' : '' }}">Receive All</button>
                     </form>
                        <a href="{{ route('booking.downloadMergedPDF', ['bookingId' => $header['id'] ?? 0]) }}"

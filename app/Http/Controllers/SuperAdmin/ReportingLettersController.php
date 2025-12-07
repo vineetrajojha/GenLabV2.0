@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Throwable;
+use App\Models\BookingItem;
+use App\Models\NewBooking;
 
 // Optional PDF page count support; if library missing we'll skip.
 
@@ -21,52 +23,64 @@ class ReportingLettersController extends Controller
             return response()->json(['ok' => true, 'count' => 0, 'letters' => []]);
         }
 
-        $safeJob = $this->sanitizeJob($job);
-        $dir = "public/letters/{$safeJob}";
-        $files = Storage::exists($dir) ? Storage::files($dir) : [];
-        $metaPath = $dir.'/_meta.json';
-        $meta = [];
-        if (Storage::exists($metaPath)) {
-            $rawMeta = json_decode(Storage::get($metaPath), true);
-            if (is_array($rawMeta)) $meta = $rawMeta;
+        [$safeJob, $resolvedReference] = $this->resolveLetterKey($job);
+        $fallbackKey = $this->sanitizeJob($job);
+        $dirKeys = array_values(array_unique(array_filter([$safeJob, $fallbackKey])));
+
+        $lettersMap = [];
+
+        foreach ($dirKeys as $dirKey) {
+            $dir = "public/letters/{$dirKey}";
+            if (!Storage::exists($dir)) {
+                continue;
+            }
+
+            $files = Storage::files($dir);
+            $metaPath = $dir.'/_meta.json';
+            $meta = [];
+            if (Storage::exists($metaPath)) {
+                $rawMeta = json_decode(Storage::get($metaPath), true);
+                if (is_array($rawMeta)) $meta = $rawMeta;
+            }
+
+            foreach ($files as $path) {
+                $basename = basename($path);
+                if ($basename === '_meta.json' || str_starts_with($basename, '_')) {
+                    continue;
+                }
+                $ext = strtolower(pathinfo($basename, PATHINFO_EXTENSION));
+                $allowed = ['pdf','jpg','jpeg','png','doc','docx'];
+                if ($ext && !in_array($ext, $allowed, true)) {
+                    continue;
+                }
+
+                $url = Storage::url($path);
+                $uploadedAt = $meta[$basename]['uploaded_at'] ?? Carbon::createFromTimestamp(Storage::lastModified($path))->toDateTimeString();
+                $uploaderName = $meta[$basename]['uploader_name'] ?? null;
+                $pageCount = null;
+                if ($ext === 'pdf') {
+                    $pageCount = $this->tryCountPdfPages($path);
+                }
+                $original = $meta[$basename]['original'] ?? $basename;
+                $lettersMap[$dirKey.'|'.$basename] = [
+                    'name' => $original,
+                    'original_name' => $original,
+                    'filename' => $basename,
+                    'url' => $url,
+                    'encoded_url' => $this->encodeUrlPath($url),
+                    'download_url' => route('superadmin.reporting.letters.show', ['job' => $dirKey, 'filename' => $basename]),
+                    'uploaded_at' => $uploadedAt,
+                    'pages' => $pageCount,
+                    'uploader_name' => $uploaderName,
+                ];
+            }
         }
 
-        $letters = [];
-        foreach ($files as $path) {
-            $basename = basename($path);
-            // Skip metadata file(s) or hidden/system files starting with underscore
-            if ($basename === '_meta.json' || str_starts_with($basename, '_')) {
-                continue;
-            }
-            // Optionally filter to allowed extensions for safety
-            $ext = strtolower(pathinfo($basename, PATHINFO_EXTENSION));
-            $allowed = ['pdf','jpg','jpeg','png','doc','docx'];
-            if ($ext && !in_array($ext, $allowed, true)) {
-                continue;
-            }
-            $url = Storage::url($path);
-            $uploadedAt = $meta[$basename]['uploaded_at'] ?? Carbon::createFromTimestamp(Storage::lastModified($path))->toDateTimeString();
-            $uploaderName = $meta[$basename]['uploader_name'] ?? null;
-            $pageCount = null;
-            if ($ext === 'pdf') {
-                $pageCount = $this->tryCountPdfPages($path);
-            }
-            $original = $meta[$basename]['original'] ?? $basename;
-            $letters[] = [
-                'name' => $original,
-                'original_name' => $original,
-                'filename' => $basename,
-                'url' => $url,
-                'encoded_url' => $this->encodeUrlPath($url),
-                'download_url' => route('superadmin.reporting.letters.show', ['job' => $safeJob, 'filename' => $basename]),
-                'uploaded_at' => $uploadedAt,
-                'pages' => $pageCount,
-                'uploader_name' => $uploaderName,
-            ];
-        }
+        $letters = array_values($lettersMap);
 
         return response()->json([
             'ok' => true,
+            'reference' => $resolvedReference,
             'count' => count($letters),
             'letters' => $letters,
         ]);
@@ -81,8 +95,9 @@ class ReportingLettersController extends Controller
             'letters.*' => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:20480'], // 20MB each
         ]);
 
-        $job = $this->sanitizeJob($validated['job']);
-        $dir = "public/letters/{$job}";
+        [$jobKey] = $this->resolveLetterKey($validated['job']);
+        $fallbackKey = $this->sanitizeJob($validated['job']);
+        $dir = "public/letters/{$jobKey}";
 
         $uploaded = [];
         $meta = [];
@@ -124,7 +139,7 @@ class ReportingLettersController extends Controller
                     'filename' => $storedBasename,
                     'url' => $storedUrl,
                     'encoded_url' => $this->encodeUrlPath($storedUrl),
-                    'download_url' => route('superadmin.reporting.letters.show', ['job' => $job, 'filename' => $storedBasename]),
+                    'download_url' => route('superadmin.reporting.letters.show', ['job' => $jobKey, 'filename' => $storedBasename]),
                     'uploaded_at' => now()->toDateTimeString(),
                     'pages' => $pageCount,
                     'uploader_name' => $uploaderName,
@@ -136,13 +151,21 @@ class ReportingLettersController extends Controller
         try { Storage::put($metaPath, json_encode($meta, JSON_PRETTY_PRINT)); } catch (\Throwable $e) {}
 
         // New total count after upload (ignore meta and hidden files)
-        $files = Storage::exists($dir) ? array_values(array_filter(Storage::files($dir), function ($p) {
-            $b = basename($p);
-            $ext = strtolower(pathinfo($b, PATHINFO_EXTENSION));
-            if ($b === '_meta.json' || str_starts_with($b, '_')) return false;
-            $allowed = ['pdf','jpg','jpeg','png','doc','docx'];
-            return $ext && in_array($ext, $allowed, true);
-        })) : [];
+        $dirKeys = array_values(array_unique(array_filter([$jobKey, $fallbackKey])));
+        $files = [];
+        foreach ($dirKeys as $dirKey) {
+            $target = "public/letters/{$dirKey}";
+            if (!Storage::exists($target)) {
+                continue;
+            }
+            $files = array_merge($files, array_values(array_filter(Storage::files($target), function ($p) {
+                $b = basename($p);
+                $ext = strtolower(pathinfo($b, PATHINFO_EXTENSION));
+                if ($b === '_meta.json' || str_starts_with($b, '_')) return false;
+                $allowed = ['pdf','jpg','jpeg','png','doc','docx'];
+                return $ext && in_array($ext, $allowed, true);
+            })));
+        }
         return response()->json([
             'ok' => true,
             'uploaded' => $uploaded,
@@ -154,6 +177,40 @@ class ReportingLettersController extends Controller
     {
         // Allow alphanumerics, dash and underscore to prevent path traversal
         return preg_replace('/[^A-Za-z0-9_\-]/', '-', $job) ?: 'unknown';
+    }
+
+    private function resolveLetterKey(string $input): array
+    {
+        $needle = trim($input);
+        if ($needle === '') {
+            return [$this->sanitizeJob($needle), null];
+        }
+
+        $booking = NewBooking::query()
+            ->where('reference_no', $needle)
+            ->orWhere('reference_no', 'like', "%{$needle}%")
+            ->latest('id')
+            ->first();
+
+        if (!$booking) {
+            $item = BookingItem::query()
+                ->with('booking')
+                ->where('job_order_no', $needle)
+                ->orWhere('job_order_no', 'like', "%{$needle}%")
+                ->latest('id')
+                ->first();
+
+            if ($item && $item->booking) {
+                $booking = $item->booking;
+            }
+        }
+
+        if ($booking) {
+            $ref = trim((string) $booking->reference_no);
+            return [$this->sanitizeJob($ref), $ref];
+        }
+
+        return [$this->sanitizeJob($needle), $needle];
     }
 
     private function tryCountPdfPages(string $storagePath): ?int
@@ -202,23 +259,29 @@ class ReportingLettersController extends Controller
 
     public function show(string $job, string $filename)
     {
-        $safeJob = $this->sanitizeJob($job);
+        [$safeJob] = $this->resolveLetterKey($job);
+        $candidates = array_values(array_unique(array_filter([$safeJob, $this->sanitizeJob($job)])));
+
         $filename = basename($filename); // prevent traversal
-        // Do not allow serving metadata/hidden files
         if ($filename === '_meta.json' || str_starts_with($filename, '_')) {
             abort(404);
         }
-        $path = "public/letters/{$safeJob}/{$filename}";
-        if (!\Storage::exists($path)) {
-            abort(404);
+
+        foreach ($candidates as $key) {
+            $path = "public/letters/{$key}/{$filename}";
+            if (!\Storage::exists($path)) {
+                continue;
+            }
+            $mime = \Storage::mimeType($path) ?: 'application/octet-stream';
+            $stream = \Storage::readStream($path);
+            return response()->stream(function() use ($stream) {
+                fpassthru($stream);
+            }, 200, [
+                'Content-Type' => $mime,
+                'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"'
+            ]);
         }
-        $mime = \Storage::mimeType($path) ?: 'application/octet-stream';
-        $stream = \Storage::readStream($path);
-        return response()->stream(function() use ($stream) {
-            fpassthru($stream);
-        }, 200, [
-            'Content-Type' => $mime,
-            'Content-Disposition' => 'inline; filename="'.addslashes($filename).'"'
-        ]);
+
+        abort(404);
     }
 }

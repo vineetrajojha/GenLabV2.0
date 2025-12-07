@@ -1,5 +1,5 @@
 @extends('superadmin.layouts.app')
-@section('title', 'Manage Documents')
+@section('title', 'Invoice List')
 @section('content')
 
 

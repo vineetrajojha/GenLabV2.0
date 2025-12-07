@@ -51,11 +51,23 @@ Any of the following keys are accepted for backwards compatibility:
 | Purpose        | Supported keys                              |
 |----------------|---------------------------------------------|
 | Employee code  | `employee_code`, `emp_code`, `code`, `pin`, `user_id` |
-| Punch time     | `punch_time`, `timestamp`, `log_time`, `datetime`, `scan_time` |
+| Punch time     | `punch_time`, `timestamp`, `log_time`, `datetime`, `scan_time`, `time` |
 | Direction      | `direction`, `io_mode`, `in_out`, `punch_type` |
 | Status override| `status`, `attendance_status`, `state`, `day_type`, `punch_state` |
 
-## 3. What happens to each punch?
+## 3. Supporting ADMS-only devices
+
+Legacy/budget eSSL terminals that only talk to an ADMS server expect a fixed endpoint named `/iclock/cdata`. The application now exposes this path automatically (no secret header required). Configure your device or ADMS bridge to point to:
+
+```
+{APP_URL}/iclock/cdata
+```
+
+The controller understands the standard `ATTLOG` payload lines such as `PIN=1	Time=2025-12-03 09:00:00	Status=0`. Each POST should end with a newline and the server will respond with a simple `OK` to acknowledge the batch. GET requests to the same URL are treated as heartbeat/polls and also return `OK`.
+
+> Tip: if your ADMS server cannot change the path, simply ensure DNS/IP points to your Laravel host—the `/iclock/cdata` route matches the vendor default.
+
+## 4. What happens to each punch?
 
 * Employees are resolved via `employee_code`.
 * A daily `attendance_records` row is created/updated per employee.
@@ -70,7 +82,7 @@ Every webhook call is also logged in `essl_sync_logs`. The attendance dashboard 
 * Rolling stats (received/stored/missing/invalid rows).
 * A table of the five most recent sync attempts (success or partial).
 
-## 4. Testing locally
+## 5. Testing locally
 
 You can hit the endpoint with `curl`:
 

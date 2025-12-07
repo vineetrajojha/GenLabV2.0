@@ -49,6 +49,26 @@ class InvoiceController extends Controller
 
     $query = Invoice::with(['relatedBooking.marketingPerson', 'relatedBooking.department']);
 
+    $authUser = $request->user();
+    $isMarketing = false;
+    if ($authUser && isset($authUser->role)) {
+        $roleName = is_object($authUser->role)
+            ? ($authUser->role->role_name ?? $authUser->role->name ?? null)
+            : $authUser->role;
+        $isMarketing = $roleName && stripos($roleName, 'market') !== false;
+    }
+
+    $marketingCode = $request->marketing
+        ?? $request->user_code
+        ?? ($isMarketing ? ($authUser->user_code ?? null) : null);
+
+    // Marketing context filter (sidebar param or inferred for marketing users)
+    if ($marketingCode) {
+        $query->whereHas('relatedBooking.marketingPerson', function ($q) use ($marketingCode) {
+            $q->where('user_code', $marketingCode);
+        });
+    }
+
     // Marketing person filter
     if ($request->filled('marketing_person')) {
         $this->filterByMarketingPerson($query, $request->marketing_person);
@@ -118,7 +138,12 @@ class InvoiceController extends Controller
 
     $clients = Client::all(['id', 'name']); 
 
-    return view('superadmin.accounts.invoiceList.index', compact(
+    $useMarketingView = $request->context === 'marketing' || $isMarketing;
+    $view = $useMarketingView
+        ? 'superadmin.accounts.invoiceList.marketing.index'
+        : 'superadmin.accounts.invoiceList.index';
+
+    return view($view, compact(
         'invoices', 'marketingPersons', 'departments', 'type', 'clients'
     ));
 }

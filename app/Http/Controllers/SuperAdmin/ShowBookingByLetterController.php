@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\BookingItem;
 use App\Services\GetUserActiveDepartment;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,39 +23,7 @@ class ShowBookingByLetterController extends Controller
 
     public function index(Request $request)
     {
-        // Get search, month, year from request
-        $search = $request->input('search');
-        $month  = $request->input('month');
-        $year   = $request->input('year');
-
-        // Base query
-        $query = BookingItem::with(['booking', 'booking.marketingPerson']);
-
-        // Apply search filter
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('job_order_no', 'like', "%{$search}%")
-                  ->orWhere('sample_description', 'like', "%{$search}%")
-                  ->orWhere('sample_quality', 'like', "%{$search}%")
-                  ->orWhere('particulars', 'like', "%{$search}%")
-                  ->orWhereHas('booking', function ($bq) use ($search) {
-                      $bq->where('client_name', 'like', "%{$search}%")
-                         ->orWhereHas('marketingPerson', function ($mpq) use ($search) {
-                             $mpq->where('name', 'like', "%{$search}%");
-                         });
-                  });
-            });
-        }
-
-        // Filter by month
-        if (!empty($month)) {
-            $query->whereMonth('lab_expected_date', $month);
-        }
-
-        // Filter by year
-        if (!empty($year)) {
-            $query->whereYear('lab_expected_date', $year);
-        }
+        $query = $this->buildQuery($request);
 
         // Get results (paginated)
         $perPage = (int) $request->get('perPage', 25);
@@ -62,8 +31,37 @@ class ShowBookingByLetterController extends Controller
         $items = $query->latest()->paginate($perPage)->withQueryString();
 
         // Return view
-        return view('superadmin.showbooking.bookingByLetter', compact('items', 'search', 'month', 'year'));
+        return view('superadmin.showbooking.bookingByLetter', [
+            'items' => $items,
+            'search' => $request->input('search'),
+            'month' => $request->input('month'),
+            'year' => $request->input('year'),
+        ]);
     } 
+
+    public function marketingIndex(Request $request)
+    {
+        $user = Auth::guard('admin')->user() ?: Auth::user();
+
+        // Ensure marketing param sticks to request for pagination/export when marketing user
+        if ($this->isMarketingUser($user) && !$request->filled('marketing') && !empty($user->user_code)) {
+            $request->merge(['marketing' => $user->user_code]);
+        }
+
+        $query = $this->buildQuery($request);
+
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) { $perPage = 25; }
+        $items = $query->latest()->paginate($perPage)->withQueryString();
+
+        return view('superadmin.showbooking.marketing.bookingByLetter', [
+            'items' => $items,
+            'search' => $request->input('search'),
+            'month' => $request->input('month'),
+            'year' => $request->input('year'),
+            'marketing' => $request->input('marketing'),
+        ]);
+    }
 
     public function destroy(BookingItem $bookingItem)
     {
@@ -75,9 +73,16 @@ class ShowBookingByLetterController extends Controller
 
     protected function buildQuery(Request $request)
     {
+        $user = Auth::guard('admin')->user() ?: Auth::user();
         $search = $request->input('search');
         $month  = $request->input('month');
         $year   = $request->input('year');
+        $marketingFilter = $request->input('marketing');
+
+        // Auto-enforce marketing scoping for marketing users
+        if ($this->isMarketingUser($user)) {
+            $marketingFilter = $marketingFilter ?: ($user->user_code ?? null);
+        }
 
         $query = BookingItem::with(['booking', 'booking.marketingPerson']);
 
@@ -104,15 +109,35 @@ class ShowBookingByLetterController extends Controller
             $query->whereYear('lab_expected_date', $year);
         }
 
-        // If marketing filter is provided (user_code), limit to bookings for that marketing person
-        if ($request->filled('marketing')) {
-            $marketing = $request->input('marketing');
-            $query->whereHas('booking', function ($bq) use ($marketing) {
-                $bq->where('marketing_id', $marketing);
+        // If marketing filter is provided (expects user_code), limit to bookings for that marketing person
+        if (!empty($marketingFilter)) {
+            $query->whereHas('booking', function ($bq) use ($marketingFilter) {
+                $bq->where('marketing_id', $marketingFilter);
             });
         }
 
         return $query;
+    }
+
+    /**
+     * Determine if the authenticated user is a marketing user.
+     */
+    private function isMarketingUser($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $roleName = null;
+        if (isset($user->role)) {
+            if (is_object($user->role)) {
+                $roleName = $user->role->role_name ?? $user->role->name ?? null;
+            } else {
+                $roleName = $user->role;
+            }
+        }
+
+        return $roleName && stripos($roleName, 'market') !== false;
     }
 
     public function exportPdf(Request $request)
