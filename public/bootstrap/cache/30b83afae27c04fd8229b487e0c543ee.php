@@ -262,8 +262,18 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<script>
+<!-- <script>
     $(document).ready(function() {
+
+        //Create a generic debounce: 
+        function debounce(fn, delay) {
+            let timer = null;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(context, args), delay);
+            };
+        }
 
         // Marketing Person Autocomplete
         function attachMarketingSearch(inputElement){
@@ -295,7 +305,7 @@
                 $hidden.val($(this).data('id'));
                 $dropdown.hide();
             });
-        }
+        } 
 
         // Lab Analysis Autocomplete
         function attachLabAnalysis(inputElement){
@@ -473,8 +483,256 @@
             }
         });
     });
-</script>
+</script> -->
 
+<script>
+    $(document).ready(function() {
+
+        // GLOBAL: Debounce function
+        function debounce(fn, delay = 400) {
+            let timer = null;
+            return function(...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        // GLOBAL: Cancel previous requests
+        let ajaxRequests = {};
+
+        function abortOldRequest(key) {
+            if (ajaxRequests[key]) {
+                ajaxRequests[key].abort();
+            }
+        }
+
+        // ------------------------------------------------------
+        // 1 MARKETING AUTOCOMPLETE
+        // ------------------------------------------------------
+        function attachMarketingSearch($input){
+            const $hidden = $('#marketing_code_hidden');
+            const $dropdown = $('#marketingCodeDropdown');
+
+            $input.off('keyup').on('keyup', debounce(function() {
+                let query = $input.val().trim();
+                if (query.length < 2) {  // Minimum 2 letters
+                    $dropdown.hide();
+                    $hidden.val('');
+                    return;
+                }
+
+                abortOldRequest("marketing");
+
+                ajaxRequests.marketing = $.ajax({
+                    url: "<?php echo e(route('superadmin.bookings.autocomplete')); ?>",
+                    data: { term: query, type: 'marketing' },
+                    success: function(data){
+                        let html = data.length
+                            ? data.map(item => `<button type="button" class="dropdown-item" data-id="${item.user_code}" data-name="${item.name}">${item.label}</button>`).join('')
+                            : '<span class="dropdown-item disabled">No results found</span>';
+
+                        $dropdown.html(html).show();
+                    }
+                });
+            }, 400));
+
+            $dropdown.off('click').on('click', 'button', function(){
+                $input.val($(this).data('name'));
+                $hidden.val($(this).data('id'));
+                $dropdown.hide();
+            });
+        }
+
+        // ------------------------------------------------------
+        // 2️ LAB ANALYSIS AUTOCOMPLETE
+        // ------------------------------------------------------
+        function attachLabAnalysis($input){
+            const $hidden = $input.siblings('.lab_analysis_code_hidden');
+            const $dropdown = $input.siblings('.labAnalysisDropdown');
+
+            $input.off('keyup').on('keyup', debounce(function() {
+                let query = $input.val().trim();
+                if (query.length < 2) {
+                    $dropdown.hide();
+                    $hidden.val('');
+                    return;
+                }
+
+                abortOldRequest("lab");
+
+                ajaxRequests.lab = $.ajax({
+                    url: "<?php echo e(route('superadmin.bookings.autocomplete')); ?>",
+                    data: { term: query, type: 'lab' },
+                    success: function(data){
+                        let html = data.length
+                            ? data.map(item => `<button type="button" class="dropdown-item" data-code="${item.user_code}" data-name="${item.name}">${item.label}</button>`).join('')
+                            : '<span class="dropdown-item disabled">No results</span>';
+
+                        $dropdown.html(html).show();
+                    }
+                });
+            }, 400));
+
+            $dropdown.off('click').on('click','button', function(){
+                $input.val($(this).data('code') + " - " + $(this).data('name'));
+                $hidden.val($(this).data('code'));
+                $dropdown.hide();
+            });
+        }
+
+        // ------------------------------------------------------
+        // 3️ JOB ORDER AUTOCOMPLETE
+        // ------------------------------------------------------
+        function attachJobOrderSearch($input){
+            const $dropdown = $input.siblings('.jobOrderList');
+
+            $input.off('keyup').on('keyup', debounce(function() {
+                const query = $input.val().trim();
+                if (query.length < 2) {
+                    $dropdown.hide();
+                    return;
+                }
+
+                abortOldRequest("job_orders");
+
+                ajaxRequests.job_orders = $.ajax({
+                    url: "<?php echo e(route('superadmin.bookings.get.job.orders')); ?>",
+                    data: { term: query },
+                    success: function(data){
+                        let html = data.length
+                            ? data.map(item => `<button type="button" class="dropdown-item">${item}</button>`).join('')
+                            : '<span class="dropdown-item disabled">No results</span>';
+
+                        $dropdown.html(html).show();
+                    }
+                });
+            }, 400));
+
+            $dropdown.off('click').on('click','button', function(){
+                $input.val($(this).text());
+                $dropdown.hide();
+            });
+        }
+
+        // ------------------------------------------------------
+        // 4️ REFERENCE NO AUTOCOMPLETE
+        // ------------------------------------------------------
+        function attachReferenceSearch($input){
+            const $dropdown = $input.siblings('.referenceDropdown');
+
+            $input.off('keyup').on('keyup', debounce(function() {
+                const query = $input.val().trim();
+                if (query.length < 2) {
+                    $dropdown.hide();
+                    return;
+                }
+
+                abortOldRequest("reference");
+
+                ajaxRequests.reference = $.ajax({
+                    url: "<?php echo e(route('superadmin.bookings.get.ref_no')); ?>",
+                    type: "GET",
+                    data: { term: query },
+                    success: function(data){
+                        let html = data.length
+                            ? data.map(item => `<button type="button" class="dropdown-item">${item.reference_no}</button>`).join('')
+                            : '<span class="dropdown-item disabled">No matching reference numbers</span>';
+
+                        $dropdown.html(html).show();
+                    }
+                });
+            }, 400));
+
+            $dropdown.off('click').on('click','button', function(){
+                $input.val($(this).text());
+                $dropdown.hide();
+            });
+        }
+
+        // ------------------------------------------------------
+        // INITIALIZE AUTOCOMPLETE
+        // ------------------------------------------------------
+        attachMarketingSearch($('#marketing_code_input'));
+        attachLabAnalysis($('.lab_analysis_input'));
+        attachJobOrderSearch($('.job_order_no'));
+        attachReferenceSearch($('.reference_no_input'));
+
+
+        // ==========================
+        // Add / Remove Items Section
+        // ==========================
+        function updateTotalItems() {
+            const count = $('#itemsContainer .item-group').length;
+            $('#totalItems').text('Total Items: ' + count);
+        }
+
+        $('#addItemBtn').on('click', function(){
+            const $first = $('#itemsContainer .item-group:first');
+            const $clone = $first.clone();
+            const index = $('#itemsContainer .item-group').length;
+
+            $clone.find('input, select').each(function(){
+                const name = $(this).attr('name');
+                if(name) $(this).attr('name', name.replace(/\d+/, index));
+
+                // Prefill all except amount, job_order_no, lab_analysis_input
+                if($(this).hasClass('amount')) {
+                    const prevAmount = $('#itemsContainer .item-group').eq(index-1).find('.amount').val();
+                    $(this).val(prevAmount || '');
+                } 
+                else if($(this).hasClass('job_order_no')) {
+                    // Auto-increment job order number
+                    const prevJob = $('#itemsContainer .item-group').eq(index-1).find('.job_order_no').val();
+                    let prefix = '';
+                    let num = 1;
+
+                    if(prevJob) {
+                        const match = prevJob.match(/^(\D*)(\d+)$/);
+                        if(match){
+                            prefix = match[1];
+                            num = parseInt(match[2]) + 1;
+                        } else {
+                            prefix = prevJob;
+                        }
+                    }
+                    $(this).val(prefix + num.toString().padStart(3,'0')); // e.g., AB-001 -> AB-002
+                } 
+                else if($(this).is('input[type=text]')) {
+                    // keep value as is (prefilled)
+                } 
+                else if($(this).is('select')) {
+                    $(this).prop('selectedIndex',0);
+                }
+            });
+
+            $clone.find('.remove-item').show();
+            $('#itemsContainer').append($clone);
+
+            attachLabAnalysis($clone.find('.lab_analysis_input'));
+            attachJobOrderSearch($clone.find('.job_order_no'));
+            attachReferenceSearch($clone.find('.reference_no_input'));
+
+            updateTotalItems(); // Update total items
+        });
+
+        $('#itemsContainer').on('click','.remove-item', function(){
+            if($('#itemsContainer .item-group').length > 1){
+                $(this).closest('.item-group').remove();
+                updateTotalItems();
+            }
+        });
+
+        updateTotalItems(); // Initial count
+
+        // Hide dropdown if clicked outside globally
+        $(document).on('click', function(e){
+            if(!$(e.target).closest('.position-relative').length){
+                $('.dropdown-menu').hide();
+            }
+        });
+
+    });
+</script>
 
 
 
