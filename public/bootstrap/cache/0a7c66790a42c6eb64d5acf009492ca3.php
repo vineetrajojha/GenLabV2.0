@@ -1,27 +1,28 @@
-@php
+<?php
     use Illuminate\Support\Str;
-@endphp
+?>
 
-@extends('superadmin.layouts.app')
 
-@section('title', 'Invoice Report')
 
-@section('content')
-@if ($errors->any())
+<?php $__env->startSection('title', 'Invoice Report'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php if($errors->any()): ?>
     <div class="alert alert-danger">
         <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($error); ?></li>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </ul>
     </div>
-@endif
+<?php endif; ?>
 
-@if (session('success'))
+<?php if(session('success')): ?>
     <div class="alert alert-success">
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
     </div>
-@endif
+<?php endif; ?>
 
 <div class="row g-3">
 
@@ -30,7 +31,7 @@
         <div class="card">
             <div class="card-body">
                 <form id="gstinForm" class="row g-2 align-items-end" method="POST" action="">
-                    @csrf
+                    <?php echo csrf_field(); ?>
                     <div class="col-sm-8">
                         <label class="form-label">ENTER GSTIN</label>
                         <input type="text" name="gstin" id="gstinInput" class="form-control" placeholder="Enter GSTIN" required>
@@ -68,13 +69,13 @@
 
                 <select id="clientSelect" class="form-control">
                     <option value="">-- Select Client --</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}"
-                                data-gstin="{{ $client->gstin }}"
-                                data-address="{{ $client->address }}">
-                            {{ $client->name }} ({{ $client->gstin }})
+                    <?php $__currentLoopData = $clients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $client): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($client->id); ?>"
+                                data-gstin="<?php echo e($client->gstin); ?>"
+                                data-address="<?php echo e($client->address); ?>">
+                            <?php echo e($client->name); ?> (<?php echo e($client->gstin); ?>)
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
             <div class="col-sm-4 d-flex flex-column">
@@ -100,8 +101,8 @@
 </div>
  
 <script>
-    const users = @json($marketingUsers);  //  ADD THIS! 
-    // const referenceList = @json($references);
+    const users = <?php echo json_encode($marketingUsers, 15, 512) ?>;  //  ADD THIS! 
+    // const referenceList = <?php echo json_encode($references, 15, 512) ?>;
 </script>
 
 
@@ -134,7 +135,7 @@
 
 <div class="content">
     <form id="invoiceForm" method="POST">
-        @csrf
+        <?php echo csrf_field(); ?>
         <input type="hidden" id="td_booking_id" name="booking_id" value="">
         <input type="hidden" id="td_invoice_id" name="invoice_id" value="">
 
@@ -202,9 +203,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for ($j = 0; $j < 9; $j++)
+                        <?php for($j = 0; $j < 9; $j++): ?>
                             <tr>
-                                <td>{{ $j }}</td>
+                                <td><?php echo e($j); ?></td>
                                 <td contenteditable="true" class="editable"></td>
                                 <td contenteditable = "true" class ="editable"> </td>
                                 <!-- <td contenteditable="true" class="editable qty"></td> -->
@@ -212,7 +213,7 @@
                                 <td contenteditable="true" class="editable rate"></td>
                                 <td class="amount">0.00</td>
                             </tr>
-                        @endfor
+                        <?php endfor; ?>
                     </tbody>
                     <tfoot>
                         <tr>
@@ -264,31 +265,31 @@
                 <table class="table table-bordered mb-4">
                     <tr>
                         <th>Instructions</th>
-                        <td class="noteditable" id="td_bank_instructions">{{ $bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD' }}</td>
+                        <td class="noteditable" id="td_bank_instructions"><?php echo e($bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD'); ?></td>
                     </tr>
                     <tr>
                         <th>Bank Name</th>
-                        <td class="noteditable" id="td_bank_name">{{ $bankInfo->name ?? 'SBI' }}</td>
+                        <td class="noteditable" id="td_bank_name"><?php echo e($bankInfo->name ?? 'SBI'); ?></td>
                     </tr>
                     <tr>
                         <th>Branch Name</th>
-                        <td class="noteditable" id="td_branch_name">{{ $bankInfo->branch ?? 'Harauli' }}</td>
+                        <td class="noteditable" id="td_branch_name"><?php echo e($bankInfo->branch ?? 'Harauli'); ?></td>
                     </tr>
                     <tr>
                         <th>Account No</th>
-                        <td class="noteditable" id="td_account_no">{{ $bankInfo->account_no ?? '000121210' }}</td>
+                        <td class="noteditable" id="td_account_no"><?php echo e($bankInfo->account_no ?? '000121210'); ?></td>
                     </tr>
                     <tr>
                         <th>IFSC CODE</th>
-                        <td class="noteditable" id="td_ifsc_code">{{ $bankInfo->ifsc_code ?? 'SB00001' }}</td>
+                        <td class="noteditable" id="td_ifsc_code"><?php echo e($bankInfo->ifsc_code ?? 'SB00001'); ?></td>
                     </tr>
                     <tr>
                         <th>Pan No</th>
-                        <td class="noteditable" id="td_pan_no">{{ $bankInfo->pan_no ?? 'AHTPJ45454' }}</td>
+                        <td class="noteditable" id="td_pan_no"><?php echo e($bankInfo->pan_no ?? 'AHTPJ45454'); ?></td>
                     </tr>
                     <tr>
                         <th>GSTIN</th>
-                        <td class="noteditable" id="td_gstin">{{ $bankInfo->gstin ?? '87457187441417644' }}</td>
+                        <td class="noteditable" id="td_gstin"><?php echo e($bankInfo->gstin ?? '87457187441417644'); ?></td>
                     </tr>
                 </table>
 
@@ -314,7 +315,7 @@
                 </div> -->
 
                 <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-success" formaction="{{ route('superadmin.blank-invoices.store') }}">
+                    <button type="submit" class="btn btn-success" formaction="<?php echo e(route('superadmin.blank-invoices.store')); ?>">
                         <i class="fa fa-file-pdf me-2"></i>Save Invoice
                     </button>
                 </div>
@@ -324,7 +325,7 @@
     </form>
 </div>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .table-bordered th, .table-bordered td {
         border: 1px solid #000 !important;
@@ -394,9 +395,9 @@
     }
 </style>
 
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
     // Get today's date in dd-mm-yyyy format
     const today = new Date();
@@ -409,10 +410,10 @@
     document.getElementById('td_invoice_date').innerText = formattedDate;
     document.getElementById('td_letter_date').innerText = formattedDate;
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
     function updateAmounts() {
         let total = 0;
@@ -528,9 +529,9 @@
     document.getElementById('roundOffCheckbox').addEventListener('change', updateAmounts);
     window.addEventListener('DOMContentLoaded', updateAmounts);
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.getElementById('gstinForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -569,9 +570,9 @@ document.getElementById('gstinForm').addEventListener('submit', function(e) {
         });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 const invoiceTableBody = document.querySelector('#invoiceTable tbody');
 const addRowBtn = document.getElementById('addRowBtn');
@@ -673,7 +674,7 @@ deleteRowBtn.addEventListener('click', function() {
 
 
 <script>
-const referenceList = @json($references);
+const referenceList = <?php echo json_encode($references, 15, 512) ?>;
 let selectedRefs = [];
 
 const refSearch = document.getElementById('refSearch');
@@ -743,6 +744,8 @@ document.addEventListener('click', (e) => {
 
 </script>
 
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV1.0\resources\views/superadmin/accounts/invoiceList/blank.blade.php ENDPATH**/ ?>

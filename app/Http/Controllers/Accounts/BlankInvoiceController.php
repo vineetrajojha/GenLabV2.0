@@ -5,7 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\BlankInvoiceRequest;
 
 use App\Models\BlankInvoice;
-use App\Models\{SiteSetting,PaymentSetting};
+use App\Models\{SiteSetting,PaymentSetting, User, Client, NewBooking};
 
 use Illuminate\Http\Request;
 
@@ -49,7 +49,11 @@ class BlankInvoiceController extends Controller
     public function create()
     {
         $bankInfo = PaymentSetting::first();
-        return view('superadmin.accounts.invoiceList.blank', compact('bankInfo'));
+        $marketingUsers = User::whereHas('role', fn($q) => $q->where('slug', 'marketing_person'))->get();
+        $clients = Client::all();  
+
+        $references = NewBooking::whereNotNull('reference_no')->pluck('reference_no')->unique()->values();
+        return view('superadmin.accounts.invoiceList.blank', compact('bankInfo', 'marketingUsers', 'clients', 'references'));
     }
 
     public function store(BlankInvoiceRequest $request)

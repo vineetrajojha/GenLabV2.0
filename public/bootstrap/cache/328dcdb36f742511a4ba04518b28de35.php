@@ -1,23 +1,22 @@
-@extends('superadmin.layouts.app')
+<?php $__env->startSection('title', 'Edit Quotation'); ?>
 
-@section('title', 'Edit Quotation')
-
-@section('content')
-@if ($errors->any())
+<?php $__env->startSection('content'); ?>
+<?php if($errors->any()): ?>
     <div class="alert alert-danger">
         <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($error); ?></li>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </ul>
     </div>
-@endif
+<?php endif; ?>
 
-@if (session('success'))
+<?php if(session('success')): ?>
     <div class="alert alert-success">
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
     </div>
-@endif
+<?php endif; ?>
 
 
 <div class="card mb-3">
@@ -26,9 +25,9 @@
             <div class="col-sm-6">
                 <label class="form-label">Search Marketing Person</label>
 
-                @php
+                <?php
                     $selectedMarketingUser = $marketingUsers->firstWhere('user_code', $quotation->marketing_person_code);
-                @endphp
+                ?>
 
                 <div class="input-group">
                     <input 
@@ -37,7 +36,7 @@
                         class="form-control" 
                         placeholder="Enter user code or name" 
                         autocomplete="off" 
-                        value="{{ $selectedMarketingUser ? $selectedMarketingUser->name . ' (' . $selectedMarketingUser->user_code . ')' : '' }}"
+                        value="<?php echo e($selectedMarketingUser ? $selectedMarketingUser->name . ' (' . $selectedMarketingUser->user_code . ')' : ''); ?>"
                     >
                     <button class="btn btn-primary" type="button">
                         <i data-feather="search"></i>
@@ -46,39 +45,39 @@
 
                 <div id="suggestions" class="list-group mt-1"></div>
 
-                @if($selectedMarketingUser)
+                <?php if($selectedMarketingUser): ?>
                     <input type="hidden" 
                         id="selectedUser" 
                         name="marketing_user_id" 
-                        value="{{ $selectedMarketingUser->id }}" 
-                        data-code="{{ $selectedMarketingUser->user_code }}">
-                @endif
+                        value="<?php echo e($selectedMarketingUser->id); ?>" 
+                        data-code="<?php echo e($selectedMarketingUser->user_code); ?>">
+                <?php endif; ?>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    const users = @json($marketingUsers);
+    const users = <?php echo json_encode($marketingUsers, 15, 512) ?>;
 </script>
 
 <div class="content">
-    <form id="quotationForm" method="POST" action="{{ route('superadmin.quotations.update', $quotation->id) }}">
-        @csrf
-        @method('PUT')
+    <form id="quotationForm" method="POST" action="<?php echo e(route('superadmin.quotations.update', $quotation->id)); ?>">
+        <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?>
 
         <input type="hidden" name="quotation_data" id="quotation_data">
-        <input type="hidden" name="quotation_no" id="input_quotation_no" value="{{ $quotation->quotation_no }}">
-        <input type="hidden" name="quotation_date" id="input_quotation_date" value="{{ $quotation->quotation_date }}">
-        <input type="hidden" name="marketing_user_id" id="input_marketing_user_id" value="{{ $quotation->marketing_user_id }}">
-        <input type="hidden" name="letterhead" id="input_letterhead" value="{{ $quotation->letterhead ?? 1 }}">
+        <input type="hidden" name="quotation_no" id="input_quotation_no" value="<?php echo e($quotation->quotation_no); ?>">
+        <input type="hidden" name="quotation_date" id="input_quotation_date" value="<?php echo e($quotation->quotation_date); ?>">
+        <input type="hidden" name="marketing_user_id" id="input_marketing_user_id" value="<?php echo e($quotation->marketing_user_id); ?>">
+        <input type="hidden" name="letterhead" id="input_letterhead" value="<?php echo e($quotation->letterhead ?? 1); ?>">
 
         <div class="page-header d-flex justify-content-between align-items-center">
             <div>
                 <h3 class="fw-bold">Edit Quotation</h3>
                 <h6>Preview quotation in PDF Style</h6>
             </div>
-            <a href="{{ route('superadmin.quotations.generateQuotations', $quotation->id) }}" 
+            <a href="<?php echo e(route('superadmin.quotations.generateQuotations', $quotation->id)); ?>" 
                 class="btn btn-danger" target="_blank">
                 <i class="fa fa-file-pdf me-2"></i>Download PDF
             </a>
@@ -91,25 +90,25 @@
                 <table class="table table-bordered mb-3">
                     <tr>
                         <th style="width:20%;">Client Name</th>
-                        <td contenteditable="true" class="editable" id="td_client_name" style="min-width:100px;">{{ $quotation->client_name }}</td>
+                        <td contenteditable="true" class="editable" id="td_client_name" style="min-width:100px;"><?php echo e($quotation->client_name); ?></td>
                         <th style="width:20%;">Marketing Person</th>
                         <td contenteditable="true" class="editable" id="td_marketing_person" style="min-width:100px;"></td>
                     </tr>
                     <tr>
                         <th style="width:20%;">Quotation No</th>
-                        <td contenteditable="true" class="editable" id="td_quotation_no" style="min-width:100px;">{{ $quotation->quotation_no }}</td>
+                        <td contenteditable="true" class="editable" id="td_quotation_no" style="min-width:100px;"><?php echo e($quotation->quotation_no); ?></td>
                         <th style="width:20%;">Quotation Date</th>
-                        <td class="noteditable" id="td_quotation_date" style="min-width:100px;">{{ \Carbon\Carbon::parse($quotation->quotation_date)->format('d-m-Y') }}</td>
+                        <td class="noteditable" id="td_quotation_date" style="min-width:100px;"><?php echo e(\Carbon\Carbon::parse($quotation->quotation_date)->format('d-m-Y')); ?></td>
                     </tr>
                     <tr>
                         <th style="width:20%;">Name of Work</th>
-                        <td contenteditable="true" class="editable" id="td_name_of_work" style="min-width:100px;">{{ $quotation->name_of_work }}</td>
+                        <td contenteditable="true" class="editable" id="td_name_of_work" style="min-width:100px;"><?php echo e($quotation->name_of_work); ?></td>
                         <th style="width:20%;" rowspan="2">Bill Issue To</th>
-                        <td rowspan="2" contenteditable="true" class="editable" id="td_bill_issue_to" style="min-width:100px;">{{ $quotation->bill_issue_to }}</td>
+                        <td rowspan="2" contenteditable="true" class="editable" id="td_bill_issue_to" style="min-width:100px;"><?php echo e($quotation->bill_issue_to); ?></td>
                     </tr>
                     <tr>
                         <th style="width:20%;">Client GSTIN</th>
-                        <td contenteditable="true" class="editable" id="td_client_gstin" style="min-width:100px;">{{ $quotation->client_gstin }}</td>
+                        <td contenteditable="true" class="editable" id="td_client_gstin" style="min-width:100px;"><?php echo e($quotation->client_gstin); ?></td>
                     </tr>
                 </table>
 
@@ -134,62 +133,62 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($quotation->items as $i => $item)
+                        <?php $__currentLoopData = $quotation->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr>
-                                <td>{{ $i+1 }}</td>
-                                <td contenteditable="true" class="editable">{{ $item['description'] }}</td>
-                                <td contenteditable="true" class="editable qty">{{ $item['qty'] }}</td>
-                                <td contenteditable="true" class="editable rate">{{ $item['rate'] }}</td>
-                                <td class="amount">{{ $item['amount'] }}</td>
+                                <td><?php echo e($i+1); ?></td>
+                                <td contenteditable="true" class="editable"><?php echo e($item['description']); ?></td>
+                                <td contenteditable="true" class="editable qty"><?php echo e($item['qty']); ?></td>
+                                <td contenteditable="true" class="editable rate"><?php echo e($item['rate']); ?></td>
+                                <td class="amount"><?php echo e($item['amount']); ?></td>
                             </tr>
-                        @endforeach
-                        @for($i = count($quotation->items); $i < 10; $i++)
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php for($i = count($quotation->items); $i < 10; $i++): ?>
                             <tr>
-                                <td>{{ $i+1 }}</td>
+                                <td><?php echo e($i+1); ?></td>
                                 <td contenteditable="true" class="editable"></td>
                                 <td contenteditable="true" class="editable qty"></td>
                                 <td contenteditable="true" class="editable rate"></td>
                                 <td class="amount">0.00</td>
                             </tr>
-                        @endfor
+                        <?php endfor; ?>
                     </tbody>
                     <tfoot>
                         <tr>
                             <th colspan="4" class="text-end">Total</th>
-                            <th id="totalAmount">{{ $quotation->totals['total_amount'] ?? '0.00' }}</th>
+                            <th id="totalAmount"><?php echo e($quotation->totals['total_amount'] ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="3" class="text-end">Discount %</th>
-                            <td contenteditable="true" class="editable" id="discountPercent">{{ $quotation->discount_percent ?? 0 }}</td>
-                            <th id="discountAmount">{{ $quotation->totals['discount_amount'] ?? '0.00' }}</th>
+                            <td contenteditable="true" class="editable" id="discountPercent"><?php echo e($quotation->discount_percent ?? 0); ?></td>
+                            <th id="discountAmount"><?php echo e($quotation->totals['discount_amount'] ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">After Discount Amount</th>
-                            <th id="afterDiscount">{{ $quotation->after_discount ?? '0.00' }}</th>
+                            <th id="afterDiscount"><?php echo e($quotation->after_discount ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="3" class="text-end">CGST %</th>
-                            <td contenteditable="true" class="editable" id="cgstPercent">{{ $quotation->cgst_percent ?? 0 }}</td>
-                            <th id="cgstAmount">{{ $quotation->totals['cgst_amount'] ?? '0.00' }}</th>
+                            <td contenteditable="true" class="editable" id="cgstPercent"><?php echo e($quotation->cgst_percent ?? 0); ?></td>
+                            <th id="cgstAmount"><?php echo e($quotation->totals['cgst_amount'] ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="3" class="text-end">SGST %</th>
-                            <td contenteditable="true" class="editable" id="sgstPercent">{{ $quotation->sgst_percent ?? 0 }}</td>
-                            <th id="sgstAmount">{{ $quotation->totals['sgst_amount'] ?? '0.00' }}</th>
+                            <td contenteditable="true" class="editable" id="sgstPercent"><?php echo e($quotation->sgst_percent ?? 0); ?></td>
+                            <th id="sgstAmount"><?php echo e($quotation->totals['sgst_amount'] ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="3" class="text-end">IGST %</th>
-                            <td contenteditable="true" class="editable" id="igstPercent">{{ $quotation->igst_percent ?? 0 }}</td>
-                            <th id="igstAmount">{{ $quotation->totals['igst_amount'] ?? '0.00' }}</th>
+                            <td contenteditable="true" class="editable" id="igstPercent"><?php echo e($quotation->igst_percent ?? 0); ?></td>
+                            <th id="igstAmount"><?php echo e($quotation->totals['igst_amount'] ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="3" class="text-end">Round Off</th>
-                            <td><input type="checkbox" id="roundOffCheckbox" {{ ($quotation->round_off ?? 0) != 0 ? 'checked' : '' }}></td>
-                            <th id="roundOffAmount">{{ $quotation->round_off ?? '0.00' }}</th>
+                            <td><input type="checkbox" id="roundOffCheckbox" <?php echo e(($quotation->round_off ?? 0) != 0 ? 'checked' : ''); ?>></td>
+                            <th id="roundOffAmount"><?php echo e($quotation->round_off ?? '0.00'); ?></th>
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">Payable Amount</th>
-                            <th id="payableAmount">{{ $quotation->payable_amount ?? '0.00' }}</th>
+                            <th id="payableAmount"><?php echo e($quotation->payable_amount ?? '0.00'); ?></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -198,12 +197,12 @@
                 <div class="d-flex justify-content-end align-items-center gap-3 mb-3 mt-3">
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="letterhead_option" id="letterheadYes" value="1" 
-                        {{ ($quotation->letterhead ?? 1) == 1 ? 'checked' : '' }}>
+                        <?php echo e(($quotation->letterhead ?? 1) == 1 ? 'checked' : ''); ?>>
                         <label class="form-check-label" for="letterheadYes">With Letterhead</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="letterhead_option" id="letterheadNo" value="0" 
-                        {{ ($quotation->letterhead ?? 1) == 0 ? 'checked' : '' }}>
+                        <?php echo e(($quotation->letterhead ?? 1) == 0 ? 'checked' : ''); ?>>
                         <label class="form-check-label" for="letterheadNo">Without Letterhead</label>
                     </div>
                 </div>
@@ -218,7 +217,7 @@
     </form>
 </div>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .table-bordered th, .table-bordered td {
         border: 1px solid #000 !important;
@@ -229,9 +228,9 @@
     .editable.edited { background-color: #c2f0c2; }
     .noteditable { font-weight: bold; }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function updateAmounts() {
     let total = 0;
@@ -278,14 +277,14 @@ document.getElementById('quotationForm').addEventListener('submit', function() {
     document.getElementById('input_quotation_date').value = document.getElementById('td_quotation_date').textContent.trim();
 
     const marketingHidden = document.getElementById('selectedUser');
-    document.getElementById('input_marketing_user_id').value = marketingHidden ? marketingHidden.value : '{{ $quotation->marketing_user_id }}';
+    document.getElementById('input_marketing_user_id').value = marketingHidden ? marketingHidden.value : '<?php echo e($quotation->marketing_user_id); ?>';
 
     const letterheadOption = document.querySelector('input[name="letterhead_option"]:checked');
     document.getElementById('input_letterhead').value = letterheadOption ? letterheadOption.value : 1;
 
     let quotationData = {
         client_name: document.getElementById('td_client_name').textContent,
-        marketing_user_id: marketingHidden ? marketingHidden.value : '{{ $quotation->marketing_user_id }}',
+        marketing_user_id: marketingHidden ? marketingHidden.value : '<?php echo e($quotation->marketing_user_id); ?>',
         marketing_person_code: marketingHidden ? marketingHidden.dataset.code : '',
         quotation_no: document.getElementById('td_quotation_no').textContent,
         quotation_date: document.getElementById('td_quotation_date').textContent,
@@ -427,6 +426,8 @@ window.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV1.0\resources\views/superadmin/accounts/quotation/edit.blade.php ENDPATH**/ ?>
