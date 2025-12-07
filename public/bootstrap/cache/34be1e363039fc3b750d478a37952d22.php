@@ -48,6 +48,9 @@
                 // booking params (used for Show Booking / Booking By Letter links)
                 $bookingParams = [];
                 if ($uc) { $bookingParams['marketing'] = $uc; }
+                // reporting params reused across links
+                $reportParams = [];
+                if ($uc) { $reportParams['marketing'] = $uc; }
             ?>
 
             <?php if($isMarketing): ?>
@@ -61,37 +64,51 @@
                                 </a>
                             </li>
 
-                            <li class="submenu <?php echo e(Request::routeIs('superadmin.bookings.*') || Request::routeIs('superadmin.showbooking.*') ? 'submenu-open' : ''); ?>">
+                            <li class="submenu <?php echo e(Request::routeIs('superadmin.bookings.bookingByLetter.marketing') || Request::routeIs('superadmin.showbooking.marketing.*') ? 'submenu-open' : ''); ?>">
                                 <a href="#"><i class="ti ti-calendar fs-16 me-2"></i><span>Booking</span><span class="menu-arrow"></span></a>
                                 <ul>
-                                    <li><a href="<?php echo e(route('superadmin.bookings.bookingByLetter.index', $bookingParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.bookings.bookingByLetter.index') ? 'active' : ''); ?>">Show Booking</a></li>
-                                    <li><a href="<?php echo e(route('superadmin.showbooking.showBooking', $bookingParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.showbooking.showBooking') ? 'active' : ''); ?>">Booking By Letter</a></li>
+                                    <li>
+                                        <a href="<?php echo e(route('superadmin.bookings.bookingByLetter.marketing', $bookingParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.bookings.bookingByLetter.marketing') ? 'active' : ''); ?>">
+                                            Show Booking
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="<?php echo e(route('superadmin.showbooking.marketing.showBooking', $bookingParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.showbooking.marketing.showBooking') ? 'active' : ''); ?>">
+                                            Booking By Letter
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <li class="submenu <?php echo e(Request::routeIs('superadmin.reporting.*') ? 'submenu-open' : ''); ?>">
+                                <a href="#"><i class="ti ti-report fs-16 me-2"></i><span>Reports</span><span class="menu-arrow"></span></a>
+                                <ul>
+                                    <li>
+                                        <a href="<?php echo e(route('superadmin.reporting.viewByJobOrder', $reportParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.reporting.viewByJobOrder') ? 'active' : ''); ?>">
+                                            View By Job Order No
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a href="<?php echo e(route('superadmin.reporting.viewByLetter', $reportParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.reporting.viewByLetter') ? 'active' : ''); ?>">
+                                            View By Letter
+                                        </a>
+                                    </li>
+                                     
                                 </ul>
                             </li>
 
                             <li>
-                                <?php if(!empty($uc)): ?>
-                                    <a href="<?php echo e(route('superadmin.reporting.generate', ['marketing' => $uc])); ?>" class="<?php echo e(Request::routeIs('superadmin.reporting.*') ? 'active' : ''); ?>">
-                                        <i class="ti ti-report fs-16 me-2"></i><span>Reports</span>
-                                    </a>
-                                <?php else: ?>
-                                    <a href="<?php echo e(route('superadmin.reporting.generate')); ?>" class="<?php echo e(Request::routeIs('superadmin.reporting.*') ? 'active' : ''); ?>">
-                                        <i class="ti ti-report fs-16 me-2"></i><span>Reports</span>
-                                    </a>
-                                <?php endif; ?>
-                            </li>
-
-                            <li>
-                                <a href="<?php echo e(route('superadmin.invoices.index', $invoiceParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.invoices.*') ? 'active' : ''); ?>">
+                                <a href="<?php echo e(route('superadmin.invoices.index', array_merge($invoiceParams, ['context' => 'marketing']))); ?>" class="<?php echo e(Request::routeIs('superadmin.invoices.*') ? 'active' : ''); ?>">
                                     <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices</span>
                                 </a>
                             </li>
 
-                            <li>
-                                <a href="<?php echo e(route('superadmin.invoices.index', $invoiceParams)); ?>" class="<?php echo e(Request::routeIs('superadmin.invoices.*') ? 'active' : ''); ?>">
+                            <!-- <li>
+                                <a href="<?php echo e(route('superadmin.invoices.index', array_merge($invoiceParams, ['context' => 'marketing']))); ?>" class="<?php echo e(Request::routeIs('superadmin.invoices.*') ? 'active' : ''); ?>">
                                     <i class="ti ti-file-text fs-16 me-2"></i><span>Invoices Payments</span>
                                 </a>
-                            </li>
+                            </li> -->
 
                             <li>
                                 <?php if($isMarketing && $user): ?>
@@ -151,7 +168,7 @@
                             <a href="#"><i class="ti ti-calendar fs-16 me-2"></i><span>All Booking</span><span class="menu-arrow"></span></a>
                             <ul>
                                 <li><a href="<?php echo e(route('superadmin.bookings.newbooking')); ?>" class="<?php echo e(Request::routeIs('superadmin.bookings.newbooking') ? 'active' : ''); ?>">New Booking</a></li>
-                                <li><a href="<?php echo e(route('superadmin.bookings.bookingByLetter.index')); ?>" class="<?php echo e(Request::routeIs('superadmin.showbooking.bookingByLetter.index') ? 'active' : ''); ?>">Show Booking</a></li>
+                                <li><a href="<?php echo e(route('superadmin.bookings.bookingByLetter.index')); ?>" class="<?php echo e(Request::routeIs('superadmin.bookings.bookingByLetter.index') ? 'active' : ''); ?>">Show Booking</a></li>
                                 <li><a href="<?php echo e(route('superadmin.showbooking.showBooking')); ?>" class="<?php echo e(Request::routeIs('superadmin.showbooking.showBooking') ? 'active' : ''); ?>">Booking By Letter</a></li>
                                
                                 <?php $__currentLoopData = $sidebarDepartments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>

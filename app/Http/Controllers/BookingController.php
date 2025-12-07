@@ -310,8 +310,6 @@ class BookingController extends Controller
     }
 
 
-   
-
     public function getAutocomplete(Request $request)
     {
         $term = trim($request->get('term', ''));

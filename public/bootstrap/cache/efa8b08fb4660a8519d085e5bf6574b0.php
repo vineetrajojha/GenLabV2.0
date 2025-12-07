@@ -1,4 +1,4 @@
-<?php $__env->startSection('title', 'Manage Documents'); ?>
+<?php $__env->startSection('title', 'Invoice List'); ?>
 <?php $__env->startSection('content'); ?>
 
 
