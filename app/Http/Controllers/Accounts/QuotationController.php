@@ -116,6 +116,8 @@ class QuotationController extends Controller
     public function edit(Quotation $quotation)
     {
         $marketingUsers = User::whereHas('role', fn($q) => $q->where('slug', 'marketing_person'))->get();
+        // dd($quotation); 
+        // exit; 
         return view('superadmin.accounts.quotation.edit', compact('quotation', 'marketingUsers'));
     }
 
