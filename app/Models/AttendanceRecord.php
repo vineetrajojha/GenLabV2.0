@@ -20,6 +20,7 @@ class AttendanceRecord extends Model
 
     public const SOURCE_MANUAL = 'manual';
     public const SOURCE_BIOMETRIC = 'biometric';
+    public const SOURCE_ESSL = 'essl';
 
     protected $fillable = [
         'employee_id',

@@ -71,7 +71,24 @@ class ShowBookingController extends Controller
 
         public function exportPdf(Request $request, Department $department = null)
         {
-            $bookings = $this->buildQuery($request, $department)->latest()->get();
+            $query = $this->buildQuery($request, $department);
+
+            // Safety: avoid building extremely large PDFs that exhaust PHP memory.
+            // Set max allowed rows via env `BOOKING_EXPORT_MAX_ROWS` (default 3000).
+            $maxRows = (int) config('app.booking_export_max_rows', env('BOOKING_EXPORT_MAX_ROWS', 3000));
+            $total = $query->count();
+
+            if ($total > $maxRows) {
+                return back()->with('error', "Too many records to export as PDF ({$total}). Please narrow the filters or set BOOKING_EXPORT_MAX_ROWS in your .env (current: {$maxRows}).");
+            }
+
+            // Optional: raise memory limit for export if configured via env BOOKING_EXPORT_MEMORY_LIMIT.
+            $mem = env('BOOKING_EXPORT_MEMORY_LIMIT');
+            if ($mem) {
+                @ini_set('memory_limit', $mem);
+            }
+
+            $bookings = $query->latest()->get();
             $pdf = Pdf::loadView('superadmin.showbooking.showbooking_pdf', [
                 'bookings' => $bookings,
                 'department' => $department,
@@ -79,13 +96,19 @@ class ShowBookingController extends Controller
                 'month' => $request->input('month'),
                 'year' => $request->input('year'),
             ])->setPaper('a4', 'landscape');
+
             return $pdf->stream('bookings.pdf');
         }
 
         public function exportExcel(Request $request, Department $department = null)
         {
-            $bookings = $this->buildQuery($request, $department)->latest()->get();
-            return Excel::download(new BookingsExport($bookings), 'bookings.xlsx');
+            // Use the query builder and a chunked export to avoid loading all rows into memory
+            $query = $this->buildQuery($request, $department)->latest();
+
+            // Eager load relationships used in mapping to avoid N+1 while streaming
+            $query = $query->with(['items', 'department', 'marketingPerson']);
+
+            return Excel::download(new \App\Exports\BookingsQueryExport($query), 'bookings.xlsx');
         }
     
     public function index(Request $request, Department $department = null)
@@ -134,7 +157,19 @@ class ShowBookingController extends Controller
             $query->whereYear('job_order_date', $year);
         }
 
-        $bookings = $query->latest()->paginate(10);
+        // Apply marketing filter if present (marketing stores user_code in marketing_id)
+        if ($request->filled('marketing')) {
+            $query->where('marketing_id', $request->input('marketing'));
+        }
+
+        // If user_code filter provided in querystring, apply it
+        if ($request->filled('marketing')) {
+            $query->where('marketing_id', $request->input('marketing'));
+        }
+
+        $perPage = (int) $request->get('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) { $perPage = 25; }
+        $bookings = $query->latest()->paginate($perPage)->withQueryString();
 
         $departments = $this->departmentService->getDepartment();
         

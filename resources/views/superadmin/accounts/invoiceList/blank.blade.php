@@ -43,7 +43,68 @@
         </div>
     </div>
 
+</div> 
+<div class="card mb-3">
+    <div class="card-body">
+
+        <div class="row g-3 align-items-start">
+
+            <!-- Search Marketing Person -->
+            <div class="col-sm-4 d-flex flex-column">
+                <label class="form-label">Search Marketing Person</label>
+
+                <input type="text" 
+                       id="marketingInput" 
+                       class="form-control" 
+                       placeholder="Enter user code or name" 
+                       autocomplete="off">
+
+                <div id="suggestions" class="list-group mt-1"></div>
+            </div>
+
+            <!-- Select Client -->
+            <div class="col-sm-4 d-flex flex-column">
+                <label class="form-label">Select Client</label>
+
+                <select id="clientSelect" class="form-control">
+                    <option value="">-- Select Client --</option>
+                    @foreach ($clients as $client)
+                        <option value="{{ $client->id }}"
+                                data-gstin="{{ $client->gstin }}"
+                                data-address="{{ $client->address }}">
+                            {{ $client->name }} ({{ $client->gstin }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-sm-4 d-flex flex-column">
+                <label class="form-label">Reference No</label>
+
+                <div class="ref-multi-select">
+                    <div id="refSelected" class="selected-box"></div>
+
+                    <input type="text" 
+                        id="refSearch" 
+                        class="form-control" 
+                        placeholder="Search Reference No">
+
+                    <div id="refDropdown" class="dropdown-list d-none"></div>
+                </div>
+            </div>
+
+                <!-- Hidden input to store selected ref array -->
+                <input type="hidden" name="reference_numbers" id="referenceHidden">
+        </div>
+
+    </div>
 </div>
+ 
+<script>
+    const users = @json($marketingUsers);  //  ADD THIS! 
+    // const referenceList = @json($references);
+</script>
+
+
 
 <!-- GSTIN Details / Error Modal -->
 <div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
@@ -68,6 +129,8 @@
     </div>
   </div>
 </div>
+
+
 
 <div class="content">
     <form id="invoiceForm" method="POST">
@@ -143,7 +206,8 @@
                             <tr>
                                 <td>{{ $j }}</td>
                                 <td contenteditable="true" class="editable"></td>
-                                <td contenteditable="true" class="editable qty"></td>
+                                <td contenteditable = "true" class ="editable"> </td>
+                                <!-- <td contenteditable="true" class="editable qty"></td> -->
                                 <td contenteditable="true" class="editable qty"></td>
                                 <td contenteditable="true" class="editable rate"></td>
                                 <td class="amount">0.00</td>
@@ -281,7 +345,55 @@
     .noteditable {
         font-weight: bold;
     }
+</style> 
+
+<style>
+    .ref-multi-select { position: relative; }
+    .selected-box {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 6px;
+        min-height: 42px;
+        border: 1px solid #ced4da;
+        background: white;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
+    .selected-tag {
+        background: #007bff;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+    }
+    .selected-tag span {
+        margin-left: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .dropdown-list {
+        position: absolute;
+        top: 90%;
+        width: 100%;
+        max-height: 180px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ced4da;
+        z-index: 999;
+        border-radius: 5px;
+    }
+    .dropdown-item {
+        padding: 6px 10px;
+        cursor: pointer;
+    }
+    .dropdown-item:hover {
+        background: #f1f1f1;
+    }
 </style>
+
 @endpush
 
 @push('scripts')
@@ -493,8 +605,144 @@ deleteRowBtn.addEventListener('click', function() {
         invoiceTableBody.deleteRow(rowCount - 1);
         updateAmounts();
     }
+}); 
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('marketingInput');
+        const suggestions = document.getElementById('suggestions');
+
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            suggestions.innerHTML = '';
+
+            if(query.length > 0){
+                const filtered = users.filter(user => 
+                    user.name.toLowerCase().includes(query) || 
+                    user.user_code.toLowerCase().includes(query)
+                );
+
+                filtered.forEach(user => {
+                    const item = document.createElement('a');
+                    item.href = "#";
+                    item.className = "list-group-item list-group-item-action";
+                    item.dataset.id = user.id;
+                    item.dataset.code = user.user_code;
+                    item.textContent = `${user.name} (${user.user_code})`;
+
+                    item.addEventListener('click', function(e){
+                        e.preventDefault();
+                        input.value = this.textContent;
+                        document.getElementById('td_marketing_person').textContent = this.textContent;
+                        suggestions.innerHTML = '';
+
+                        let hidden = document.getElementById('selectedUser');
+                        if(!hidden){
+                            hidden = document.createElement('input');
+                            hidden.type = 'hidden';
+                            hidden.id = 'selectedUser';
+                            hidden.name = 'marketing_user_id';
+                            input.closest('form').appendChild(hidden);
+                        }
+                        hidden.value = this.dataset.id;
+                        hidden.dataset.code = this.dataset.code;
+                    });
+
+                    suggestions.appendChild(item);
+                });
+            }
+        });
+    }); 
+
+    document.getElementById('clientSelect').addEventListener('change', function() {
+        let gstin = this.options[this.selectedIndex].dataset.gstin;
+        let address = this.options[this.selectedIndex].dataset.address;
+        let name = this.options[this.selectedIndex].text;
+
+        document.getElementById('td_client_name').textContent = name;
+        document.getElementById('td_client_gstin').textContent = gstin;
+        document.getElementById('td_address').textContent = address;
+    });  
+
+    document.getElementById('referenceInput').addEventListener('input', function () {
+        const q = this.value.toLowerCase();
+        const filtered = referenceList.filter(ref => ref.toLowerCase().includes(q));
+        console.log(filtered); // show suggestions
+    }); 
+
+</script>   
+
+
+<script>
+const referenceList = @json($references);
+let selectedRefs = [];
+
+const refSearch = document.getElementById('refSearch');
+const refDropdown = document.getElementById('refDropdown');
+const refSelected = document.getElementById('refSelected');
+const refHidden = document.getElementById('referenceHidden');
+
+function renderDropdown(list) {
+    refDropdown.innerHTML = '';
+    list.forEach(ref => {
+        if (!selectedRefs.includes(ref)) {
+            const item = document.createElement('div');
+            item.className = 'dropdown-item';
+            item.textContent = ref;
+            item.onclick = () => addRef(ref);
+            refDropdown.appendChild(item);
+        }
+    });
+    refDropdown.classList.remove('d-none');
+}
+
+function addRef(ref) {
+    selectedRefs.push(ref);
+    updateReferenceField();
+    renderSelected();
+    refHidden.value = JSON.stringify(selectedRefs);
+    refDropdown.classList.add('d-none');
+    refSearch.value = '';
+}
+
+function renderSelected() {
+    refSelected.innerHTML = '';
+    selectedRefs.forEach(ref => {
+        const tag = document.createElement('div');
+        tag.className = 'selected-tag';
+        tag.innerHTML = `${ref} <span onclick="removeRef('${ref}')">&times;</span>`;
+        refSelected.appendChild(tag);
+    });
+}
+
+function removeRef(ref) {
+    selectedRefs = selectedRefs.filter(x => x !== ref);
+    updateReferenceField();
+    renderSelected();
+    refHidden.value = JSON.stringify(selectedRefs);
+}
+
+function updateReferenceField() {
+    document.getElementById('td_reference_no').textContent = selectedRefs.join(", ");
+}
+
+refSearch.addEventListener('focus', () => {
+    renderDropdown(referenceList);
 });
+
+refSearch.addEventListener('input', () => {
+    const q = refSearch.value.toLowerCase();
+    const filtered = referenceList.filter(ref => ref.toLowerCase().includes(q));
+    renderDropdown(filtered);
+});
+
+document.addEventListener('click', (e) => {
+    if (!refDropdown.contains(e.target) && e.target !== refSearch) {
+        refDropdown.classList.add('d-none');
+    }
+});
+
 </script>
+
 @endpush
 
 @endsection

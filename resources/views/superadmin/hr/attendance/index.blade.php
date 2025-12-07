@@ -47,6 +47,103 @@
         @endforeach
     </div>
 
+    <div class="card border-0 shadow-sm mb-4 essl-sync-card">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h5 class="card-title mb-1">Live eSSL Device Sync</h5>
+                    <p class="text-muted small mb-0">Automatic punches from the biometric terminal feed directly into attendance.</p>
+                </div>
+                <span class="badge {{ $esslSync['secret_configured'] ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger' }}">
+                    {{ $esslSync['secret_configured'] ? 'Webhook Active' : 'Secret Not Configured' }}
+                </span>
+            </div>
+
+            <div class="row g-3 align-items-end mt-2">
+                <div class="col-12 col-lg-6">
+                    <label class="form-label small text-muted mb-1">Webhook URL</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" value="{{ $esslSync['webhook_url'] }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" data-copy="{{ $esslSync['webhook_url'] }}">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <p class="text-muted small mb-1">Default Status</p>
+                    <h6 class="mb-0 fw-semibold">{{ $esslSync['default_status'] }}</h6>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <p class="text-muted small mb-1">Last Sync</p>
+                    <h6 class="mb-0 fw-semibold">{{ $esslSync['last_sync_diff'] ?? '—' }}</h6>
+                </div>
+            </div>
+
+            <div class="row g-3 text-center mt-3">
+                @php
+                    $stats = $esslSync['last_sync_stats'];
+                    $statCards = [
+                        ['label' => 'Received', 'value' => $stats['total_events'] ?? 0],
+                        ['label' => 'Stored', 'value' => $stats['stored_records'] ?? 0],
+                        ['label' => 'Missing Employees', 'value' => $stats['missing_employees'] ?? 0],
+                        ['label' => 'Invalid Rows', 'value' => $stats['invalid_events'] ?? 0],
+                    ];
+                @endphp
+                @foreach($statCards as $stat)
+                    <div class="col-6 col-lg-3">
+                        <div class="essl-sync-stat">
+                            <p class="text-muted small mb-1">{{ $stat['label'] }}</p>
+                            <h5 class="fw-bold mb-0">{{ $stat['value'] }}</h5>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            @if(!$esslSync['secret_configured'])
+                <div class="alert alert-warning mt-3" role="alert">
+                    Configure <code>ESSL_WEBHOOK_SECRET</code> in your environment file and share the secret with the device vendor to activate automatic syncing.
+                </div>
+            @endif
+
+            @if(!empty($esslSync['allowed_ips']))
+                <p class="text-muted small mb-0 mt-2">Allowed IPs: {{ implode(', ', $esslSync['allowed_ips']) }}</p>
+            @endif
+
+            <div class="table-responsive mt-4">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sync Time</th>
+                            <th>Device</th>
+                            <th class="text-center">Received</th>
+                            <th class="text-center">Stored</th>
+                            <th class="text-center">Missing</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($esslSync['recent_logs'] as $log)
+                            <tr>
+                                <td>{{ $log->created_at?->format('d M Y, H:i') }}</td>
+                                <td class="text-muted">{{ $log->device_serial ?? '—' }}</td>
+                                <td class="text-center">{{ $log->total_events }}</td>
+                                <td class="text-center">{{ $log->stored_records }}</td>
+                                <td class="text-center">{{ $log->missing_employees }}</td>
+                                <td>
+                                    <span class="badge {{ $log->status === 'success' ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning' }} text-capitalize">{{ $log->status }}</span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-muted text-center py-3">No device syncs yet. Share the webhook URL with your eSSL machine to begin streaming punches.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
@@ -343,5 +440,42 @@
 .table tbody td {
     vertical-align: middle;
 }
+
+.essl-sync-card .form-control[readonly] {
+    background-color: #f8f9fb;
+    font-size: 0.9rem;
+}
+
+.essl-sync-stat {
+    border: 1px dashed rgba(48, 86, 211, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    background: #f9fbff;
+}
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('[data-copy]');
+    if (!trigger) {
+        return;
+    }
+
+    const value = trigger.getAttribute('data-copy');
+    if (!value) {
+        return;
+    }
+
+    navigator.clipboard.writeText(value).then(() => {
+        trigger.classList.add('btn-success', 'text-white');
+        trigger.innerHTML = '<i class="ti ti-check"></i>';
+        setTimeout(() => {
+            trigger.classList.remove('btn-success', 'text-white');
+            trigger.innerHTML = '<i class="ti ti-copy"></i>';
+        }, 1800);
+    });
+});
+</script>
 @endpush

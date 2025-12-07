@@ -64,5 +64,6 @@ class InvoicePdfService
 
         // Return base64 QR code that can be embedded in Blade templates
         return base64_encode(QrCode::format('svg')->size(200)->generate($upiLink));
-    }
+    } 
+    
 }

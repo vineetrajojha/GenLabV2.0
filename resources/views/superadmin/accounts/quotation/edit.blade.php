@@ -19,21 +19,40 @@
     </div>
 @endif
 
+
 <div class="card mb-3">
     <div class="card-body">
         <form id="marketingForm" class="row g-2 align-items-end">
             <div class="col-sm-6">
                 <label class="form-label">Search Marketing Person</label>
+
+                @php
+                    $selectedMarketingUser = $marketingUsers->firstWhere('user_code', $quotation->marketing_person_code);
+                @endphp
+
                 <div class="input-group">
-                    <input type="text" id="marketingInput" class="form-control" 
-                           placeholder="Enter user code or name" 
-                           autocomplete="off" 
-                           value="">
+                    <input 
+                        type="text" 
+                        id="marketingInput" 
+                        class="form-control" 
+                        placeholder="Enter user code or name" 
+                        autocomplete="off" 
+                        value="{{ $selectedMarketingUser ? $selectedMarketingUser->name . ' (' . $selectedMarketingUser->user_code . ')' : '' }}"
+                    >
                     <button class="btn btn-primary" type="button">
                         <i data-feather="search"></i>
                     </button>
                 </div>
+
                 <div id="suggestions" class="list-group mt-1"></div>
+
+                @if($selectedMarketingUser)
+                    <input type="hidden" 
+                        id="selectedUser" 
+                        name="marketing_user_id" 
+                        value="{{ $selectedMarketingUser->id }}" 
+                        data-code="{{ $selectedMarketingUser->user_code }}">
+                @endif
             </div>
         </form>
     </div>
@@ -395,6 +414,16 @@ document.getElementById('removeRowBtn').addEventListener('click', function () {
         // re-index row numbers
         Array.from(tbody.rows).forEach((row, idx) => row.cells[0].textContent = idx + 1);
         updateAmounts();
+    }
+}); 
+
+
+window.addEventListener('DOMContentLoaded', function () {
+    const selectedUser = document.getElementById('selectedUser');
+    const marketingInput = document.getElementById('marketingInput');
+
+    if (selectedUser && marketingInput) {
+        document.getElementById('td_marketing_person').textContent = marketingInput.value;
     }
 });
 </script>

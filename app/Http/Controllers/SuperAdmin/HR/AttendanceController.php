@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin\HR;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Models\EsslSyncLog;
 use App\Models\Leave;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -59,6 +60,30 @@ class AttendanceController extends Controller
             ->limit(10)
             ->get());
 
+        $recentEsslLogs = EsslSyncLog::query()
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $latestEsslLog = $recentEsslLogs->first();
+
+        $esslSync = [
+            'enabled' => (bool) config('attendance.essl.webhook_secret'),
+            'webhook_url' => route('api.attendance.essl.webhook'),
+            'default_status' => AttendanceRecord::statusLabels()[config('attendance.essl.default_status', AttendanceRecord::STATUS_PRESENT)] ?? 'Present',
+            'secret_configured' => filled(config('attendance.essl.webhook_secret')),
+            'allowed_ips' => config('attendance.essl.allowed_ips', []),
+            'last_sync_at' => $latestEsslLog?->created_at,
+            'last_sync_diff' => $latestEsslLog?->created_at?->diffForHumans(),
+            'last_sync_stats' => $latestEsslLog ? [
+                'total_events' => $latestEsslLog->total_events,
+                'stored_records' => $latestEsslLog->stored_records,
+                'missing_employees' => $latestEsslLog->missing_employees,
+                'invalid_events' => $latestEsslLog->invalid_events,
+            ] : null,
+            'recent_logs' => $recentEsslLogs,
+        ];
+
         $metrics = [
             'present' => max($activeEmployees - $employeesOnApprovedLeaveToday, 0),
             'onLeave' => $employeesOnApprovedLeaveToday,
@@ -75,6 +100,7 @@ class AttendanceController extends Controller
             'employeeOptions' => $employeeOptions,
             'attendanceStatusLabels' => AttendanceRecord::statusLabels(),
             'recentAttendanceRecords' => $recentAttendanceRecords,
+            'esslSync' => $esslSync,
         ]);
     }
 

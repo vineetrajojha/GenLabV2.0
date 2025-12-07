@@ -10,6 +10,7 @@ use App\Models\{Invoice,InvoiceTransaction,CashLetterPayment};
 use App\Models\Client;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 use App\Services\GetUserActiveDepartment; 
 
@@ -29,6 +30,24 @@ class MarketingPersonLedger extends Controller
         $filterPerson = $request->input('person_id');
         $month        = $request->input('month');
         $year         = $request->input('year');
+
+        // If the current user is a marketing person and no filter is provided,
+        // default the view to the logged-in user to avoid loading all persons.
+        if (empty($filterPerson) && Auth::guard('web')->check()) {
+            $current = Auth::guard('web')->user();
+            $roleName = null;
+            if ($current && isset($current->role)) {
+                if (is_object($current->role)) {
+                    $roleName = $current->role->role_name ?? $current->role->name ?? null;
+                } else {
+                    $roleName = $current->role;
+                }
+            }
+
+            if ($roleName && stripos($roleName, 'market') !== false) {
+                $filterPerson = $current->id;
+            }
+        }
 
         // Fetch marketing persons
         $marketingPersons = User::whereHas('role', function ($q) {

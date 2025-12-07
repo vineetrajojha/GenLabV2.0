@@ -17,8 +17,9 @@ class UserRegistroService
     
     
     public function index(){ 
-   
-        $users = User::with(['role.permissions'])->get();
+        $perPage = (int) request('perPage', 25);
+        if (!in_array($perPage, [25, 50, 100])) $perPage = 25;
+        $users = User::with(['role.permissions'])->paginate($perPage)->withQueryString();
         $roles = Role::all();
         $permissions = Permission::all();
         return view('superadmin.users.index', compact('users', 'roles', 'permissions'));

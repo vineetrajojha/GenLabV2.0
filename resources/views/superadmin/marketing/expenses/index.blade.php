@@ -134,8 +134,21 @@
         </div>
     </div>
 
-    <div class="card-footer">
-        {{ $expenses->withQueryString()->links('pagination::bootstrap-5') }}
+    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <form method="GET" action="{{ url()->current() }}" class="d-flex align-items-center gap-2">
+            @foreach(request()->except(['perPage','page']) as $key => $val)
+                <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+            @endforeach
+            <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
+            <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                @foreach([25,50,100] as $size)
+                    <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                @endforeach
+            </select>
+        </form>
+        <div>
+            {{ $expenses->appends(request()->all())->links('pagination::bootstrap-5') }}
+        </div>
     </div>
 </div>
 @endsection

@@ -157,12 +157,23 @@
             $showApprovedToggle = true;
         }
     @endphp
-    <div class="card-header">
-        <div class="d-flex align-items-center justify-content-between">
-            <div>
-                <h5 class="mb-0">Approved Expenses </h5>
-                <small class="text-muted">Recent approved expenses from the Peronal expenses</small>
-            </div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 bg-light border-bottom">
+        <div>
+            <h5 class="mb-0">Approved Expenses </h5>
+            <small class="text-muted">Recent approved expenses from the Peronal expenses</small>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
+            <form method="GET" action="{{ route('superadmin.marketing.expenses.approved') }}" class="d-flex align-items-center gap-2 mb-0">
+                @foreach(request()->except(['perPage','page']) as $key => $val)
+                    <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                @endforeach
+                <label for="perPageSelectApproved" class="me-1 mb-0 small">Rows per page:</label>
+                <select name="perPage" id="perPageSelectApproved" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    @foreach([25,50,100] as $size)
+                        <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
+                    @endforeach
+                </select>
+            </form>
             <div>
                 @php
                     $inAccountQs = array_merge(request()->query(), ['approved_section' => $approvedSection]);
