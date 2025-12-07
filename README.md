@@ -11,7 +11,7 @@
 
 GenTech is a Laravel-based web application designed to streamline the creation and management of educational content. It provides tools for educators to generate, organize, and distribute learning materials efficiently.
 
-### Features
+### Features1.0
 
 - User-friendly interface for managing courses, lessons, and resources
 - Role-based access control for administrators, teachers, and students
