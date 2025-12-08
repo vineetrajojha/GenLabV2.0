@@ -586,6 +586,7 @@
     let cache = []; let allGroups = [];
     let lastGroupsSignature = '';
     let realtimeOk = false;
+    let lastRealtimeEvent = 0;
     window.allGroups = allGroups; // Expose globally for realtime updates
     let idIndex = new Set(); // track message ids to dedupe
     let polling = false; // prevent overlapping polls
@@ -2148,7 +2149,8 @@
     // Lightweight messages_since poller to keep active chat + sidebar in sync if push misses
     setInterval(async ()=>{
         if (!activeGroupId) return;
-        if (realtimeOk) return; // rely on realtime when available
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
         try {
             const url = new URL(routes.messagesSince, window.location.origin);
             url.searchParams.set('group_id', activeGroupId);
@@ -2220,7 +2222,9 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
-        if (realtimeOk) return; // skip polling when realtime is healthy
+        // If realtime is healthy and recent, skip this poll to reduce load
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return;
         polling = true;
         try{
             const url = new URL(routes.messagesSince, window.location.origin);
@@ -2699,6 +2703,8 @@
         forceTLS: true
     });
     var channel = pusher.subscribe('chat');
+    window.pusher = pusher;
+    window.pusherChannel = channel;
     function handleChatEvent(data) {
         var msg = data && data.message ? data.message : data;
         flagMine(msg);
@@ -2765,6 +2771,10 @@
                 const title = sender || 'New message';
                 showGlobalChatNotification(`${title}: ${snippet}`, { groupId: msg.group_id, replyToId: msg.id });
             }
+
+            // Mark realtime as healthy and record time for polling backoff
+            realtimeOk = true;
+            lastRealtimeEvent = Date.now();
         }
 
         if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
@@ -2802,19 +2812,17 @@
 
     // --- Debugging: log all events ---
     channel.bind('pusher:subscription_succeeded', function() {
-        realtimeOk = true;
-        if (window.__CHAT_POLL_INTERVAL) { try { clearInterval(window.__CHAT_POLL_INTERVAL); } catch(_) {} window.__CHAT_POLL_INTERVAL = null; }
         console.log('[Pusher] Subscribed to chat channel');
     });
     channel.bind('pusher:subscription_error', function(status) {
         realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Subscription error:', status);
-        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
     channel.bind('pusher:error', function(err) {
         realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Error:', err);
-        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
 })();
 </script>
