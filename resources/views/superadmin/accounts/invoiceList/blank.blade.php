@@ -23,87 +23,123 @@
     </div>
 @endif
 
-<div class="row g-3">
 
-    <!-- Card 1: GSTIN Search -->
-    <div class="col-sm-6">
-        <div class="card">
+
+
+<div class="row g-4 p-4">
+
+    <!-- CARD 1: GSTIN SEARCH -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white fw-bold">
+                GSTIN Lookup
+            </div>
+
             <div class="card-body">
-                <form id="gstinForm" class="row g-2 align-items-end" method="POST" action="">
+                <form id="gstinForm" method="POST" class="row g-2">
                     @csrf
-                    <div class="col-sm-8">
-                        <label class="form-label">ENTER GSTIN</label>
-                        <input type="text" name="gstin" id="gstinInput" class="form-control" placeholder="Enter GSTIN" required>
+
+                    <div class="col-12">
+                        <label class="form-label">Enter GSTIN</label>
+                        <input type="text"
+                               id="gstinInput"
+                               name="gstin"
+                               class="form-control"
+                               placeholder="Enter GSTIN"
+                               required>
                     </div>
-                    <div class="col-sm-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Search</button>
+
+                    <div class="col-12 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-search me-1"></i> Search GSTIN
+                        </button>
                     </div>
+
                 </form>
             </div>
         </div>
     </div>
 
-</div> 
-<div class="card mb-3">
-    <div class="card-body">
-
-        <div class="row g-3 align-items-start">
-
-            <!-- Search Marketing Person -->
-            <div class="col-sm-4 d-flex flex-column">
-                <label class="form-label">Search Marketing Person</label>
-
-                <input type="text" 
-                       id="marketingInput" 
-                       class="form-control" 
-                       placeholder="Enter user code or name" 
-                       autocomplete="off">
-
-                <div id="suggestions" class="list-group mt-1"></div>
+    <!-- CARD 2: MARKETING PERSON / CLIENT / REF NO -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-secondary text-white fw-bold">
+                Booking Related Details
             </div>
 
-            <!-- Select Client -->
-            <div class="col-sm-4 d-flex flex-column">
-                <label class="form-label">Select Client</label>
+            <div class="card-body">
 
-                <select id="clientSelect" class="form-control">
-                    <option value="">-- Select Client --</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}"
-                                data-gstin="{{ $client->gstin }}"
-                                data-address="{{ $client->address }}">
-                            {{ $client->name }} ({{ $client->gstin }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-sm-4 d-flex flex-column">
-                <label class="form-label">Reference No</label>
+                <div class="row g-4">
 
-                <div class="ref-multi-select">
-                    <div id="refSelected" class="selected-box"></div>
+                    <!-- Marketing Person -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label">Search Marketing Person</label>
+                        <input type="text"
+                               id="marketingInput"
+                               class="form-control"
+                               placeholder="Enter user code or name"
+                               autocomplete="off">
 
-                    <input type="text" 
-                        id="refSearch" 
-                        class="form-control" 
-                        placeholder="Search Reference No">
+                        <div id="suggestions"
+                             class="list-group position-absolute w-100 mt-1 d-none"
+                             style="z-index: 1050;">
+                        </div>
+                    </div>
 
-                    <div id="refDropdown" class="dropdown-list d-none"></div>
+                    <!-- Client Search -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label">Select Client</label>
+                        <input type="text"
+                               id="clientInput"
+                               class="form-control"
+                               placeholder="Search Client..."
+                               autocomplete="off">
+
+                        <div id="clientDropdown"
+                             class="list-group position-absolute w-100 mt-1 d-none"
+                             style="z-index: 1050;">
+                        </div>
+
+                        <input type="hidden" id="client_id" name="client_id">
+                    </div>
+
+                    <!-- Reference Numbers -->
+                    <div class="col-12 position-relative">
+                        <label class="form-label">Reference Numbers</label>
+
+                        <!-- Selected Tags -->
+                        <div id="refSelected"
+                             class="d-flex  flex-wrap gap-2 border rounded p-2"
+                             style="min-height: 45px;">
+                        </div> 
+        
+
+                        <!-- Search Field -->
+                        <input type="text"
+                               id="refSearch"
+                               class="form-control mt-2"
+                               placeholder="Search Reference No">
+
+                        <!-- Dropdown -->
+                        <div id="refDropdown"
+                            class="list-group bg-white position-absolute w-100 mt-1 d-none shadow-sm"
+                            style="z-index: 1050;">
+                        </div>
+
+                        <input type="hidden" id="referenceHidden" name="reference_numbers">
+
+                    </div>
+
                 </div>
+
             </div>
-
-                <!-- Hidden input to store selected ref array -->
-                <input type="hidden" name="reference_numbers" id="referenceHidden">
         </div>
-
     </div>
-</div>
- 
-<script>
-    const users = @json($marketingUsers);  //  ADD THIS! 
-    // const referenceList = @json($references);
-</script>
 
+</div>
+
+<!-- GSTIN Modal (unchanged) -->
+{{---------------- KEEP YOUR EXISTING MODAL CODE BELOW THIS ----------------}}
 
 
 <!-- GSTIN Details / Error Modal -->
@@ -347,52 +383,6 @@
     }
 </style> 
 
-<style>
-    .ref-multi-select { position: relative; }
-    .selected-box {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        padding: 6px;
-        min-height: 42px;
-        border: 1px solid #ced4da;
-        background: white;
-        border-radius: 5px;
-        margin-bottom: 5px;
-    }
-    .selected-tag {
-        background: #007bff;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-    }
-    .selected-tag span {
-        margin-left: 6px;
-        cursor: pointer;
-        font-weight: bold;
-    }
-    .dropdown-list {
-        position: absolute;
-        top: 90%;
-        width: 100%;
-        max-height: 180px;
-        overflow-y: auto;
-        background: white;
-        border: 1px solid #ced4da;
-        z-index: 999;
-        border-radius: 5px;
-    }
-    .dropdown-item {
-        padding: 6px 10px;
-        cursor: pointer;
-    }
-    .dropdown-item:hover {
-        background: #f1f1f1;
-    }
-</style>
 
 @endpush
 
@@ -532,216 +522,327 @@
 
 @push('scripts')
 <script>
-document.getElementById('gstinForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    let gstin = document.getElementById('gstinInput').value;
+    document.getElementById('gstinForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let gstin = document.getElementById('gstinInput').value;
 
-    fetch(`http://sheet.gstincheck.co.in/check/c3b7f08e18bb7426407abad5af5d7712/${gstin}`)
-        .then(response => response.json())
-        .then(data => {
-            var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
-            var detailsDiv = document.getElementById('gstinDetails');
-            var errorDiv = document.getElementById('gstinError');
+        fetch(`http://sheet.gstincheck.co.in/check/c3b7f08e18bb7426407abad5af5d7712/${gstin}`)
+            .then(response => response.json())
+            .then(data => {
+                var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
+                var detailsDiv = document.getElementById('gstinDetails');
+                var errorDiv = document.getElementById('gstinError');
 
-            if(data.flag) {
-                document.getElementById('tradeNam').textContent = data.data.tradeNam || 'N/A';
-                document.getElementById('panNo').textContent = data.data.gstin ? data.data.gstin.substring(2, 12) : 'N/A';
-                document.getElementById('legalName').textContent = data.data.lgnm || 'N/A';
-                document.getElementById('address').textContent = data.data.pradr?.adr || 'N/A';
-                detailsDiv.classList.remove('d-none');
-                errorDiv.classList.add('d-none');
-            } else {
-                errorDiv.textContent = data.message || 'GSTIN not found';
+                if(data.flag) {
+                    document.getElementById('tradeNam').textContent = data.data.tradeNam || 'N/A';
+                    document.getElementById('panNo').textContent = data.data.gstin ? data.data.gstin.substring(2, 12) : 'N/A';
+                    document.getElementById('legalName').textContent = data.data.lgnm || 'N/A';
+                    document.getElementById('address').textContent = data.data.pradr?.adr || 'N/A';
+                    detailsDiv.classList.remove('d-none');
+                    errorDiv.classList.add('d-none');
+                } else {
+                    errorDiv.textContent = data.message || 'GSTIN not found';
+                    errorDiv.classList.remove('d-none');
+                    detailsDiv.classList.add('d-none');
+                }
+                gstinModal.show();
+            })
+            .catch(err => {
+                var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
+                var detailsDiv = document.getElementById('gstinDetails');
+                var errorDiv = document.getElementById('gstinError');
+                errorDiv.textContent = 'Something went wrong. Please try again.';
                 errorDiv.classList.remove('d-none');
                 detailsDiv.classList.add('d-none');
-            }
-            gstinModal.show();
-        })
-        .catch(err => {
-            var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
-            var detailsDiv = document.getElementById('gstinDetails');
-            var errorDiv = document.getElementById('gstinError');
-            errorDiv.textContent = 'Something went wrong. Please try again.';
-            errorDiv.classList.remove('d-none');
-            detailsDiv.classList.add('d-none');
-            gstinModal.show();
-            console.error(err);
-        });
-});
+                gstinModal.show();
+                console.error(err);
+            });
+    });
 </script>
 @endpush
 
 @push('scripts')
 <script>
-const invoiceTableBody = document.querySelector('#invoiceTable tbody');
-const addRowBtn = document.getElementById('addRowBtn');
-const deleteRowBtn = document.getElementById('deleteRowBtn');
+    const invoiceTableBody = document.querySelector('#invoiceTable tbody');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const deleteRowBtn = document.getElementById('deleteRowBtn');
 
-addRowBtn.addEventListener('click', function() {
-    const rowCount = invoiceTableBody.rows.length;
-    const row = invoiceTableBody.insertRow();
+    addRowBtn.addEventListener('click', function() {
+        const rowCount = invoiceTableBody.rows.length;
+        const row = invoiceTableBody.insertRow();
 
-    row.insertCell(0).textContent = rowCount;
-    row.insertCell(1).contentEditable = "true"; row.cells[1].classList.add('editable');
-    row.insertCell(2).contentEditable = "true"; row.cells[2].classList.add('editable');
-    row.insertCell(3).contentEditable = "true"; row.cells[3].classList.add('editable','qty');
-    row.insertCell(4).contentEditable = "true"; row.cells[4].classList.add('editable','rate');
-    row.insertCell(5).textContent = "0.00"; row.cells[5].classList.add('amount');
+        row.insertCell(0).textContent = rowCount;
+        row.insertCell(1).contentEditable = "true"; row.cells[1].classList.add('editable');
+        row.insertCell(2).contentEditable = "true"; row.cells[2].classList.add('editable');
+        row.insertCell(3).contentEditable = "true"; row.cells[3].classList.add('editable','qty');
+        row.insertCell(4).contentEditable = "true"; row.cells[4].classList.add('editable','rate');
+        row.insertCell(5).textContent = "0.00"; row.cells[5].classList.add('amount');
 
-    row.querySelectorAll('.editable').forEach(function(cell){
-        cell.addEventListener('input', function() {
-            this.classList.add('edited');
-            updateAmounts();
+        row.querySelectorAll('.editable').forEach(function(cell){
+            cell.addEventListener('input', function() {
+                this.classList.add('edited');
+                updateAmounts();
+            });
+            cell.addEventListener('blur', updateAmounts);
         });
-        cell.addEventListener('blur', updateAmounts);
+
+        updateAmounts();
     });
 
-    updateAmounts();
-});
-
-deleteRowBtn.addEventListener('click', function() {
-    const rowCount = invoiceTableBody.rows.length;
-    if (rowCount > 1) {
-        invoiceTableBody.deleteRow(rowCount - 1);
-        updateAmounts();
-    }
-}); 
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const input = document.getElementById('marketingInput');
-        const suggestions = document.getElementById('suggestions');
-
-        input.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            suggestions.innerHTML = '';
-
-            if(query.length > 0){
-                const filtered = users.filter(user => 
-                    user.name.toLowerCase().includes(query) || 
-                    user.user_code.toLowerCase().includes(query)
-                );
-
-                filtered.forEach(user => {
-                    const item = document.createElement('a');
-                    item.href = "#";
-                    item.className = "list-group-item list-group-item-action";
-                    item.dataset.id = user.id;
-                    item.dataset.code = user.user_code;
-                    item.textContent = `${user.name} (${user.user_code})`;
-
-                    item.addEventListener('click', function(e){
-                        e.preventDefault();
-                        input.value = this.textContent;
-                        document.getElementById('td_marketing_person').textContent = this.textContent;
-                        suggestions.innerHTML = '';
-
-                        let hidden = document.getElementById('selectedUser');
-                        if(!hidden){
-                            hidden = document.createElement('input');
-                            hidden.type = 'hidden';
-                            hidden.id = 'selectedUser';
-                            hidden.name = 'marketing_user_id';
-                            input.closest('form').appendChild(hidden);
-                        }
-                        hidden.value = this.dataset.id;
-                        hidden.dataset.code = this.dataset.code;
-                    });
-
-                    suggestions.appendChild(item);
-                });
-            }
-        });
+    deleteRowBtn.addEventListener('click', function() {
+        const rowCount = invoiceTableBody.rows.length;
+        if (rowCount > 1) {
+            invoiceTableBody.deleteRow(rowCount - 1);
+            updateAmounts();
+        }
     }); 
-
-    document.getElementById('clientSelect').addEventListener('change', function() {
-        let gstin = this.options[this.selectedIndex].dataset.gstin;
-        let address = this.options[this.selectedIndex].dataset.address;
-        let name = this.options[this.selectedIndex].text;
-
-        document.getElementById('td_client_name').textContent = name;
-        document.getElementById('td_client_gstin').textContent = gstin;
-        document.getElementById('td_address').textContent = address;
-    });  
-
-    document.getElementById('referenceInput').addEventListener('input', function () {
-        const q = this.value.toLowerCase();
-        const filtered = referenceList.filter(ref => ref.toLowerCase().includes(q));
-        console.log(filtered); // show suggestions
-    }); 
-
 </script>   
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const marketingInput = document.getElementById("marketingInput");
+        const suggestions = document.getElementById("suggestions");
+
+        let currentRequest = null;
+
+        // Debounce function
+        function debounce(fn, delay = 400) {
+            let timer = null;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        marketingInput.addEventListener("input", debounce(function () {
+            const query = marketingInput.value.trim();
+
+            suggestions.innerHTML = "";
+
+            if (query.length < 2) {
+                suggestions.classList.add("d-none");
+                return;
+            }
+
+            if (currentRequest) currentRequest.abort();
+
+            currentRequest = $.ajax({
+                url: "{{ route('superadmin.bookings.autocomplete') }}",
+                method: "GET",
+                data: { term: query, type: "marketing" },
+                success: function (data) {
+                    suggestions.innerHTML = "";
+                    
+                    if (data.length === 0) {
+                        suggestions.classList.add("d-none");
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const node = document.createElement("a");
+                        node.href = "#";
+                        node.className = "list-group-item list-group-item-action";
+                        node.dataset.id = item.user_code;
+                        node.dataset.name = item.name;
+                        node.textContent = `${item.label}`;
+
+                        node.onclick = function (e) {
+                            e.preventDefault();
+
+                            marketingInput.value = `${item.label}`;
+                            document.getElementById('td_marketing_person').textContent = item.label;
+
+                            suggestions.innerHTML = "";
+                            suggestions.classList.add("d-none");
+                        };
+
+                        suggestions.appendChild(node);
+                    });
+
+                    suggestions.classList.remove("d-none");
+                }
+            });
+        }, 400));
+    });
+</script>
 
 <script>
-const referenceList = @json($references);
-let selectedRefs = [];
+    let selectedRefs = [];
+    let refXHR = null;
 
-const refSearch = document.getElementById('refSearch');
-const refDropdown = document.getElementById('refDropdown');
-const refSelected = document.getElementById('refSelected');
-const refHidden = document.getElementById('referenceHidden');
+    const refSearch = document.getElementById('refSearch');
+    const refDropdown = document.getElementById('refDropdown');
+    const refSelected = document.getElementById('refSelected');
+    const refHidden = document.getElementById('referenceHidden');
 
-function renderDropdown(list) {
-    refDropdown.innerHTML = '';
-    list.forEach(ref => {
+    // Debounce
+    function debounce(fn, delay = 400) {
+        let timer = null;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    function renderSelectedRefs() {
+        refSelected.innerHTML = "";
+        selectedRefs.forEach(ref => {
+            const tag = document.createElement("div");
+            tag.className = "selected-tag";
+            tag.innerHTML = `${ref} <span onclick="removeRef('${ref}')">&times;</span>`;
+            refSelected.appendChild(tag);
+        });
+        refHidden.value = JSON.stringify(selectedRefs);
+        document.getElementById('td_reference_no').textContent = selectedRefs.join(", ");
+    }
+
+    function addRef(ref) {
         if (!selectedRefs.includes(ref)) {
-            const item = document.createElement('div');
-            item.className = 'dropdown-item';
-            item.textContent = ref;
-            item.onclick = () => addRef(ref);
-            refDropdown.appendChild(item);
+            selectedRefs.push(ref);
+            renderSelectedRefs();
+        }
+        refSearch.value = "";
+        refDropdown.classList.add("d-none");
+    }
+
+    function removeRef(ref) {
+        selectedRefs = selectedRefs.filter(r => r !== ref);
+        renderSelectedRefs();
+    }
+
+    // Autocomplete request
+    refSearch.addEventListener('input', debounce(function () {
+        const query = refSearch.value.trim();
+
+        if (query.length < 2) {
+            refDropdown.classList.add("d-none");
+            return;
+        }
+
+        if (refXHR) refXHR.abort();
+
+        refXHR = $.ajax({
+            url: "{{ route('superadmin.bookings.get.ref_no') }}",
+            method: "GET",
+            data: { term: query },
+            success: function (data) {
+                refDropdown.innerHTML = "";
+
+                if (data.length === 0) {
+                    refDropdown.classList.add("d-none");
+                    return;
+                }
+
+                 data.forEach(item => {
+                const div = document.createElement("a");
+                div.href = "#";
+                div.className = "list-group-item list-group-item-action";
+                div.textContent = item.reference_no;
+
+                div.onclick = function (e) {
+                    e.preventDefault();
+                    addRef(item.reference_no);
+                };
+
+                refDropdown.appendChild(div);
+            });
+
+                refDropdown.classList.remove("d-none");
+            }
+        });
+
+    }, 400));
+
+    document.addEventListener("click", function (e) {
+        if (!refDropdown.contains(e.target) && e.target !== refSearch) {
+            refDropdown.classList.add("d-none");
         }
     });
-    refDropdown.classList.remove('d-none');
-}
-
-function addRef(ref) {
-    selectedRefs.push(ref);
-    updateReferenceField();
-    renderSelected();
-    refHidden.value = JSON.stringify(selectedRefs);
-    refDropdown.classList.add('d-none');
-    refSearch.value = '';
-}
-
-function renderSelected() {
-    refSelected.innerHTML = '';
-    selectedRefs.forEach(ref => {
-        const tag = document.createElement('div');
-        tag.className = 'selected-tag';
-        tag.innerHTML = `${ref} <span onclick="removeRef('${ref}')">&times;</span>`;
-        refSelected.appendChild(tag);
-    });
-}
-
-function removeRef(ref) {
-    selectedRefs = selectedRefs.filter(x => x !== ref);
-    updateReferenceField();
-    renderSelected();
-    refHidden.value = JSON.stringify(selectedRefs);
-}
-
-function updateReferenceField() {
-    document.getElementById('td_reference_no').textContent = selectedRefs.join(", ");
-}
-
-refSearch.addEventListener('focus', () => {
-    renderDropdown(referenceList);
-});
-
-refSearch.addEventListener('input', () => {
-    const q = refSearch.value.toLowerCase();
-    const filtered = referenceList.filter(ref => ref.toLowerCase().includes(q));
-    renderDropdown(filtered);
-});
-
-document.addEventListener('click', (e) => {
-    if (!refDropdown.contains(e.target) && e.target !== refSearch) {
-        refDropdown.classList.add('d-none');
-    }
-});
-
 </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const clientInput = document.getElementById("clientInput");
+        const clientDropdown = document.getElementById("clientDropdown");
+
+        let clientXHR = null;
+
+        function debounce(fn, delay = 400) {
+            let timer = null;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        clientInput.addEventListener("input", debounce(function () {
+            const query = clientInput.value.trim();
+
+            clientDropdown.innerHTML = "";
+
+            if (query.length < 2) {
+                clientDropdown.classList.add("d-none");
+                return;
+            }
+
+            if (clientXHR) clientXHR.abort();
+
+            clientXHR = $.ajax({
+                url: "{{ route('superadmin.get.clients') }}",
+                method: "GET",
+                data: { term: query },
+                success: function (data) {
+                    clientDropdown.innerHTML = "";
+
+                    if (data.length === 0) {
+                        clientDropdown.classList.add("d-none");
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const node = document.createElement("a");
+                        node.href = "#";
+                        node.className = "list-group-item list-group-item-action";
+                        node.textContent = item.label;
+
+                        node.onclick = function (e) {
+                            e.preventDefault();
+
+                            // Fill input box
+                            clientInput.value = item.label;
+
+                            // Fill invoice table fields
+                            document.getElementById('td_client_name').textContent = item.name;
+                            document.getElementById('td_client_gstin').textContent = item.gstin;
+                            document.getElementById('td_address').textContent = item.address;
+
+                            document.getElementById('client_id').value = item.id;
+
+                            clientDropdown.innerHTML = "";
+                            clientDropdown.classList.add("d-none");
+                        };
+
+                        clientDropdown.appendChild(node);
+                    });
+
+                    clientDropdown.classList.remove("d-none");
+                }
+            });
+        }, 400));
+
+        // Hide dropdown on outside click
+        document.addEventListener("click", function (e) {
+            if (!clientDropdown.contains(e.target) && e.target !== clientInput) {
+                clientDropdown.classList.add("d-none");
+            }
+        });
+
+    });
+</script>
+
+
 
 @endpush
 

@@ -230,6 +230,7 @@ Route::middleware(['multi_auth:web,admin'])->prefix('superadmin')->name('superad
     Route::middleware(['permission:account.edit'])->group(function () {
 
         Route::resource('blank-invoices', BlankInvoiceController::class);
+        Route::get('/blank-invoice/get-clients', [BlankInvoiceController::class, 'getClients'])->name('get.clients');
 
         Route::resource('bookingInvoiceStatuses', GenerateInvoiceStatusController::class);
 

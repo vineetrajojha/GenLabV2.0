@@ -18,6 +18,8 @@ use App\Jobs\GenerateBookingCards;
 use App\Services\BookingCardService;
 use App\Services\FCMService; 
 use App\Jobs\SendMarketingNotificationJob;
+use Illuminate\Support\Facades\Cache;
+ 
  
 
 
@@ -288,59 +290,84 @@ class BookingController extends Controller
      */
     public function getJobOrders(Request $request)
     {
-        $search = $request->query('term');
+        $search = trim($request->query('term', ''));
 
-        $results = BookingItem::where('job_order_no', 'LIKE', "%{$search}%")
-            ->distinct()
-            ->orderBy('job_order_no', 'desc')
-            ->pluck('job_order_no');
+        if (strlen($search) < 2) {
+            return response()->json([]);
+        }
+
+        $cacheKey = "job_order_" . md5($search);
+
+        $results = Cache::remember($cacheKey, 30, function () use ($search) {
+            return BookingItem::where('job_order_no', 'LIKE', "{$search}%") // prefix search
+                ->distinct()
+                ->orderBy('job_order_no', 'desc')
+                ->limit(20)
+                ->pluck('job_order_no');
+        });
 
         return response()->json($results);
     }
 
-   
 
     public function getAutocomplete(Request $request)
     {
-        $term = $request->get('term', '');
-        $type = $request->get('type', ''); // 'lab' or 'marketing'
+        $term = trim($request->get('term', ''));
+        $type = $request->get('type', '');
 
-        if (empty($term) || !in_array($type, ['lab', 'marketing'])) {
+        if (strlen($term) < 2 || !in_array($type, ['lab', 'marketing'])) {
             return response()->json([]);
         }
 
         $roleSlug = $type === 'lab' ? 'lab_analyst' : 'marketing_person';
 
-        $users = User::whereHas('role', function($q) use ($roleSlug) {
-                        $q->where('slug', $roleSlug); // Assuming role table has 'slug' column
-                    })
-                    ->where(function($q) use ($term) {
-                        $q->where('name', 'LIKE', "%{$term}%")
-                        ->orWhere('user_code', 'LIKE', "%{$term}%");
-                    })
-                    ->get(['user_code', 'name'])
-                    ->map(function($user) {
-                        return [
-                            'user_code' => $user->user_code,
-                            'name' => $user->name,
-                            'label' => $user->user_code . ' - ' . $user->name
-                        ];
-                    });
+        $cacheKey = "user_auto_{$roleSlug}_" . md5($term);
+
+        $users = Cache::remember($cacheKey, 30, function () use ($roleSlug, $term) {
+            return User::whereHas('role', function ($q) use ($roleSlug) {
+                    $q->where('slug', $roleSlug);
+                })
+                ->where(function ($q) use ($term) {
+                    $q->where('name', 'LIKE', "{$term}%")
+                    ->orWhere('user_code', 'LIKE', "{$term}%");
+                })
+                ->limit(20)
+                ->get(['user_code', 'name'])
+                ->map(function ($u) {
+                    return [
+                        'user_code' => $u->user_code,
+                        'name' => $u->name,
+                        'label' => $u->user_code . ' - ' . $u->name
+                    ];
+                });
+        });
 
         return response()->json($users);
-    } 
+    }
+
 
     public function getReferenceNo(Request $request)
     {
-        $term = $request->term ?? '';
-        
-        $results = NewBooking::where('reference_no', 'like', "%{$term}%")
-            ->pluck('reference_no')
-            ->map(fn($ref) => ['reference_no' => $ref])
-            ->toArray();
+        $term = trim($request->term ?? '');
+
+        if (strlen($term) < 2) {
+            return response()->json([]);
+        }
+
+        $cacheKey = "ref_search_" . md5($term);
+
+        $results = Cache::remember($cacheKey, 30, function () use ($term) {
+            return NewBooking::where('reference_no', 'LIKE', "{$term}%") // prefix search
+                ->orderBy('reference_no')
+                ->limit(20)
+                ->pluck('reference_no')
+                ->map(fn($ref) => ['reference_no' => $ref])
+                ->toArray();
+        });
 
         return response()->json($results);
-    } 
+    }
+
 
     public function showBookingCards($bookingId, $itemId = null)
     {

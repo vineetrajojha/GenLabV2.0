@@ -49,12 +49,10 @@ class BlankInvoiceController extends Controller
     public function create()
     {
         $bankInfo = PaymentSetting::first();
-        $marketingUsers = User::whereHas('role', fn($q) => $q->where('slug', 'marketing_person'))->get();
-        $clients = Client::all();  
 
-        $references = NewBooking::whereNotNull('reference_no')->pluck('reference_no')->unique()->values();
-        return view('superadmin.accounts.invoiceList.blank', compact('bankInfo', 'marketingUsers', 'clients', 'references'));
+        return view('superadmin.accounts.invoiceList.blank', compact('bankInfo'));
     }
+    
 
     public function store(BlankInvoiceRequest $request)
     {
@@ -171,5 +169,27 @@ class BlankInvoiceController extends Controller
 
             // Stream PDF in browser (opens in new tab if target="_blank")
             return $pdf->stream('blank-invoice-' . $invoice->id . '.pdf');
+    } 
+
+    public function getClients(Request $request)
+    {
+        $term = trim($request->term ?? '');
+
+        if (strlen($term) < 2) {
+            return response()->json([]);
         }
+       
+        return Client::where('name', 'LIKE', "{$term}%")
+            ->orWhere('gstin', 'LIKE', "{$term}%")
+            ->limit(20)
+            ->get(['id', 'name', 'gstin', 'address'])
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'label' => $c->name . ' (' . $c->gstin . ')',
+                'name' => $c->name,
+                'gstin' => $c->gstin,
+                'address' => $c->address
+            ]);
+    }
+
 }
