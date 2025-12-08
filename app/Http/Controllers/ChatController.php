@@ -85,11 +85,25 @@ class ChatController extends Controller
             $ids = $this->dmParticipants($group);
             return in_array($user->id, $ids, true);
         }
-        // If group has explicit membership, require membership
+        // Open groups (Bookings/Reports/etc.) should remain visible to everyone even
+        // after last_seen rows get created, so only gate access if the group is truly
+        // member-restricted and the viewer is not an admin.
+        $slug = Str::slug($group->slug ?: $group->name ?: '');
+        $defaultPublic = ['bookings','reports','invoices','management','amendment-reports'];
+
+        // Admin-like roles always see the group
+        if ($this->isAdminUser($user)) return true;
+
+        // If membership rows exist, allow access when the user is listed OR when the
+        // group is one of the public defaults (avoid hiding groups after one user
+        // marks them seen).
         if ($this->groupHasMembers($group)) {
             $memberSet = $this->memberSetForUser($user->id);
-            return array_key_exists($group->id, $memberSet);
+            if (array_key_exists($group->id, $memberSet)) return true;
+            if (in_array($slug, $defaultPublic, true)) return true;
+            return false;
         }
+
         // No membership defined: treat as public
         return true;
     }
@@ -109,7 +123,11 @@ class ChatController extends Controller
 
     protected function buildGroupPayload(ChatGroup $group, $viewerId = null)
     {
-        $last = $group->messages()->latest('id')->first();
+        // Pick last message visible to this viewer (important for Bookings filtering)
+        $viewer = $viewerId ? User::find($viewerId) : null;
+        $all = $group->messages()->latest('id')->take(50)->get();
+        $visible = $this->filterVisibleMessages($all, $group, $viewer);
+        $last = $visible->sortByDesc('id')->first();
         // For deterministic DM slugs dm-{a}-{b}, show the peer's name to the viewer
         $displayName = $group->name;
         if ($viewerId && str_starts_with((string)$group->slug, 'dm-')) {
@@ -142,6 +160,54 @@ class ChatController extends Controller
             ] : null,
             'unread' => 0,
         ];
+    }
+
+    public function markSeen(Request $request)
+    {
+        $request->validate(['group_id' => 'required|integer|exists:chat_groups,id', 'last_id' => 'nullable|integer']);
+        $user = $this->user();
+        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
+        $group = ChatGroup::find($request->integer('group_id'));
+        if (!$this->userInGroup($group, $user)) return response()->json(['message' => 'Forbidden'], 403);
+
+        $lastId = $request->integer('last_id') ?: ChatMessage::where('group_id', $group->id)->max('id');
+        if ($lastId === null) $lastId = 0;
+
+        ChatGroupMember::updateOrCreate(
+            ['group_id' => $group->id, 'user_id' => $user->id],
+            ['last_seen_id' => $lastId]
+        );
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function unreadCounts(Request $request)
+    {
+        $user = $this->user();
+        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
+
+        $groups = ChatGroup::orderBy('id')->get()->filter(function($g) use ($user){
+            return $this->userInGroup($g, $user);
+        });
+
+        $result = [];
+        foreach ($groups as $g){
+            $lastSeen = ChatGroupMember::where('group_id', $g->id)->where('user_id', $user->id)->value('last_seen_id') ?? 0;
+            $msgs = ChatMessage::with('user:id,name,is_chat_admin')
+                ->where('group_id', $g->id)
+                // Do not count the viewer's own messages as unread
+                ->where('user_id', '!=', $user->id)
+                ->where('id', '>', $lastSeen)
+                ->orderBy('id')
+                ->limit(200)
+                ->get();
+            $visible = $this->filterVisibleMessages($msgs, $g, $user);
+            $count = $visible->count();
+            $result[] = ['group_id' => $g->id, 'count' => $count];
+        }
+
+        $total = array_sum(array_map(fn($x)=> $x['count'], $result));
+        return response()->json(['total' => $total, 'groups' => $result]);
     }
 
     protected function ensureDmGroup($aId, $bId, $displayName)

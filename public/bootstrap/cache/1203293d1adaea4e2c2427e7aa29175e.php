@@ -13,12 +13,14 @@
     <div class="chat-popup-body p-0 position-relative" style="height:100%; display:flex;">
         <!-- Sidebar and Conversation reused -->
         <aside class="border-end" style="width:360px; display:flex; flex-direction:column; min-height:0;">
-            <div class="p-2" style="background:#f9fafb;">
+            <div class="p-2 d-flex align-items-center justify-content-between" style="background:#f9fafb; gap:8px;">
                 <div class="input-group input-group-sm" style="border-radius:8px; overflow:hidden;">
                     <span class="input-group-text bg-white border-0"><i class="fa fa-search text-muted"></i></span>
                     <input id="chatGroupSearch" type="text" class="form-control border-0" placeholder="Search or start new chat" style="background:#fff;">
                     <button id="chatNewSessionBtn" class="btn btn-success" type="button" title="New Session"><i class="fa fa-plus"></i></button>
                 </div>
+                <!-- Sidebar badge intentionally kept hidden -->
+                <span id="chatSidebarBadge" class="chat-unread" style="display:none;">0</span>
             </div>
             <div id="chatGroups" class="list-group list-group-flush" style="overflow:auto; flex:1;"></div>
         </aside>
@@ -311,7 +313,8 @@
 
 /* Sidebar unread marker */
 /* Remove visual dot usage; keep count badge only */
-.chat-unread{ font-size:12px; background:#22c55e; color:#fff; border-radius:999px; padding:1px 8px; line-height:18px; min-width:22px; text-align:center; }
+.chat-unread{ font-size:12px; background:#22c55e; color:#fff; border-radius:999px; padding:1px 8px; line-height:18px; min-width:22px; text-align:center; box-shadow:0 4px 10px rgba(34,197,94,0.25); }
+.chat-unread-dot{ width:10px; height:10px; border-radius:50%; background:#f43f5e; display:inline-block; margin-left:8px; }
 
 /* WhatsApp-like: unread chats look bolder */
 #chatGroups .list-group-item.has-unread .chat-title{ font-weight:700; color:#111827; }
@@ -434,23 +437,58 @@
     const activeTitle = document.getElementById('chatActiveTitle');
     const activeAvatar = document.getElementById('chatActiveAvatar');
     const popupEl = document.getElementById('chatPopup');
+        // Track last known unread totals to detect new unseen messages when chat is closed
+        let lastUnreadTotal = 0;
+        let lastUnreadMap = new Map();
 
     // Central badge updater: sums unread from allGroups and updates the header badge in real-time
     function updateHeaderBadge(){
         try {
             const badge = window.chatNotifBadge || document.getElementById('chatNotifBadge');
+            // Sidebar badge intentionally hidden; keep element but never show/unset it.
             const total = Array.isArray(allGroups) ? allGroups.reduce((s,g)=> s + (parseInt(g.unread)||0), 0) : 0;
-            if (!badge) return;
-            if (total > 0) {
-                badge.textContent = total > 99 ? '99+' : String(total);
-                badge.style.display = 'flex';
-            } else {
-                badge.textContent = '';
-                badge.style.display = 'none';
+            if (badge){
+                if (total > 0) {
+                    badge.textContent = total > 99 ? '99+' : String(total);
+                    badge.style.display = 'flex';
+                } else {
+                    badge.textContent = '';
+                    badge.style.display = 'none';
+                }
             }
+            const sideBadge = document.getElementById('chatSidebarBadge');
+            if (sideBadge) { sideBadge.style.display = 'none'; }
         } catch(_) {}
     }
     window.__CHAT_UPDATE_BADGE__ = updateHeaderBadge;
+
+    // Update existing list items' unread badges without re-rendering the whole sidebar
+    function syncUnreadBadges(map){
+        if (!groupsEl || !(map instanceof Map)) return;
+        const items = groupsEl.querySelectorAll('.list-group-item');
+        items.forEach(it => {
+            const gid = String(it.dataset.groupId || '');
+            const count = map.get(gid) || 0;
+            const isActive = String(activeGroupId) === gid;
+            const show = count > 0 && !isActive;
+            let badge = it.querySelector('.chat-unread');
+            if (show){
+                if (!badge){
+                    badge = document.createElement('span');
+                    badge.className = 'chat-unread';
+                    // Try to append to the right container; fallback to item
+                    const right = it.querySelector('.ms-auto.d-flex.align-items-center') || it;
+                    right.appendChild(badge);
+                }
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.style.display = 'inline-flex';
+                it.classList.add('has-unread');
+            } else {
+                if (badge) badge.style.display = 'none';
+                it.classList.remove('has-unread');
+            }
+        });
+    }
 
     // Server-truth fetch for unread counts; updates allGroups.unread and header badge
     window.__CHAT_FETCH_COUNTS__ = async function(){
@@ -467,7 +505,32 @@
                     g.unread = n;
                 }
             }
-            if (typeof renderGroups === 'function') renderGroups(allGroups);
+            // Update badges in place to avoid sidebar blinking
+            syncUnreadBadges(map);
+            const totalFromFetch = groupsCounts.reduce((s,x)=> s + (parseInt(x.count)||0), 0);
+            const chatOpen = isChatOpen();
+            // Show toast if new unread appeared while chat is closed; prefer the first group whose count increased
+            if (!chatOpen && totalFromFetch > lastUnreadTotal) {
+                let picked = null;
+                for (const entry of groupsCounts){
+                    const gid = String(entry.group_id);
+                    const prev = lastUnreadMap.get(gid) || 0;
+                    const cur = parseInt(entry.count)||0;
+                    if (cur > prev){ picked = entry; break; }
+                }
+                if (!picked) { picked = groupsCounts.find(x=> (parseInt(x.count)||0) > 0) || null; }
+                if (picked){
+                    const gid = String(picked.group_id);
+                    const g = (allGroups || []).find(x=> String(x.id) === gid);
+                    const latest = g && g.latest ? g.latest : null;
+                    const sender = (latest && (latest.sender_name || (latest.user && latest.user.name))) || (g ? g.name : 'New message');
+                    const snippet = shortenSnippet((latest && (latest.content || latest.original_name)) || '[New message]');
+                    const title = sender || 'New message';
+                    showGlobalChatNotification(`${title}: ${snippet}`, { groupId: gid, replyToId: latest ? latest.id : null });
+                }
+            }
+            lastUnreadMap = map;
+            lastUnreadTotal = totalFromFetch;
             updateHeaderBadge();
         } catch(_) {}
     };
@@ -521,6 +584,8 @@
     let activeGroupId = null; let lastMessageId = 0;
     let mediaRecorder = null; let recordedChunks = [];
     let cache = []; let allGroups = [];
+    let lastGroupsSignature = '';
+    let realtimeOk = false;
     window.allGroups = allGroups; // Expose globally for realtime updates
     let idIndex = new Set(); // track message ids to dedupe
     let polling = false; // prevent overlapping polls
@@ -619,6 +684,7 @@
     filterUnbookedBtn && filterUnbookedBtn.addEventListener('click', (e)=>{ e.preventDefault(); toggleFilter('unbooked'); });
 
     const initials = (s)=> (s||'?').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const groupsSignature = (list)=> Array.isArray(list) ? list.map(g=> `${g.id}|${g.last_msg_id||0}|${g.unread||0}`).join(',') : '';
     const fmtTime = (ts)=> { try { const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return ts; } };
     // Helpers for day labels
     const toDate = (ts)=> { try { return new Date(ts); } catch { return new Date(); } };
@@ -628,6 +694,10 @@
 
     // Groups
     function renderGroups(list){
+        const sig = groupsSignature(list);
+        if (sig && sig === lastGroupsSignature) return;
+        lastGroupsSignature = sig;
+
         groupsEl.innerHTML = '';
         const sorted = Array.isArray(list) ? list.slice().sort((a,b)=>{
             const la = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
@@ -647,7 +717,9 @@
                 : `<div class="wa-avatar me-2">${initials2}</div>`;
 
             const latest = g.latest || {};
-            const unreadCount = parseInt(g.unread)||0;
+            // Do not show unread badge for the currently open group
+            const isActive = String(g.id) === String(activeGroupId);
+            const unreadCount = isActive ? 0 : (parseInt(g.unread)||0);
             const hasUnread = unreadCount > 0;
 
             // Mark item as unread for bold styling
@@ -655,7 +727,9 @@
 
             const right = document.createElement('div');
             right.className='ms-auto d-flex align-items-center';
-            right.innerHTML = hasUnread ? `<span class="chat-unread">${unreadCount>99?'99+':unreadCount}</span>` : '';
+            right.innerHTML = hasUnread
+                ? `<span class="chat-unread">${unreadCount>99?'99+':unreadCount}</span>`
+                : '';
 
             const meta = document.createElement('div');
             meta.className='flex-grow-1';
@@ -798,10 +872,12 @@
         requestAnimationFrame(syncMessagesPadding);
         fetchMessages(id);
 
-        // Clear unread locally for this group so the dot disappears immediately
+        // Clear unread locally for this group so the badge disappears immediately
         try {
             const g = allGroups.find(x => String(x.id) === String(id));
-            if (g) { g.unread = 0; renderGroups(allGroups); updateHeaderBadge(); }
+            if (g) { g.unread = 0; }
+            renderGroups(allGroups);
+            updateHeaderBadge();
         } catch(_) {}
 
         // Show filter buttons only for Bookings group
@@ -921,6 +997,13 @@
             return '';
         }
         return scan(m, 0);
+    }
+
+    function shortenSnippet(s, limit = 80){
+        if (!s) return '';
+        const str = String(s).trim();
+        if (str.length <= limit) return str;
+        return str.slice(0, limit - 1) + '…';
     }
 
     function displayName(u){
@@ -1198,6 +1281,140 @@
             toast.style.transform = 'translateY(6px)';
             setTimeout(()=> toast.remove(), 200);
         }, 2000);
+    }
+
+    function isChatOpen(){
+        if (!popupEl) return false;
+        try {
+            const style = window.getComputedStyle ? getComputedStyle(popupEl) : popupEl.style;
+            return style && style.display !== 'none' && style.visibility !== 'hidden';
+        } catch(_) { return popupEl.style.display !== 'none'; }
+    }
+
+    // Lightweight page-level notification when chat UI is closed; supports quick reply
+    function showGlobalChatNotification(text, opts = {}){
+        const existing = document.querySelector('.chat-global-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'chat-global-toast';
+        // Split "Sender: message" format
+        const raw = String(text || 'New message');
+        const parts = raw.split(':');
+        const title = (parts.shift() || 'New message').trim();
+        const body = (parts.join(':') || '').trim();
+        const initialsVal = (title || 'N').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+
+        Object.assign(toast.style, {
+            position: 'fixed',
+            right: '18px',
+            bottom: '18px',
+            maxWidth: '340px',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            background: '#ffffff',
+            color: '#0f172a',
+            fontWeight: '500',
+            boxShadow: '0 16px 38px rgba(0,0,0,0.20)',
+            zIndex: 20000,
+            opacity: '0',
+            transform: 'translateY(8px)',
+            transition: 'opacity 180ms ease, transform 180ms ease',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center'
+        });
+
+        const avatar = document.createElement('div');
+        Object.assign(avatar.style, {
+            width: '38px', height: '38px', borderRadius: '50%',
+            background: '#25d366', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: '700', letterSpacing: '0.4px', flexShrink: '0'
+        });
+        avatar.textContent = initialsVal || 'N';
+
+        const textWrap = document.createElement('div');
+        Object.assign(textWrap.style, { display:'flex', flexDirection:'column', gap:'2px', minWidth:'0', flex:'1' });
+        const titleEl = document.createElement('div');
+        Object.assign(titleEl.style, { fontWeight:'700', color:'#111827', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' });
+        titleEl.textContent = title || 'New message';
+        const bodyEl = document.createElement('div');
+        Object.assign(bodyEl.style, { fontSize:'13px', color:'#334155', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' });
+        bodyEl.textContent = body || 'Tap to view';
+        textWrap.appendChild(titleEl); textWrap.appendChild(bodyEl);
+
+        // Quick reply controls
+        const replyWrap = document.createElement('div');
+        Object.assign(replyWrap.style, { display:'flex', alignItems:'center', gap:'6px', width:'100%' });
+        const replyInput = document.createElement('input');
+        replyInput.type = 'text';
+        replyInput.placeholder = 'Type a reply';
+        Object.assign(replyInput.style, {
+            flex:'1', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'6px 10px', fontSize:'13px'
+        });
+        const replyBtn = document.createElement('button');
+        replyBtn.type = 'button';
+        replyBtn.textContent = 'Send';
+        Object.assign(replyBtn.style, {
+            border:'none', background:'#25d366', color:'#fff', borderRadius:'10px', padding:'6px 10px', fontWeight:'700', fontSize:'13px', cursor:'pointer'
+        });
+
+        const sendReply = async ()=>{
+            const txt = (replyInput.value||'').trim();
+            if (!txt || !opts.groupId) return;
+            replyBtn.disabled = true;
+            try {
+                await window.__CHAT_QUICK_REPLY__(opts.groupId, txt, opts.replyToId);
+                replyInput.value = '';
+                // also open chat
+                if (window.__CHAT_OPEN_GROUP__) window.__CHAT_OPEN_GROUP__(opts.groupId);
+            } catch(_) {}
+            finally {
+                replyBtn.disabled = false;
+                // hide shortly after send
+                scheduleHide(2000);
+            }
+        };
+        replyBtn.addEventListener('click', sendReply);
+        replyInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); sendReply(); } });
+
+        replyWrap.appendChild(replyInput);
+        replyWrap.appendChild(replyBtn);
+
+        const contentWrap = document.createElement('div');
+        Object.assign(contentWrap.style, { display:'flex', flexDirection:'column', gap:'6px', minWidth:'0', flex:'1' });
+        contentWrap.appendChild(textWrap);
+        contentWrap.appendChild(replyWrap);
+
+        toast.appendChild(avatar);
+        toast.appendChild(contentWrap);
+
+        document.body.appendChild(toast);
+        requestAnimationFrame(()=>{
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        // Auto-hide logic that pauses while typing
+        let hideTimer = null;
+        const scheduleHide = (delayMs = 3200)=>{
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(()=>{
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(()=> toast.remove(), 240);
+            }, delayMs);
+        };
+        scheduleHide(3200);
+
+        const pauseHide = ()=> clearTimeout(hideTimer);
+        replyInput.addEventListener('focus', pauseHide);
+        replyInput.addEventListener('input', pauseHide);
+        replyInput.addEventListener('keydown', pauseHide);
+        replyInput.addEventListener('blur', ()=> scheduleHide(3000));
+        replyBtn.addEventListener('mouseenter', pauseHide);
+        replyBtn.addEventListener('mouseleave', ()=> scheduleHide(3000));
     }
 
     function confirmInsidePopup(opts){
@@ -1913,6 +2130,7 @@
                         const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
                         if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
                     }
+                        lastUnreadTotal = total;
                 } catch(_) {}
             }
         } catch (err) {
@@ -1924,10 +2142,13 @@
 
     // Passive sidebar refresher (fallback if realtime push misses)
     setInterval(()=>{ fetchGroups({ silent:true }); }, 8000);
+    // Periodic unread count sync from server truth
+    setInterval(()=>{ if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__(); }, 12000);
 
     // Lightweight messages_since poller to keep active chat + sidebar in sync if push misses
     setInterval(async ()=>{
         if (!activeGroupId) return;
+        if (realtimeOk) return; // rely on realtime when available
         try {
             const url = new URL(routes.messagesSince, window.location.origin);
             url.searchParams.set('group_id', activeGroupId);
@@ -1986,7 +2207,6 @@
             try {
                 await markGroupSeen(groupId, lastMessageId);
                 updateHeaderBadge();
-                if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__();
             } catch(_) {}
         } catch(err){
             console.error('fetchMessages error:', err);
@@ -2000,6 +2220,7 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
+        if (realtimeOk) return; // skip polling when realtime is healthy
         polling = true;
         try{
             const url = new URL(routes.messagesSince, window.location.origin);
@@ -2040,7 +2261,12 @@
             if (!res.ok) throw new Error('send-fail');
             const data = await res.json();
             if (data && data.group) { upsertGroup(data.group); }
-            if (activeGroupId) fetchMessages(activeGroupId);
+            if (data && data.message && Number(data.message.group_id) === Number(activeGroupId)) {
+                const m = data.message; flagMine(m);
+                if (!idIndex.has(m.id)) { cache.push(m); idIndex.add(m.id); lastMessageId = m.id; window.lastMessageId = m.id; renderMessages(cache); }
+            } else if (activeGroupId) {
+                fetchMessages(activeGroupId);
+            }
         } catch(e){ alert('Failed to send message.'); }
     }
 
@@ -2064,7 +2290,13 @@
             if (!res.ok) throw new Error('json-fail');
             const data = await res.json();
             if (data && data.group) { upsertGroup(data.group); }
-            fetchMessages(activeGroupId);
+            if (data && data.message && Number(data.message.group_id) === Number(activeGroupId)) {
+                const m = data.message; flagMine(m);
+                if (!idIndex.has(m.id)) { cache.push(m); idIndex.add(m.id); lastMessageId = m.id; window.lastMessageId = m.id; renderMessages(cache); }
+                try { markGroupSeen(activeGroupId, m.id); } catch(_) {}
+            } else {
+                fetchMessages(activeGroupId);
+            }
         } catch(err){
             const fd = new FormData();
             fd.append('group_id', activeGroupId);
@@ -2094,6 +2326,7 @@
                 headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' },
                 body: JSON.stringify({ group_id: groupId, last_id: lastId || undefined })
             });
+            if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__();
         } catch(e) { /* ignore */ }
     }
 
@@ -2460,7 +2693,7 @@
     window.__CHAT_PUSHER_BOUND__ = true;
 
     // Pusher Cloud integration
-    Pusher.logToConsole = true;
+    Pusher.logToConsole = false;
     var pusher = new Pusher('500d2fa7a4b11dbfeb91', {
         cluster: 'ap2',
         forceTLS: true
@@ -2482,7 +2715,9 @@
             const senderGuard = (msg.sender_guard || '').toString().toLowerCase();
             const senderIsAdmin = senderGuard === 'admin' || senderGuard === 'superadmin' || senderGuard === 'super_admin';
             const viewerIsAdmin = !!(window.isRootAdmin || window.isSuperAdmin);
-            const mine = !!msg.mine;
+            const viewerId = window.currentUser && window.currentUser.id != null ? Number(window.currentUser.id) : null;
+            const senderId = msg.user_id != null ? Number(msg.user_id) : (msg.user && msg.user.id != null ? Number(msg.user.id) : null);
+            const mine = !!msg.mine || (viewerId !== null && senderId !== null && viewerId === senderId);
             // For Bookings group: non-admin viewers only react to admin or own messages
             if (isBookings && !viewerIsAdmin && !senderIsAdmin && !mine) {
                 return;
@@ -2519,19 +2754,37 @@
                 }
             }
             if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
+            updateHeaderBadge();
+
+            // If chat UI is closed and this isn't the active group, show a lightweight notification
+            const chatOpen = isChatOpen();
+            const isActive = Number(msg.group_id) === Number(window.activeGroupId);
+            if (!chatOpen && !isActive && !mine) {
+                const snippet = shortenSnippet(bestText(msg) || '[New message]');
+                const sender = msg.sender_name || (msg.user && msg.user.name) || 'New message';
+                const title = sender || 'New message';
+                showGlobalChatNotification(`${title}: ${snippet}`, { groupId: msg.group_id, replyToId: msg.id });
+            }
         }
 
         if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
 
-        // --- FIX: Do NOT append message bubble directly for active group ---
-        // Instead, always rely on fetchMessages to update the UI.
+        // Active group: append message in realtime without waiting for poll/fetch
         if (window.activeGroupId && Number(msg.group_id) === Number(window.activeGroupId)) {
-            // Remove direct append:
-            // if (typeof messageRow === 'function' && window.messagesEl) {
-            //     window.messagesEl.appendChild(messageRow(msg));
-            //     window.messagesEl.scrollTop = window.messagesEl.scrollHeight;
-            // }
-            // Active group is read
+            try {
+                if (!idIndex.has(msg.id)) {
+                    cache.push(msg);
+                    idIndex.add(msg.id);
+                    lastMessageId = msg.id;
+                    window.lastMessageId = lastMessageId;
+                    renderMessages(cache);
+                }
+            } catch(_) {}
+
+            // Mark as seen when user is viewing this group
+            try { markGroupSeen(msg.group_id, msg.id); } catch(_) {}
+
+            // Mark active group read
             if (Array.isArray(window.allGroups)) {
                 for (let i = 0; i < window.allGroups.length; ++i) {
                     if (Number(window.allGroups[i].id) === Number(msg.group_id)) {
@@ -2542,8 +2795,6 @@
                 if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
             }
             if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
-            // Always fetch messages to update UI
-            fetchMessages(window.activeGroupId);
         }
     }
     channel.bind('App\\Events\\MessageSent', handleChatEvent);
@@ -2551,13 +2802,19 @@
 
     // --- Debugging: log all events ---
     channel.bind('pusher:subscription_succeeded', function() {
+        realtimeOk = true;
+        if (window.__CHAT_POLL_INTERVAL) { try { clearInterval(window.__CHAT_POLL_INTERVAL); } catch(_) {} window.__CHAT_POLL_INTERVAL = null; }
         console.log('[Pusher] Subscribed to chat channel');
     });
     channel.bind('pusher:subscription_error', function(status) {
+        realtimeOk = false;
         console.error('[Pusher] Subscription error:', status);
+        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
     channel.bind('pusher:error', function(err) {
+        realtimeOk = false;
         console.error('[Pusher] Error:', err);
+        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
 })();
 </script>
