@@ -84,7 +84,8 @@ Route::middleware(['web', 'multi_auth:web,admin'])
 // Lab Analysts (protected)
 Route::prefix('superadmin')->name('superadmin.')->middleware(['web','auth'])->group(function(){
     Route::get('/lab-analysts/render', [LabAnalystsController::class, 'render'])->name('labanalysts.render')->middleware('permission:lab-analysts.view');
-    Route::post('/lab-analysts/render', [LabAnalystsController::class, 'render'])->name('labanalysts.render')->middleware('permission:lab-analysts.edit');
+    // Separate name for POST to avoid duplicate route name in cache
+    Route::post('/lab-analysts/render', [LabAnalystsController::class, 'render'])->name('labanalysts.render.submit')->middleware('permission:lab-analysts.edit');
 });
 
 
@@ -92,10 +93,13 @@ Route::prefix('superadmin')->name('superadmin.')->middleware(['web','auth'])->gr
 Route::prefix('chat')->group(function(){
     Route::get('/groups', [ChatController::class, 'groups'])->name('chat.groups');
     Route::post('/groups', [ChatController::class, 'createGroup'])->name('chat.groups.create');
+    Route::delete('/groups/{group}', [ChatController::class, 'destroyGroup'])->name('chat.groups.destroy');
+    Route::post('/groups/{group}/clear', [ChatController::class, 'clearGroup'])->name('chat.groups.clear');
 
     Route::get('/messages', [ChatController::class, 'messages'])->name('chat.messages');
     Route::get('/messages/since', [ChatController::class, 'messagesSince'])->name('chat.messages.since');
     Route::post('/messages', [ChatController::class, 'send'])->name('chat.messages.send');
+    Route::delete('/messages/{id}', [ChatController::class, 'destroy'])->name('chat.messages.delete');
 
     Route::post('/messages/{message}/reactions', [ChatController::class, 'react'])->name('chat.messages.react');
 
@@ -142,7 +146,7 @@ Route::get('/pusher-test', function () {
 });
 
 // Admin-only routes
-Route::middleware('auth:admin')->group(function () {
+Route::middleware('auth:admin,superadmin')->group(function () {
     Route::post('/chat/users/{user}/chat-admin', [ChatController::class, 'setChatAdmin'])
         ->name('chat.setChatAdmin');
 });

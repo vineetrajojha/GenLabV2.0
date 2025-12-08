@@ -181,14 +181,19 @@
 }
 .wa-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .wa-bubble {
-  position: relative;
-  max-width: 70%;
-  padding: 12px 14px;
-  border-radius: var(--chat-radius);
-  font-size: 14px;
-  line-height: 1.4;
-  box-shadow: var(--chat-shadow);
-  overflow: hidden;
+    position: relative;
+    max-width: 78%;
+    padding: 12px 14px;
+    border-radius: var(--chat-radius);
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: var(--chat-shadow);
+    overflow: hidden;
+}
+.wa-bubble.media-only {
+    padding: 8px;
+    background: transparent;
+    box-shadow: none;
 }
 .wa-bubble.sent {
   background: var(--chat-msg-out);
@@ -205,16 +210,30 @@
 .wa-bubble.status-cancel { background: #fee2e2 !important; border: 1px solid #fecaca; }
 .wa-content { display: flex; flex-direction: column; gap: 8px; }
 .wa-text { white-space: pre-wrap; word-wrap: break-word; color:#111827; }
-.wa-image { max-width: 100%; }
-.wa-image img { max-width: 100%; height: auto; max-height: 320px; object-fit: contain; display: block; }
-.wa-caption { font-size: 13px; color:#334155; }
+.wa-media { width: 100%; max-width: 360px; border-radius: 14px; overflow: hidden; background: #f8fafc; border: 1px solid #e2e8f0; box-shadow: 0 8px 24px rgba(15,23,42,0.12); }
+.wa-image { background: #0b1220; }
+.wa-image img { width: 100%; height: auto; max-height: 420px; object-fit: contain; display: block; background:#0b1220; }
+.wa-image .wa-image-bar { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background: linear-gradient(90deg,#0f172a,#1e293b); color:#e2e8f0; font-size:12px; }
+.wa-image .wa-image-bar a { color:#a5f3fc; text-decoration:none; font-weight:600; }
+.wa-image .wa-image-bar a:hover { text-decoration:underline; }
+.wa-image .wa-image-bar .name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%; }
+.wa-caption { font-size: 13px; color:#334155; margin-top:6px; }
 .wa-file { display:flex; align-items:center; gap:12px; }
 .wa-file .wa-icon { width:40px; height:40px; border-radius:8px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; }
 .wa-file .wa-info { display:flex; flex-direction:column; }
 .wa-file .wa-name { font-weight:600; color:#111827; line-height:1.2; }
 .wa-file .wa-actions { display:flex; gap:10px; font-size:12px; }
 .wa-file .wa-actions a { color: var(--chat-primary-dark); text-decoration:none; }
-.wa-audio audio { width: 100%; max-width: 320px; height: 36px; }
+.wa-audio { display:none; }
+.wa-voice-card { background: rgba(15, 118, 110, 0.08); border:1px solid rgba(15,118,110,0.18); color:#0f172a; border-radius:16px; padding:10px 12px; box-shadow: 0 6px 18px rgba(15,23,42,0.12); width: 100%; max-width: 360px; }
+.wa-voice { display:flex; align-items:center; gap:12px; }
+.wa-voice-btn { width:44px; height:44px; border-radius:50%; border:none; background:#0ea5e9; color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 6px 14px rgba(14,165,233,0.35); }
+.wa-voice-btn.pause { background:#f97316; box-shadow:0 6px 14px rgba(249,115,22,0.35); }
+.wa-voice-track { flex:1; display:flex; align-items:center; gap:10px; }
+.wa-voice-bar { position:relative; flex:1; height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+.wa-voice-bar .fill { position:absolute; top:0; left:0; height:100%; width:0%; background:#0ea5e9; transition: width 120ms linear; }
+.wa-voice-time { font-size:12px; color:#475569; min-width:44px; text-align:right; }
+.wa-voice-meta { font-size:12px; color:#475569; margin-top:6px; display:flex; justify-content:space-between; align-items:center; }
 /* Meta row below content (not overlapping) */
 .wa-meta-row { margin-top: 6px; font-size: 12px; color: var(--chat-muted); display:flex; align-items:center; gap:6px; }
 .wa-row.sent .wa-meta-row { justify-content:flex-end; }
@@ -303,12 +322,12 @@
 .wa-day > span{ background:#e2e8f0; color:#334155; padding:4px 10px; font-size:12px; border-radius:999px; border:1px solid #cbd5e1; line-height:1; }
 
 /* WhatsApp-like PDF/document bubble */
-.wa-doc{ display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; background: transparent; }
+.wa-doc{ display:flex; align-items:center; gap:14px; padding:14px; border-radius:14px; background: #f8fafc; border:1px solid #e2e8f0; box-shadow: 0 8px 24px rgba(15,23,42,0.08); width:100%; max-width:360px; }
 .wa-doc-link{ display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit; flex:1; min-width:0; }
 .wa-doc-icon{ width:44px; height:56px; border-radius:8px; background:#e2e8f0; color:#334155; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
 .wa-doc-icon svg{ width:24px; height:24px; display:block; }
 .wa-doc-info{ display:flex; flex-direction:column; min-width:0; }
-.wa-doc-name{ font-weight:600; color:#111827; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 260px; }
+.wa-doc-name{ font-weight:700; color:#0f172a; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 220px; }
 .wa-doc-meta{ font-size:12px; color: var(--chat-muted); }
 .wa-doc-download{ margin-left:auto; color: var(--chat-primary-dark); text-decoration:none; font-size:16px; padding:6px; border-radius:8px; }
 .wa-doc-download:hover{ background: rgba(0,0,0,0.06); }
@@ -352,12 +371,15 @@
         messages: '{{ url('/chat/messages') }}',
         messagesSince: '{{ url('/chat/messages/since') }}',
         send: '{{ url('/chat/messages') }}',
+        delete: (id) => `${'{{ url('/chat/messages') }}'}/${id}`,
         react: (id) => `${'{{ url('/chat/messages') }}'}/${id}/reactions`,
         direct: (userId) => `${'{{ url('/chat/direct') }}'}/${userId}`,
         searchUsers: (q) => `${'{{ url('/chat/users/search') }}'}?q=${encodeURIComponent(q)}`,
         directWith: (id) => `${'{{ url('/chat/direct-with') }}'}/${id}`,
         markSeen: '{{ url('/chat/mark-seen') }}',
         unreadCounts: '{{ url('/chat/unread-counts') }}',
+        clearGroup: (id) => `${'{{ url('/chat/groups') }}'}/${id}/clear`,
+        deleteGroup: (id) => `${'{{ url('/chat/groups') }}'}/${id}`,
         // NEW: toggle chat-admin for a user (route to add in routes/web.php)
         setChatAdmin: (userId) => `${'{{ url('/chat/users') }}'}/${userId}/chat-admin`
     };
@@ -658,6 +680,7 @@
                  <div class="chat-preview">${previewText}</div>`;
 
             item.innerHTML = avatarHtml + meta.outerHTML + right.outerHTML;
+            item.addEventListener('contextmenu', (e)=> openGroupMenu(e, g));
             item.addEventListener('click', (e)=>{ e.preventDefault(); selectGroup(g.id, g.name, item); });
             groupsEl.appendChild(item);
         });
@@ -665,6 +688,102 @@
         if (typeof updateHeaderBadge === 'function') { try { updateHeaderBadge(); } catch(_){} }
     }
     window.renderGroups = renderGroups;
+
+    // Personal chat context menu (right-click)
+    let groupContextMenu = null;
+    function closeGroupMenu(){ if (groupContextMenu){ groupContextMenu.remove(); groupContextMenu = null; } }
+    document.addEventListener('click', closeGroupMenu);
+    document.addEventListener('contextmenu', (e)=>{
+        if (groupContextMenu && !groupContextMenu.contains(e.target)) closeGroupMenu();
+    }, true);
+
+    function isPersonalGroup(g){
+        return g && typeof g.slug === 'string' && g.slug.startsWith('dm-');
+    }
+
+    async function clearGroup(g){
+        if (!g) return; closeGroupMenu();
+        if (!isPersonalGroup(g)) return showChatToast('Clear is only for personal chats', 'error');
+        let ok = false;
+        if (popupEl) {
+            ok = await confirmInsidePopup({ title:'Clear chat', text:`Clear all messages with ${g.name}?`, okText:'Clear', cancelText:'Cancel' });
+        } else if (window.Swal && Swal.fire) {
+            const r = await Swal.fire({ title:'Clear chat', text:`Clear all messages with ${g.name}?`, showCancelButton:true, confirmButtonText:'Clear' });
+            ok = r && r.isConfirmed;
+        } else {
+            ok = confirm(`Clear all messages with ${g.name}?`);
+        }
+        if (!ok) return;
+        const res = await fetch(routes.clearGroup(g.id), { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+        if (!res.ok) return showChatToast('Failed to clear chat', 'error');
+        showChatToast('Chat cleared', 'success');
+        if (Number(activeGroupId) === Number(g.id)) { cache = []; messagesEl.innerHTML = ''; fetchMessages(g.id); }
+    }
+
+    async function deleteGroup(g){
+        if (!g) return; closeGroupMenu();
+        if (!isPersonalGroup(g)) return showChatToast('Delete is only for personal chats', 'error');
+        let ok = false;
+        if (popupEl) {
+            ok = await confirmInsidePopup({ title:'Delete chat', text:`Delete personal chat with ${g.name}? This removes it for you.`, okText:'Delete', cancelText:'Cancel' });
+        } else if (window.Swal && Swal.fire) {
+            const r = await Swal.fire({ title:'Delete chat', text:`Delete personal chat with ${g.name}? This removes it for you.`, showCancelButton:true, confirmButtonText:'Delete' });
+            ok = r && r.isConfirmed;
+        } else {
+            ok = confirm(`Delete personal chat with ${g.name}? This removes it for you.`);
+        }
+        if (!ok) return;
+        const res = await fetch(routes.deleteGroup(g.id), { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+        if (!res.ok) return showChatToast('Failed to delete chat', 'error');
+        showChatToast('Chat deleted', 'success');
+        // Remove from local list
+        const idx = allGroups.findIndex(x => Number(x.id) === Number(g.id));
+        if (idx >= 0){ allGroups.splice(idx,1); renderGroups(allGroups); }
+        if (Number(activeGroupId) === Number(g.id)) {
+            activeGroupId = null; window.activeGroupId = null; cache = []; idIndex.clear();
+            messagesEl.innerHTML = '';
+            emptyEl.style.display = 'flex'; loadingEl.style.display = 'none';
+            const next = allGroups[0];
+            if (next) {
+                const node = groupsEl.querySelector(`.list-group-item[data-group-id="${next.id}"]`);
+                selectGroup(next.id, next.name, node);
+            } else {
+                inputAreaEl.style.display = 'none';
+                activeTitle.textContent = 'Inbox';
+                activeAvatar.textContent = 'IN';
+            }
+        }
+    }
+
+    function openGroupMenu(e, g){
+        e.preventDefault(); e.stopPropagation(); closeGroupMenu();
+        const menu = document.createElement('div');
+        menu.style.position = popupEl ? 'absolute' : 'fixed';
+        const anchorRect = popupEl ? popupEl.getBoundingClientRect() : { left:0, top:0 };
+        menu.style.left = (e.clientX - anchorRect.left) + 'px';
+        menu.style.top = (e.clientY - anchorRect.top) + 'px';
+        menu.style.background = '#fff';
+        menu.style.border = '1px solid #e2e8f0';
+        menu.style.borderRadius = '10px';
+        menu.style.boxShadow = '0 12px 30px rgba(0,0,0,0.16)';
+        menu.style.zIndex = 1500;
+        menu.style.minWidth = '160px';
+        const mkItem = (label, handler, danger)=>{
+            const it = document.createElement('div');
+            it.textContent = label;
+            it.style.padding = '10px 14px';
+            it.style.cursor = 'pointer';
+            it.style.color = danger ? '#b91c1c' : '#0f172a';
+            it.addEventListener('click', (ev)=>{ ev.stopPropagation(); handler(); closeGroupMenu(); });
+            it.addEventListener('mouseenter', ()=> it.style.background = '#f1f5f9');
+            it.addEventListener('mouseleave', ()=> it.style.background = '#fff');
+            return it;
+        };
+        menu.appendChild(mkItem('Clear chat', ()=> clearGroup(g), false));
+        menu.appendChild(mkItem('Delete chat', ()=> deleteGroup(g), true));
+        (popupEl || document.body).appendChild(menu);
+        groupContextMenu = menu;
+    }
 
     function selectGroup(id, name, node){
         // Clear filters on group change
@@ -816,16 +935,43 @@
         return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
     }
 
-    function avatarLabel(m){
-        // If avatar URL provided, render <img> (CHANGED: normalize URL)
-        if (m && m.user && m.user.avatar) return { html: '<img src="'+toAbsoluteUrl(m.user.avatar)+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
-        const n = (m && m.user && m.user.name) ? m.user.name : (m && m.sender_name ? m.sender_name : 'U');
-        const init = n ? n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase() : 'U';
-        return { html: null, text: init };
+    function parseForwarded(content){
+        if (!content || typeof content !== 'string') return null;
+        const lines = content.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+        if (!lines.length) return null;
+        const urlLine = lines.find(l=> /^https?:\/\//i.test(l));
+        const markerLine = lines.find(l=> /^forwarded attachment:/i.test(l));
+        if (!urlLine || !markerLine) return null;
+        const nameMatch = /forwarded attachment:\s*(.+)/i.exec(markerLine);
+        const name = nameMatch ? nameMatch[1].trim() : 'Attachment';
+        const url = urlLine;
+        const lower = url.toLowerCase();
+        let kind = 'file';
+        if (/[.](jpg|jpeg|png|gif|webp|bmp|heic|heif)(\?|$)/i.test(lower)) kind = 'image';
+        else if (/[.]pdf(\?|$)/i.test(lower)) kind = 'pdf';
+        else if (/[.](mp3|wav|m4a|ogg|oga|webm|aac)(\?|$)/i.test(lower)) kind = 'audio';
+        return { name, url, kind };
     }
 
     function senderName(m){
-        return (m && m.user && m.user.name) ? m.user.name : ((m && m.sender_name) ? m.sender_name : 'User');
+        if (!m) return 'User';
+        const guard = (m.sender_guard || '').toString().toLowerCase();
+        const name =
+            m.sender_name ||
+            m.senderName ||
+            m.admin_name ||
+            (m.admin && m.admin.name) ||
+            (m.user && m.user.name) ||
+            (guard === 'superadmin' || guard === 'super_admin' ? 'Super Admin' : (guard === 'admin' ? 'Admin' : 'User'));
+        return name || 'User';
+    }
+
+    function avatarLabel(m){
+        // If avatar URL provided, render <img> (CHANGED: normalize URL)
+        if (m && m.user && m.user.avatar) return { html: '<img src="'+toAbsoluteUrl(m.user.avatar)+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
+        const n = senderName(m);
+        const init = n ? n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase() : 'U';
+        return { html: null, text: init };
     }
 
     // Messages
@@ -993,6 +1139,133 @@
         return rootId;
     }
 
+    function fmtSec(sec){
+        const s = Math.max(0, Math.floor(sec));
+        const m = Math.floor(s/60); const r = s % 60;
+        return m + ':' + String(r).padStart(2,'0');
+    }
+
+    function forwardInsidePopup(groups){
+        return new Promise((resolve)=>{
+            if (!popupEl) { resolve(null); return; }
+            const wrap = document.createElement('div');
+            wrap.style.position='absolute'; wrap.style.inset='0'; wrap.style.background='rgba(15,23,42,0.35)';
+            wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.justifyContent='center'; wrap.style.zIndex=1300;
+            const card = document.createElement('div');
+            card.style.background='#fff'; card.style.padding='16px'; card.style.borderRadius='12px';
+            card.style.boxShadow='0 14px 34px rgba(0,0,0,0.20)'; card.style.width='320px'; card.style.maxWidth='92%';
+            const title = document.createElement('div'); title.textContent='Forward Message'; title.style.fontWeight='700'; title.style.marginBottom='10px';
+            const select = document.createElement('select'); select.className='form-control'; select.style.width='100%'; select.style.marginBottom='12px';
+            groups.forEach(g=>{ const opt=document.createElement('option'); opt.value=g.id; opt.textContent=g.name; select.appendChild(opt); });
+            const row=document.createElement('div'); row.style.display='flex'; row.style.gap='10px'; row.style.justifyContent='flex-end';
+            const cancel=document.createElement('button'); cancel.type='button'; cancel.textContent='Cancel'; cancel.style.padding='8px 12px'; cancel.style.border='1px solid #cbd5e1'; cancel.style.background='#fff'; cancel.style.borderRadius='10px';
+            const ok=document.createElement('button'); ok.type='button'; ok.textContent='Forward'; ok.style.padding='8px 12px'; ok.style.border='none'; ok.style.background='#0ea5e9'; ok.style.color='#fff'; ok.style.borderRadius='10px';
+            row.appendChild(cancel); row.appendChild(ok);
+            card.appendChild(title); card.appendChild(select); card.appendChild(row);
+            wrap.appendChild(card); popupEl.appendChild(wrap);
+            cancel.addEventListener('click', ()=>{ wrap.remove(); resolve(null); });
+            ok.addEventListener('click', ()=>{ const v=select.value; wrap.remove(); resolve(v); });
+            wrap.addEventListener('click',(e)=>{ if(e.target===wrap){ wrap.remove(); resolve(null);} });
+        });
+    }
+
+    function showChatToast(text, tone){
+        if (!popupEl){ alert(text); return; }
+        const toast = document.createElement('div');
+        toast.textContent = text;
+        toast.style.position = 'absolute';
+        toast.style.right = '18px';
+        toast.style.bottom = '18px';
+        toast.style.maxWidth = '360px';
+        toast.style.padding = '10px 14px';
+        toast.style.borderRadius = '12px';
+        toast.style.color = '#0f172a';
+        toast.style.fontWeight = '600';
+        toast.style.boxShadow = '0 12px 30px rgba(0,0,0,0.18)';
+        toast.style.zIndex = 1400;
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 160ms ease, transform 160ms ease';
+        toast.style.transform = 'translateY(6px)';
+        const bg = tone === 'error' ? '#fecdd3' : '#bbf7d0';
+        toast.style.background = bg;
+        popupEl.appendChild(toast);
+        requestAnimationFrame(()=>{
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        setTimeout(()=>{
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(6px)';
+            setTimeout(()=> toast.remove(), 200);
+        }, 2000);
+    }
+
+    function confirmInsidePopup(opts){
+        return new Promise((resolve)=>{
+            const wrap = document.createElement('div');
+            wrap.style.position = 'absolute';
+            wrap.style.inset = '0';
+            wrap.style.background = 'rgba(15,23,42,0.35)';
+            wrap.style.display = 'flex';
+            wrap.style.alignItems = 'center';
+            wrap.style.justifyContent = 'center';
+            wrap.style.zIndex = 1300;
+
+            const card = document.createElement('div');
+            card.style.background = '#fff';
+            card.style.borderRadius = '14px';
+            card.style.boxShadow = '0 16px 40px rgba(0,0,0,0.20)';
+            card.style.padding = '20px 20px 16px';
+            card.style.width = '320px';
+            card.style.maxWidth = '92%';
+            card.style.textAlign = 'center';
+
+            const title = document.createElement('div');
+            title.style.fontSize = '18px';
+            title.style.fontWeight = '700';
+            title.style.marginBottom = '8px';
+            title.textContent = opts.title || 'Confirm';
+            const text = document.createElement('div');
+            text.style.fontSize = '14px';
+            text.style.color = '#334155';
+            text.style.marginBottom = '16px';
+            text.textContent = opts.text || '';
+
+            const btnRow = document.createElement('div');
+            btnRow.style.display = 'flex';
+            btnRow.style.gap = '10px';
+            btnRow.style.justifyContent = 'center';
+
+            const cancel = document.createElement('button');
+            cancel.type='button';
+            cancel.textContent = opts.cancelText || 'Cancel';
+            cancel.style.padding='8px 14px';
+            cancel.style.border='1px solid #cbd5e1';
+            cancel.style.background='#fff';
+            cancel.style.borderRadius='10px';
+            cancel.style.cursor='pointer';
+            const ok = document.createElement('button');
+            ok.type='button';
+            ok.textContent = opts.okText || 'Delete';
+            ok.style.padding='8px 14px';
+            ok.style.border='none';
+            ok.style.background='#dc2626';
+            ok.style.color='#fff';
+            ok.style.borderRadius='10px';
+            ok.style.cursor='pointer';
+
+            btnRow.appendChild(ok); btnRow.appendChild(cancel);
+            card.appendChild(title); card.appendChild(text); card.appendChild(btnRow);
+            wrap.appendChild(card);
+            popupEl.appendChild(wrap);
+
+            function clean(v){ wrap.remove(); resolve(v); }
+            ok.addEventListener('click', ()=> clean(true));
+            cancel.addEventListener('click', ()=> clean(false));
+            wrap.addEventListener('click', (e)=>{ if (e.target === wrap) clean(false); });
+        });
+    }
+
     function messageRow(m){
         const mine = !!m.mine;
         const row = document.createElement('div'); row.className = 'wa-row ' + (mine ? 'sent' : 'received');
@@ -1013,13 +1286,7 @@
         }
         const content = document.createElement('div'); content.className = 'wa-content';
         // Show sender name with admin-aware fallback
-        const guard = (m.sender_guard || '').toString().toLowerCase();
-        const senderNameText =
-            m.sender_name ||
-            m.admin_name ||
-            (m.admin && m.admin.name) ||
-            (m.user && m.user.name) ||
-            (guard === 'superadmin' || guard === 'super_admin' ? 'Super Admin' : (guard === 'admin' ? 'Admin' : 'User'));
+        const senderNameText = senderName(m);
         const nameEl = document.createElement('div'); nameEl.className = 'wa-sender'; nameEl.textContent = senderNameText;
         // Only real admin should open legacy direct chats on name click
         if (isRootAdmin && m.user && m.user.id){
@@ -1034,7 +1301,8 @@
         const mime = (m.mime || m.mimetype || m.file_mime || m.content_type || '').toString().toLowerCase();
         const hasFile = !!m.file_url;
         const textValue = bestText(m);
-        const textTrim = (textValue||'').trim();
+        const fullContent = (m && typeof m.content === 'string') ? m.content : (textValue || '');
+        const textTrim = (fullContent||'').trim();
         const isAdminBooked = (m.sender_guard === 'admin') && /^booked\b/i.test(textTrim);
         const isAdminHold = (m.sender_guard === 'admin') && /^hold\b/i.test(textTrim);
         const isAdminCancel = (m.sender_guard === 'admin') && /^cancel\b/i.test(textTrim);
@@ -1046,17 +1314,87 @@
         if (stEff){ applyStatusClass(bubble, stEff); }
 
         const isImage = type === 'image' || (hasFile && mime.startsWith('image/'));
-        const isAudio = type === 'voice' || type === 'audio' || (hasFile && mime.startsWith('audio/'));
+        const isAudio = type === 'voice' || type === 'audio' || (hasFile && (mime.startsWith('audio/') || mime === 'video/webm' || mime === 'application/octet-stream'));
+        const fileUrl = toAbsoluteUrl(m.file_url || m.file_path || '');
+        const isMediaOnly = (isImage || isAudio || isPdf) && !textValue;
+
+        const forwarded = parseForwarded(fullContent || textValue);
 
         if (type === 'text' || (!hasFile && textValue)){
-            const t = document.createElement('div'); t.className = 'wa-text'; t.textContent = textValue || '';
-            content.appendChild(t);
+            const isForwarded = (!hasFile && forwarded);
+            if (!isForwarded){
+                const t = document.createElement('div'); t.className = 'wa-text'; t.textContent = fullContent || textValue || '';
+                content.appendChild(t);
+            }
+            // If this is a forwarded attachment text, render a preview card and hide raw link
+            if (!hasFile && forwarded){
+                const badge = document.createElement('div'); badge.className='wa-meta-row'; badge.style.fontWeight='600'; badge.style.color='#0ea5e9'; badge.textContent='Forwarded';
+                content.appendChild(badge);
+                const f = forwarded;
+                const fUrl = toAbsoluteUrl(f.url);
+                if (f.kind === 'image'){
+                    const wrap = document.createElement('div'); wrap.className = 'wa-image wa-media';
+                    const img = document.createElement('img'); img.src = fUrl; img.alt = f.name; img.loading='lazy'; img.decoding='async';
+                    img.onerror = ()=>{ wrap.innerHTML = '<div class="p-3 text-danger small">Image unavailable</div>'; };
+                    const bar = document.createElement('div'); bar.className='wa-image-bar';
+                    const name = document.createElement('span'); name.className='name'; name.textContent = f.name;
+                    const view = document.createElement('a'); view.href = fUrl; view.target='_blank'; view.rel='noopener noreferrer'; view.textContent='Open';
+                    bar.appendChild(name); bar.appendChild(view);
+                    wrap.appendChild(img); wrap.appendChild(bar);
+                    content.appendChild(wrap);
+                } else if (f.kind === 'audio'){
+                    const wrap = document.createElement('div'); wrap.className='wa-voice-card';
+                    const audio = document.createElement('audio'); audio.src = fUrl; audio.preload='metadata'; audio.style.display='none';
+                    const voice = document.createElement('div'); voice.className='wa-voice';
+                    const playBtn = document.createElement('button'); playBtn.type='button'; playBtn.className='wa-voice-btn'; playBtn.innerHTML='<i class="fa fa-play"></i>';
+                    const track = document.createElement('div'); track.className='wa-voice-track';
+                    const bar = document.createElement('div'); bar.className='wa-voice-bar';
+                    const fill = document.createElement('div'); fill.className='fill'; bar.appendChild(fill);
+                    const time = document.createElement('div'); time.className='wa-voice-time'; time.textContent='0:00';
+                    track.appendChild(bar); track.appendChild(time);
+                    voice.appendChild(playBtn); voice.appendChild(track);
+                    playBtn.addEventListener('click', ()=>{
+                        if (audio.paused){ playBtn.classList.add('pause'); playBtn.innerHTML='<i class="fa fa-pause"></i>'; audio.play().catch(()=>{}); }
+                        else { playBtn.classList.remove('pause'); playBtn.innerHTML='<i class="fa fa-play"></i>'; audio.pause(); }
+                    });
+                    audio.addEventListener('loadedmetadata', ()=>{ time.textContent = fmtSec(Math.max(0, Math.floor(audio.duration||0))); });
+                    audio.addEventListener('timeupdate', ()=>{
+                        const cur = audio.currentTime||0, dur = audio.duration||1;
+                        fill.style.width = Math.min(100, (cur/dur)*100)+'%';
+                        time.textContent = fmtSec(cur);
+                    });
+                    audio.addEventListener('ended', ()=>{ playBtn.classList.remove('pause'); playBtn.innerHTML='<i class="fa fa-play"></i>'; fill.style.width='0%'; });
+                    wrap.appendChild(voice); wrap.appendChild(audio); content.appendChild(wrap);
+                } else if (f.kind === 'pdf'){
+                    const wrap = document.createElement('div'); wrap.className='wa-doc';
+                    const fileUrl = fUrl;
+                    const link = document.createElement('a'); link.href = fileUrl; link.target='_blank'; link.rel='noopener noreferrer'; link.className='wa-doc-link';
+                    link.addEventListener('click', function(e){ e.stopPropagation(); });
+                    const icon = document.createElement('div'); icon.className='wa-doc-icon';
+                    icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM13 3.5 18.5 9H13V3.5z"/><rect x="7" y="13" width="10" height="1.8" rx=".9" fill="currentColor"/><rect x="7" y="16" width="6" height="1.8" rx=".9" fill="currentColor"/></svg>';
+                    const info = document.createElement('div'); info.className='wa-doc-info';
+                    const name = document.createElement('div'); name.className='wa-doc-name'; name.title = f.name; name.textContent = f.name;
+                    const meta = document.createElement('div'); meta.className='wa-doc-meta'; meta.textContent = 'PDF';
+                    info.appendChild(name); info.appendChild(meta);
+                    link.appendChild(icon); link.appendChild(info);
+                    const dl = document.createElement('a'); dl.href = fileUrl; dl.download = f.name; dl.className='wa-doc-download'; dl.innerHTML = '<i class="fa fa-download"></i>';
+                    wrap.appendChild(link); wrap.appendChild(dl);
+                    content.appendChild(wrap);
+                }
+            }
         } else if (isImage){
-            const wrap = document.createElement('div'); wrap.className = 'wa-image';
-            // CHANGED: build absolute URL correctly
-            const imgUrl = toAbsoluteUrl(m.file_url || '');
+            const wrap = document.createElement('div'); wrap.className = 'wa-image wa-media';
+            const imgUrl = fileUrl;
             const img = document.createElement('img'); img.src = imgUrl; img.alt = original || 'image'; img.loading = 'lazy'; img.decoding = 'async';
+            img.onerror = ()=>{
+                wrap.innerHTML = '<div class="p-3 text-danger small">Image unavailable</div>';
+            };
+            const bar = document.createElement('div'); bar.className = 'wa-image-bar';
+            const name = document.createElement('span'); name.className='name'; name.textContent = original || 'Image';
+            const view = document.createElement('a'); view.href = imgUrl; view.target = '_blank'; view.rel='noopener noreferrer'; view.textContent = 'Open';
+            bar.appendChild(name); bar.appendChild(view);
             wrap.appendChild(img);
+            wrap.appendChild(bar);
             content.appendChild(wrap);
             if (textValue){ const cap = document.createElement('div'); cap.className='wa-caption'; cap.textContent = textValue; content.appendChild(cap); }
         } else if (isPdf){
@@ -1083,9 +1421,48 @@
                 }
             }
         } else if (isAudio){
-            const wrap = document.createElement('div'); wrap.className='wa-audio';
-            // CHANGED: build absolute URL correctly
-            const audio = document.createElement('audio'); audio.controls = true; audio.src = toAbsoluteUrl(m.file_url || '');
+            const wrap = document.createElement('div'); wrap.className = 'wa-voice-card';
+            const audioUrl = fileUrl;
+            const audio = document.createElement('audio'); audio.src = audioUrl; audio.preload = 'metadata'; audio.style.display='none';
+
+            const voice = document.createElement('div'); voice.className='wa-voice';
+            const playBtn = document.createElement('button'); playBtn.type='button'; playBtn.className='wa-voice-btn'; playBtn.innerHTML = '<i class="fa fa-play"></i>';
+            const track = document.createElement('div'); track.className='wa-voice-track';
+            const bar = document.createElement('div'); bar.className='wa-voice-bar';
+            const fill = document.createElement('div'); fill.className='fill'; bar.appendChild(fill);
+            const time = document.createElement('div'); time.className='wa-voice-time'; time.textContent = '0:00';
+            track.appendChild(bar); track.appendChild(time);
+            voice.appendChild(playBtn); voice.appendChild(track);
+
+            playBtn.addEventListener('click', ()=>{
+                if (audio.paused){
+                    playBtn.classList.add('pause');
+                    playBtn.innerHTML = '<i class="fa fa-pause"></i>';
+                    audio.play().catch(()=>{});
+                } else {
+                    playBtn.classList.remove('pause');
+                    playBtn.innerHTML = '<i class="fa fa-play"></i>';
+                    audio.pause();
+                }
+            });
+
+            audio.addEventListener('loadedmetadata', ()=>{
+                const dur = Math.max(0, Math.floor(audio.duration || 0));
+                time.textContent = fmtSec(dur);
+            });
+            audio.addEventListener('timeupdate', ()=>{
+                const cur = audio.currentTime || 0;
+                const dur = audio.duration || 1;
+                fill.style.width = Math.min(100, (cur/dur)*100) + '%';
+                time.textContent = fmtSec(cur);
+            });
+            audio.addEventListener('ended', ()=>{
+                playBtn.classList.remove('pause');
+                playBtn.innerHTML = '<i class="fa fa-play"></i>';
+                fill.style.width = '0%';
+            });
+
+            wrap.appendChild(voice);
             wrap.appendChild(audio);
             content.appendChild(wrap);
             if (textValue){ const cap = document.createElement('div'); cap.className='wa-caption'; cap.textContent = textValue; content.appendChild(cap); }
@@ -1095,6 +1472,7 @@
             content.appendChild(t);
         }
         bubble.appendChild(content);
+        if (isMediaOnly) { bubble.classList.add('media-only'); }
         // Show message ID at bottom for PDF, Hold, Cancel, Booked bubbles
         if (isPdf || isAdminHold || isAdminCancel || isAdminBooked) {
             const msgIdRow = document.createElement('div'); msgIdRow.className = 'wa-meta-row'; msgIdRow.style.display = 'flex'; msgIdRow.style.justifyContent = 'space-between';
@@ -1396,11 +1774,22 @@
         // Pick a group to forward to
         try{
             const groups = allGroups.filter(g=> g.id !== activeGroupId);
-            if (!groups.length) return alert('No other groups to forward to.');
+            if (!groups.length){
+                if (window.Swal && Swal.fire){
+                    await swalInChat({ icon:'info', title:'No other groups to forward to.' });
+                } else {
+                    alert('No other groups to forward to.');
+                }
+                return;
+            }
             let groupId = null;
-            if (window.Swal && Swal.fire){
+            // Always prefer in-popup picker; fallback to prompt only if popup missing
+            if (popupEl) {
+                groupId = await forwardInsidePopup(groups);
+                if (!groupId) return;
+            } else if (window.Swal && Swal.fire){
                 const opts = groups.map(g=> `<option value="${g.id}">${g.name}</option>`).join('');
-                const r = await swalInChat({
+                const r = await Swal.fire({
                     title: 'Forward Message',
                     html: `<select id="forwardGroup" class="form-control">${opts}</select>`,
                     showCancelButton: true,
@@ -1411,23 +1800,34 @@
                 groupId = r.value;
             } else {
                 groupId = prompt('Enter group Name to forward to:');
+                if (!groupId) return;
             }
             if (!groupId) return;
             const msg = getMsgById(messageId);
             if (!msg) return;
+            let content = bestText(msg) || '';
+            // If original had an attachment, forward as text with link to preserve access without re-upload
+            if (msg.file_url){
+                const link = toAbsoluteUrl(msg.file_url);
+                const fname = (msg.original_name || 'attachment').toString();
+                const note = 'Forwarded attachment: ' + fname;
+                content = content ? (content + '\n\n' + note + '\n' + link) : (note + '\n' + link);
+            }
+            if (!content) { content = '[Forwarded message]'; }
             const payload = {
-                group_id: groupId,
-                type: msg.type,
-                content: bestText(msg),
+                group_id: Number(groupId),
+                type: 'text',
+                content,
                 reply_to_message_id: null
             };
-            if (msg.file_url){
-                // For simplicity, just send text; file forwarding needs backend support
-                payload.content += '\n[Forwarded attachment: ' + (msg.original_name||'file') + ']';
-            }
-            await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' }, body: JSON.stringify(payload) });
-            alert('Message forwarded.');
-        } catch(e){ alert('Failed to forward.'); }
+            const res = await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error('forward-fail');
+            const dest = groups.find(g=> String(g.id) === String(groupId));
+            const label = dest ? dest.name : 'selected group';
+            showChatToast('Forwarded to ' + label, 'success');
+        } catch(e){
+            showChatToast('Failed to forward. Please try again.', 'error');
+        }
     }
 
     function promptShare(messageId){
@@ -1452,9 +1852,13 @@
     }
     
     async function promptDelete(messageId){
-        // Use SweetAlert2 for confirmation if available
-        if (window.Swal && typeof Swal.fire === 'function') {
-            const result = await Swal.fire({
+        // Use SweetAlert2 anchored inside chat popup
+        suppressOutsideClose = true;
+        let confirmed = false;
+        if (popupEl) {
+            confirmed = await confirmInsidePopup({ title:'Delete Message', text:'Are you sure you want to delete this message?', okText:'Delete', cancelText:'Cancel' });
+        } else if (window.Swal && typeof Swal.fire === 'function') {
+            const result = await swalInChat({
                 title: 'Delete Message',
                 text: 'Are you sure you want to delete this message?',
                 icon: 'warning',
@@ -1463,18 +1867,26 @@
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#d33'
             });
-            if (!result.isConfirmed) return;
+            confirmed = !!(result && result.isConfirmed);
         } else {
-            if (!confirm('Delete this message?')) return;
+            confirmed = confirm('Delete this message?');
         }
+        if (!confirmed) { suppressOutsideClose = false; return; }
         try{
-            await fetch(routes.send + '/' + messageId, { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
-            fetchMessages(activeGroupId);
+            const res = await fetch(routes.delete(messageId), { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+            if (!res.ok) throw new Error('delete-fail');
+            // Optimistically remove from cache and rerender
+            cache = Array.isArray(cache) ? cache.filter(m => m && m.id !== messageId) : cache;
+            renderMessages(cache);
+            // Refresh from server to keep unread/latest correct
+            if (popupEl){ popupEl.style.display = 'flex'; setState({ open:true }); }
+            if (activeGroupId) fetchMessages(activeGroupId);
         } catch(e){ alert('Delete failed.'); }
+        finally { suppressOutsideClose = false; }
     }
 
     // Backend
-    async function fetchGroups(){
+    async function fetchGroups(opts = {}){
         try {
             const res = await fetch(routes.groups, { headers: { 'Accept':'application/json' } });
             if (!res.ok) {
@@ -1494,19 +1906,66 @@
             renderGroups(allGroups);
             updateHeaderBadge();
             if (window.__CHAT_FETCH_COUNTS__) { try { await window.__CHAT_FETCH_COUNTS__(); } catch(_){} }
-            try {
-                const state = getState();
-                if (state && state.activeGroupId){
-                    const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
-                    if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
-                }
-            } catch(_) {}
+            if (!opts.silent) {
+                try {
+                    const state = getState();
+                    if (state && state.activeGroupId){
+                        const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
+                        if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
+                    }
+                } catch(_) {}
+            }
         } catch (err) {
             console.error('chat/groups error:', err);
             groupsEl.innerHTML = '<div class="p-3 text-muted small">Unable to load chats.</div>';
         }
     }
     window.fetchGroups = fetchGroups;
+
+    // Passive sidebar refresher (fallback if realtime push misses)
+    setInterval(()=>{ fetchGroups({ silent:true }); }, 8000);
+
+    // Lightweight messages_since poller to keep active chat + sidebar in sync if push misses
+    setInterval(async ()=>{
+        if (!activeGroupId) return;
+        try {
+            const url = new URL(routes.messagesSince, window.location.origin);
+            url.searchParams.set('group_id', activeGroupId);
+            url.searchParams.set('after_id', lastMessageId || 0);
+            const res = await fetch(url, { headers:{ 'Accept':'application/json' } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!Array.isArray(data) || !data.length) return;
+            const fresh = data.map(m=>{ flagMine(m); return m; });
+            cache = cache.concat(fresh);
+            fresh.forEach(m=> idIndex.add(m.id));
+            lastMessageId = cache.length ? cache[cache.length-1].id : lastMessageId;
+            renderMessages(cache);
+            // Update sidebar latest/unread
+            const ts = fresh[fresh.length-1]?.created_at || new Date().toISOString();
+            const g = allGroups.find(x => Number(x.id) === Number(activeGroupId));
+            if (g) {
+                const last = fresh[fresh.length-1];
+                g.latest = {
+                    id: last.id,
+                    type: last.type,
+                    content: last.content,
+                    original_name: last.original_name,
+                    sender_guard: last.sender_guard,
+                    sender_name: last.sender_name,
+                    user: last.user || null,
+                    created_at: ts
+                };
+                g.last_msg_id = last.id;
+                g.last_msg_at = ts;
+                g.unread = 0;
+                // move to top
+                const idx = allGroups.indexOf(g);
+                if (idx > 0){ allGroups.splice(idx,1); allGroups.unshift(g); }
+                renderGroups(allGroups);
+            }
+        } catch(_){}
+    }, 7000);
 
     async function fetchMessages(groupId){
         loadingEl.style.display = 'block';
@@ -1920,8 +2379,10 @@
         window.addEventListener('touchend', onDragEnd);
     }
 
-    // --- Hide popup when clicking outside (always, even if expanded) ---
+    // --- Hide popup when clicking outside (guarded) ---
+    let suppressOutsideClose = false;
     document.addEventListener('mousedown', function(e){
+        if (suppressOutsideClose) return;
         if (!popupEl || popupEl.style.display !== 'flex') return;
         if (!popupEl.contains(e.target)){
             popupEl.style.display = 'none';
@@ -1929,6 +2390,7 @@
         }
     });
     document.addEventListener('touchstart', function(e){
+        if (suppressOutsideClose) return;
         if (!popupEl || popupEl.style.display !== 'flex') return;
         if (!popupEl.contains(e.target)){
             popupEl.style.display = 'none';
@@ -2009,10 +2471,31 @@
         flagMine(msg);
 
         if (Array.isArray(window.allGroups)) {
+            const allowedIds = new Set(window.allGroups.map(x => Number(x.id)));
+            if (!allowedIds.has(Number(msg.group_id))) {
+                // Not a chat this user can see; ignore to avoid sidebar churn
+                return;
+            }
+            const currentGroup = window.allGroups.find(x => Number(x.id) === Number(msg.group_id));
+            const slug = (currentGroup && currentGroup.slug ? currentGroup.slug : '').toString().toLowerCase();
+            const isBookings = slug === 'bookings';
+            const senderGuard = (msg.sender_guard || '').toString().toLowerCase();
+            const senderIsAdmin = senderGuard === 'admin' || senderGuard === 'superadmin' || senderGuard === 'super_admin';
+            const viewerIsAdmin = !!(window.isRootAdmin || window.isSuperAdmin);
+            const mine = !!msg.mine;
+            // For Bookings group: non-admin viewers only react to admin or own messages
+            if (isBookings && !viewerIsAdmin && !senderIsAdmin && !mine) {
+                return;
+            }
+            // For non-admin viewers on any group: ignore messages that are neither admin-sent nor mine to avoid unrelated sidebar updates
+            if (!viewerIsAdmin && !senderIsAdmin && !mine) {
+                return;
+            }
             let found = false;
             for (let i = 0; i < window.allGroups.length; ++i) {
                 if (Number(window.allGroups[i].id) === Number(msg.group_id)) {
                     const g = window.allGroups[i];
+                    const ts = msg.created_at || new Date().toISOString();
                     g.latest = {
                         id: msg.id,
                         type: msg.type,
@@ -2021,10 +2504,10 @@
                         sender_guard: msg.sender_guard,
                         sender_name: msg.sender_name,
                         user: msg.user || null,
-                        created_at: msg.created_at
+                        created_at: ts
                     };
                     g.last_msg_id = msg.id;
-                    g.last_msg_at = msg.created_at;
+                    g.last_msg_at = ts;
                     // Only increment unread if not mine and not the active chat
                     if (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) {
                         g.unread = (parseInt(g.unread)||0) + 1;
@@ -2033,32 +2516,6 @@
                     window.allGroups.unshift(g);
                     found = true;
                     break;
-                }
-            }
-            if (!found) {
-                // If we don't know the group yet (likely a DM the user can see), refetch groups to pull proper metadata
-                if (typeof window.fetchGroups === 'function') {
-                    window.fetchGroups();
-                } else {
-                    window.allGroups.unshift({
-                        id: msg.group_id,
-                        slug: msg.group_slug || '',
-                        name: msg.sender_name || 'Chat',
-                        avatar: (msg.user && msg.user.avatar) || '',
-                        latest: {
-                            id: msg.id,
-                            type: msg.type,
-                            content: msg.content,
-                            original_name: msg.original_name,
-                            sender_guard: msg.sender_guard,
-                            sender_name: msg.sender_name,
-                            user: msg.user || null,
-                            created_at: msg.created_at
-                        },
-                        last_msg_id: msg.id,
-                        last_msg_at: msg.created_at,
-                        unread: (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) ? 1 : 0
-                    });
                 }
             }
             if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
