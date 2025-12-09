@@ -1,3 +1,22 @@
+<?php
+    $authUser = auth('web')->user() ?: auth('admin')->user();
+    $roleName = null;
+    if ($authUser && isset($authUser->role)) {
+        if (is_object($authUser->role)) {
+            $roleName = $authUser->role->role_name ?? $authUser->role->name ?? null;
+        } else {
+            $roleName = $authUser->role;
+        }
+    }
+    $isMarketing = $roleName && stripos($roleName, 'market') !== false;
+    $addNewHref = $isMarketing ? route('superadmin.personal.expenses.index') : route('superadmin.bookings.newbooking');
+    $addNewActive = $isMarketing ? Request::routeIs('superadmin.personal.expenses.*') : Request::routeIs('superadmin.bookings.newbooking');
+
+    // Settings icon should open profile for marketing users
+    $settingsHref = $isMarketing ? route('superadmin.profile') : route('superadmin.websettings.edit');
+    $settingsActive = $isMarketing ? Request::routeIs('superadmin.profile') : Request::routeIs('superadmin.websettings.*');
+?>
+
 <div class="header" style="background:#fff; border-bottom:1px solid #e5e7eb; padding:0;">
     <!-- Mobile Header & Logo -->
     <div class="header-left active">
@@ -66,12 +85,12 @@
 
         <!-- Center: Action buttons -->
         <div class="d-flex align-items-center flex-shrink-0" style="gap:14px; margin-left:18px;">
-            <a href="<?php echo e(route('superadmin.bookings.newbooking')); ?>" class="btn fw-bold d-flex align-items-center justify-content-center<?php echo e(Request::routeIs('superadmin.bookings.newbooking') ? ' active' : ''); ?>" style="background:#FE9F43; border-radius:5px; color:#fff; height:30px; min-width:95px; font-size:12px; padding:7px 12px;">
+            <a href="<?php echo e($addNewHref); ?>" class="btn fw-bold d-flex align-items-center justify-content-center<?php echo e($addNewActive ? ' active' : ''); ?>" style="background:#FE9F43; border-radius:5px; color:#fff; height:30px; min-width:95px; font-size:12px; padding:7px 12px;">
                 <i class="fa fa-plus me-2"></i>Add New
             </a>
-            <a href="#" class="btn fw-bold d-flex align-items-center justify-content-center" style="background:#092c4c; border-radius:5px; color:#fff; height:30px; min-width:80px; font-size:12px; padding:0 10px;">
+            <!-- <a href="#" class="btn fw-bold d-flex align-items-center justify-content-center" style="background:#092c4c; border-radius:5px; color:#fff; height:30px; min-width:80px; font-size:12px; padding:0 10px;">
                 <i class="fa fa-desktop me-2"></i>POS
-            </a>
+            </a> -->
         </div>
 
         <!-- Right: Icons & User avatar -->
@@ -93,7 +112,7 @@
                 <i class="fa fa-bell"></i>
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:11px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center;"></span>
             </button>
-            <a href="<?php echo e(route('superadmin.websettings.edit')); ?>" class="btn btn-light d-flex align-items-center justify-content-center p-0 <?php echo e(Request::routeIs('superadmin.websettings.*') ? 'active' : ''); ?>" style="border-radius:8px; width:30px; height:30px; border:1px solid #e5e7eb; background:#fff;">
+            <a href="<?php echo e($settingsHref); ?>" class="btn btn-light d-flex align-items-center justify-content-center p-0 <?php echo e($settingsActive ? 'active' : ''); ?>" style="border-radius:8px; width:30px; height:30px; border:1px solid #e5e7eb; background:#fff;">
                 <i class="fa fa-cog"></i>
             </a>
 

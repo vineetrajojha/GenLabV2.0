@@ -137,10 +137,10 @@
                     <thead class="table-light">
                         <tr>
                             <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
-                            <th>Client Name</th>
-                            <th>Reference No</th>
+                            <th class="client-col">Client Name</th>
+                            <th class="ref-col">Reference No</th>
                             <th>Items</th>
-                            <th>Action</th>
+                            <th class="action-col">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -149,11 +149,11 @@
                             <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
                           
                            
-                            <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($booking->client_name); ?>"><?php echo e($booking->client_name); ?></div>
+                            <td class="truncate-cell client-col">
+                                <div class="cell-inner clamp-2" data-bs-toggle="tooltip" title="<?php echo e($booking->client_name); ?>"><?php echo e($booking->client_name); ?></div>
                             </td>
-                            <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($booking->reference_no); ?>"><?php echo e($booking->reference_no); ?></div>
+                            <td class="truncate-cell ref-col">
+                                <div class="cell-inner clamp-2" data-bs-toggle="tooltip" title="<?php echo e($booking->reference_no); ?>"><?php echo e($booking->reference_no); ?></div>
                             </td>
                       
                              
@@ -166,7 +166,7 @@
                                     </a>
                                     <!-- Modal -->
                                     <div class="modal fade" id="itemsModal-<?php echo e($booking->id); ?>" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                             <div class="modal-content">
                                                 <div class="modal-header booking-items-modal-header">
                                                     <h5 class="modal-title">Booking Items for <?php echo e($booking->client_name); ?></h5>
@@ -182,7 +182,7 @@
                                                                     <th>Job Order No</th>
                                                                     <th>Sample Description</th>
                                                                     <th>Sample Quality</th>
-                                                                    <th>Lab Analyst</th>
+                                                                    <th>Status</th>
                                                                     <th>Particulars</th>
                                                                     <th>Expected Date</th>
                                                                     <th>Amount</th>
@@ -194,7 +194,7 @@
                                                                     <td><?php echo e($item->job_order_no); ?></td>
                                                                     <td><?php echo e($item->sample_description); ?></td>
                                                                     <td><?php echo e($item->sample_quality); ?></td>
-                                                                    <td><?php echo e($item->lab_analysis_code); ?></td>
+                                                                    <td><?php echo e($item->issue_date ? 'Issued' : 'Pending'); ?></td>
                                                                     <td><?php echo e($item->particulars); ?></td>
                                                                     <td><?php echo e(\Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y')); ?></td>
                                                                     <td><?php echo e($item->amount); ?></td>
@@ -209,25 +209,65 @@
                                     </div>
                                 <?php endif; ?>
                             </td>
-                            <td class="d-flex"> 
+                            <td class="action-col">
+                                <?php
+                                    $reportFiles = $letterFiles[$booking->id] ?? collect();
+                                    $reportCount = is_countable($reportFiles) ? count($reportFiles) : 0;
+                                    $invoice = $booking->generatedInvoice;
+                                    $invoiceUrl = ($invoice && $invoice->invoice_letter_path)
+                                        ? url($invoice->invoice_letter_path)
+                                        : null;
+                                ?>
+                                <div class="action-group">
+                                    <?php if($booking->upload_letter_path): ?>
+                                        <a href="<?php echo e(url($booking->upload_letter_path)); ?>"
+                                           target="_blank"
+                                           class="border rounded d-flex align-items-center justify-content-center action-btn"
+                                           data-bs-toggle="tooltip" title="Show Letter">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                        </a>
+                                    <?php endif; ?>
 
-                            <!-- Show Letter -->
-                                <?php if($booking->upload_letter_path): ?>
-                                    <a href="<?php echo e(url($booking->upload_letter_path)); ?>"
-                                       target="_blank"
-                                       class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
-                                       data-bs-toggle="tooltip" title="Show Letter">
-                                        <i data-feather="file-text" class="feather-file-text"></i>
-                                    </a>
-                                <?php endif; ?>
+                                    <?php if($invoiceUrl): ?>
+                                        <a href="<?php echo e($invoiceUrl); ?>"
+                                           target="_blank"
+                                           class="border rounded d-flex align-items-center justify-content-center action-btn"
+                                           data-bs-toggle="tooltip" title="Invoice">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                        </a>
+                                    <?php endif; ?>
 
-                            <!-- View Booking Card -->
-                                <a href="<?php echo e(route('superadmin.bookings.cards.all', [$booking->id])); ?>"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                </a> 
-  
+                                    <?php if($reportCount > 0): ?>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary report-btn d-flex align-items-center gap-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#reportsModal-<?php echo e($booking->id); ?>">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                            <span><?php echo e($reportCount); ?> Report<?php echo e($reportCount > 1 ? 's' : ''); ?></span>
+                                        </button>
+
+                                        <div class="modal fade" id="reportsModal-<?php echo e($booking->id); ?>" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Uploaded Reports</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <ul class="list-group">
+                                                            <?php $__currentLoopData = $reportFiles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $file): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    <span class="text-truncate" style="max-width: 320px;" title="<?php echo e($file['name']); ?>"><?php echo e($file['name']); ?></span>
+                                                                    <a href="<?php echo e($file['url']); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                                                                </li>
+                                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -274,9 +314,57 @@
 
                 /* Tighten table cell spacing */
                 .table > :not(caption) > * > * {
-                    padding: 0.45rem 0.6rem;
+                    padding: 0.3rem 0.45rem;
                     vertical-align: middle;
                 }
+
+                /* Client & Reference columns: give them most of the width and show full text */
+                .client-col { width: 34%; }
+                .ref-col { width: 38%; }
+                .client-col .clamp-2,
+                .ref-col .clamp-2 {
+                    display: block;
+                    -webkit-line-clamp: initial;
+                    -webkit-box-orient: initial;
+                    overflow: visible;
+                    word-break: break-word;
+                    white-space: normal;
+                }
+
+                /* Action column: keep buttons aligned */
+                .action-col { width: 200px; }
+                .action-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+                .action-btn {
+                    width: 38px;
+                    height: 38px;
+                    padding: 0;
+                }
+                .report-btn {
+                    line-height: 1.2;
+                }
+
+                /* Position items modal to the right and widen */
+                .items-modal-right {
+                    margin-left: auto;
+                    margin-right: 24px;
+                    max-width: 1200px;
+                    width: calc(100% - 40px);
+                }
+                @media (max-width: 991.98px) {
+                    .items-modal-right {
+                        margin-right: 12px;
+                        width: auto;
+                        max-width: 100%;
+                    }
+                }
+
+                /* Slightly tighten action buttons spacing */
+                .table td .border { padding: 5px; }
             </style>
             <?php $__env->stopPush(); ?>
 

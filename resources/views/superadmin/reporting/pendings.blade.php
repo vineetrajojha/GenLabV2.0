@@ -348,6 +348,8 @@ document.addEventListener('DOMContentLoaded', function(){
     // Create a small utility to add a custom horizontal scroller (track + buttons + draggable thumb)
     function setupHScrollSync(){
         document.querySelectorAll('.table-responsive').forEach(function(container){
+            // Skip adding custom hscroll for the modal listing
+            if(container.closest('#pendingItemsModal')) return;
             if(container.dataset.hscrollInit) return; // already initialized
             const table = container.querySelector('table');
             if(!table) return;
@@ -388,7 +390,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     thumb.style.width = thumbW + 'px';
                     const avail = Math.max(0, trackW - thumbW);
                     const left = avail * ( (container.scrollLeft || 0) / (maxScroll || 1) );
-                    thumb.style.left = (isFinite(lefjobt) ? left : 0) + 'px';
+                    // Guard against invalid numbers before applying thumb position
+                    thumb.style.left = (isFinite(left) ? left : 0) + 'px';
                     btnLeft.disabled = (container.scrollLeft <= 0);
                     btnRight.disabled = (container.scrollLeft >= maxScroll - 1);
                 });
@@ -573,6 +576,11 @@ document.addEventListener('DOMContentLoaded', function(){
     /* Force fixed table layout so columns don't shift when long content wraps */
     table.table { table-layout: fixed; }
     table.table th, table.table td { vertical-align: middle; }
+
+    /* In the pending-items modal, allow auto layout and wrapping so full content shows */
+    #pendingItemsModal table.table { table-layout: auto; }
+    #pendingItemsModal table.table th,
+    #pendingItemsModal table.table td { white-space: normal; overflow: visible; }
 
     /* Hide native horizontal scrollbar of the table-responsive container while keeping vertical scroll */
     .table-responsive {

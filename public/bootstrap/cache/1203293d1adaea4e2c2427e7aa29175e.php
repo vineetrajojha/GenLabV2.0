@@ -586,6 +586,8 @@
     let cache = []; let allGroups = [];
     let lastGroupsSignature = '';
     let realtimeOk = false;
+    let lastRealtimeEvent = 0;
+    let lastSocketId = null;
     window.allGroups = allGroups; // Expose globally for realtime updates
     let idIndex = new Set(); // track message ids to dedupe
     let polling = false; // prevent overlapping polls
@@ -2130,7 +2132,9 @@
                         const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
                         if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
                     }
-                        lastUnreadTotal = total;
+                    // Track unread baseline using current sidebar data
+                    const totalUnread = Array.isArray(allGroups) ? allGroups.reduce((sum, g)=> sum + (parseInt(g.unread) || 0), 0) : 0;
+                    lastUnreadTotal = totalUnread;
                 } catch(_) {}
             }
         } catch (err) {
@@ -2148,7 +2152,8 @@
     // Lightweight messages_since poller to keep active chat + sidebar in sync if push misses
     setInterval(async ()=>{
         if (!activeGroupId) return;
-        if (realtimeOk) return; // rely on realtime when available
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
         try {
             const url = new URL(routes.messagesSince, window.location.origin);
             url.searchParams.set('group_id', activeGroupId);
@@ -2186,7 +2191,7 @@
                 renderGroups(allGroups);
             }
         } catch(_){}
-    }, 7000);
+    }, 4000);
 
     async function fetchMessages(groupId){
         loadingEl.style.display = 'block';
@@ -2220,7 +2225,9 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
-        if (realtimeOk) return; // skip polling when realtime is healthy
+        // If realtime is healthy and recent, skip this poll to reduce load
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return;
         polling = true;
         try{
             const url = new URL(routes.messagesSince, window.location.origin);
@@ -2257,7 +2264,15 @@
     async function sendMessage(formData){
         if (!formData) return;
         try {
-            const res = await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' }, body: formData });
+            const res = await fetch(routes.send, {
+                method:'POST',
+                headers:{
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept':'application/json',
+                    'X-Socket-Id': window.pusher && window.pusher.connection ? window.pusher.connection.socket_id : ''
+                },
+                body: formData
+            });
             if (!res.ok) throw new Error('send-fail');
             const data = await res.json();
             if (data && data.group) { upsertGroup(data.group); }
@@ -2284,7 +2299,12 @@
         try{
             const res = await fetch(routes.send, {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' },
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept':'application/json',
+                    'Content-Type':'application/json',
+                    'X-Socket-Id': window.pusher && window.pusher.connection ? window.pusher.connection.socket_id : ''
+                },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error('json-fail');
@@ -2380,6 +2400,7 @@
     msgInput.addEventListener('input', toggleSendMic);
 
     // Voice recording
+    let mediaStream = null;
     async function toggleRecording(){
         if (mediaRecorder && mediaRecorder.state === 'recording'){
             mediaRecorder.stop(); recordingHint.style.display='none'; voiceBtn.classList.remove('btn-danger');
@@ -2388,14 +2409,15 @@
         }
         try {
            
-            const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
-            recordedChunks = []; mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+            recordedChunks = []; mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
             mediaRecorder.ondataavailable = (e)=>{ if (e.data.size > 0) recordedChunks.push(e.data); };
             mediaRecorder.onstop = ()=>{
                 const blob = new Blob(recordedChunks, { type:'audio/webm' });
                 const file = new File([blob], 'voice.webm', { type:'audio/webm' });
                 const fd = new FormData(); fd.append('group_id', activeGroupId); fd.append('type','voice'); fd.append('file', file);
                 sendMessage(fd);
+                try { if (mediaStream) { mediaStream.getTracks().forEach(t=> t.stop()); mediaStream = null; } } catch(_){ mediaStream = null; }
                 syncMessagesPadding();
             };
             mediaRecorder.start(); recordingHint.style.display='block'; voiceBtn.classList.add('btn-danger');
@@ -2694,11 +2716,33 @@
 
     // Pusher Cloud integration
     Pusher.logToConsole = false;
-    var pusher = new Pusher('500d2fa7a4b11dbfeb91', {
-        cluster: 'ap2',
-        forceTLS: true
+    const pusherKey = <?php echo json_encode(config('broadcasting.connections.pusher.key') ?? env('PUSHER_APP_KEY'), 15, 512) ?> || '';
+    const pusherCluster = <?php echo json_encode((config('broadcasting.connections.pusher.options.cluster') ?? config('broadcasting.connections.pusher.cluster') ?? env('PUSHER_APP_CLUSTER')), 15, 512) ?> || 'mt1';
+    var pusher = new Pusher(pusherKey, {
+        cluster: pusherCluster,
+        forceTLS: true,
+        // Disable stats to reduce latency
+        disableStats: true,
+        // Faster reconnection strategy
+        pongTimeout: 8000,
+        unavailableTimeout: 10000,
+        activityTimeout: 10000,
+        // Explicit transports to favor WebSocket
+        enabledTransports: ['ws', 'wss']
     });
     var channel = pusher.subscribe('chat');
+    window.pusher = pusher;
+    window.pusherChannel = channel;
+
+    pusher.connection.bind('state_change', function(s){
+        if (s.current === 'connected') {
+            lastSocketId = pusher.connection.socket_id;
+            realtimeOk = true; lastRealtimeEvent = Date.now();
+        }
+        if (s.current === 'disconnected' || s.current === 'failed' || s.current === 'unavailable') {
+            realtimeOk = false; lastRealtimeEvent = 0;
+        }
+    });
     function handleChatEvent(data) {
         var msg = data && data.message ? data.message : data;
         flagMine(msg);
@@ -2706,8 +2750,16 @@
         if (Array.isArray(window.allGroups)) {
             const allowedIds = new Set(window.allGroups.map(x => Number(x.id)));
             if (!allowedIds.has(Number(msg.group_id))) {
-                // Not a chat this user can see; ignore to avoid sidebar churn
-                return;
+                // Upsert placeholder and refresh so newly visible chats are not dropped
+                const placeholder = {
+                    id: msg.group_id,
+                    name: msg.group_name || 'New chat',
+                    slug: (msg.group_slug || '').toString().toLowerCase(),
+                    unread: 0,
+                    latest: null
+                };
+                window.allGroups.unshift(placeholder);
+                if (typeof fetchGroups === 'function') { try { fetchGroups({ silent: true }); } catch(_) {} }
             }
             const currentGroup = window.allGroups.find(x => Number(x.id) === Number(msg.group_id));
             const slug = (currentGroup && currentGroup.slug ? currentGroup.slug : '').toString().toLowerCase();
@@ -2717,13 +2769,10 @@
             const viewerIsAdmin = !!(window.isRootAdmin || window.isSuperAdmin);
             const viewerId = window.currentUser && window.currentUser.id != null ? Number(window.currentUser.id) : null;
             const senderId = msg.user_id != null ? Number(msg.user_id) : (msg.user && msg.user.id != null ? Number(msg.user.id) : null);
-            const mine = !!msg.mine || (viewerId !== null && senderId !== null && viewerId === senderId);
+            const fromSameSocket = lastSocketId && msg.socket_id && msg.socket_id === lastSocketId;
+            const mine = !!msg.mine || (viewerId !== null && senderId !== null && viewerId === senderId) || fromSameSocket;
             // For Bookings group: non-admin viewers only react to admin or own messages
             if (isBookings && !viewerIsAdmin && !senderIsAdmin && !mine) {
-                return;
-            }
-            // For non-admin viewers on any group: ignore messages that are neither admin-sent nor mine to avoid unrelated sidebar updates
-            if (!viewerIsAdmin && !senderIsAdmin && !mine) {
                 return;
             }
             let found = false;
@@ -2765,6 +2814,10 @@
                 const title = sender || 'New message';
                 showGlobalChatNotification(`${title}: ${snippet}`, { groupId: msg.group_id, replyToId: msg.id });
             }
+
+            // Mark realtime as healthy and record time for polling backoff
+            realtimeOk = true;
+            lastRealtimeEvent = Date.now();
         }
 
         if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
@@ -2802,19 +2855,17 @@
 
     // --- Debugging: log all events ---
     channel.bind('pusher:subscription_succeeded', function() {
-        realtimeOk = true;
-        if (window.__CHAT_POLL_INTERVAL) { try { clearInterval(window.__CHAT_POLL_INTERVAL); } catch(_) {} window.__CHAT_POLL_INTERVAL = null; }
         console.log('[Pusher] Subscribed to chat channel');
     });
     channel.bind('pusher:subscription_error', function(status) {
         realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Subscription error:', status);
-        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
     channel.bind('pusher:error', function(err) {
         realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Error:', err);
-        if (!window.__CHAT_POLL_INTERVAL) { window.__CHAT_POLL_INTERVAL = setInterval(poll, 5000); }
     });
 })();
 </script>

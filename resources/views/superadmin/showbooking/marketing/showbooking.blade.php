@@ -133,10 +133,10 @@
                     <thead class="table-light">
                         <tr>
                             <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
-                            <th>Client Name</th>
-                            <th>Reference No</th>
+                            <th class="client-col">Client Name</th>
+                            <th class="ref-col">Reference No</th>
                             <th>Items</th>
-                            <th>Action</th>
+                            <th class="action-col">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,11 +145,11 @@
                             <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
                           
                            
-                            <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->client_name }}">{{ $booking->client_name }}</div>
+                            <td class="truncate-cell client-col">
+                                <div class="cell-inner clamp-2" data-bs-toggle="tooltip" title="{{ $booking->client_name }}">{{ $booking->client_name }}</div>
                             </td>
-                            <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $booking->reference_no }}">{{ $booking->reference_no }}</div>
+                            <td class="truncate-cell ref-col">
+                                <div class="cell-inner clamp-2" data-bs-toggle="tooltip" title="{{ $booking->reference_no }}">{{ $booking->reference_no }}</div>
                             </td>
                       
                              
@@ -161,7 +161,7 @@
                                     </a>
                                     <!-- Modal -->
                                     <div class="modal fade" id="itemsModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                             <div class="modal-content">
                                                 <div class="modal-header booking-items-modal-header">
                                                     <h5 class="modal-title">Booking Items for {{ $booking->client_name }}</h5>
@@ -177,7 +177,7 @@
                                                                     <th>Job Order No</th>
                                                                     <th>Sample Description</th>
                                                                     <th>Sample Quality</th>
-                                                                    <th>Lab Analyst</th>
+                                                                    <th>Status</th>
                                                                     <th>Particulars</th>
                                                                     <th>Expected Date</th>
                                                                     <th>Amount</th>
@@ -189,7 +189,7 @@
                                                                     <td>{{ $item->job_order_no }}</td>
                                                                     <td>{{ $item->sample_description }}</td>
                                                                     <td>{{ $item->sample_quality }}</td>
-                                                                    <td>{{ $item->lab_analysis_code }}</td>
+                                                                    <td>{{ $item->issue_date ? 'Issued' : 'Pending' }}</td>
                                                                     <td>{{ $item->particulars }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y') }}</td>
                                                                     <td>{{ $item->amount }}</td>
@@ -204,25 +204,65 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="d-flex"> 
+                            <td class="action-col">
+                                @php
+                                    $reportFiles = $letterFiles[$booking->id] ?? collect();
+                                    $reportCount = is_countable($reportFiles) ? count($reportFiles) : 0;
+                                    $invoice = $booking->generatedInvoice;
+                                    $invoiceUrl = ($invoice && $invoice->invoice_letter_path)
+                                        ? url($invoice->invoice_letter_path)
+                                        : null;
+                                @endphp
+                                <div class="action-group">
+                                    @if($booking->upload_letter_path)
+                                        <a href="{{ url($booking->upload_letter_path) }}"
+                                           target="_blank"
+                                           class="border rounded d-flex align-items-center justify-content-center action-btn"
+                                           data-bs-toggle="tooltip" title="Show Letter">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                        </a>
+                                    @endif
 
-                            <!-- Show Letter -->
-                                @if($booking->upload_letter_path)
-                                    <a href="{{ url($booking->upload_letter_path) }}"
-                                       target="_blank"
-                                       class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
-                                       data-bs-toggle="tooltip" title="Show Letter">
-                                        <i data-feather="file-text" class="feather-file-text"></i>
-                                    </a>
-                                @endif
+                                    @if($invoiceUrl)
+                                        <a href="{{ $invoiceUrl }}"
+                                           target="_blank"
+                                           class="border rounded d-flex align-items-center justify-content-center action-btn"
+                                           data-bs-toggle="tooltip" title="Invoice">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                        </a>
+                                    @endif
 
-                            <!-- View Booking Card -->
-                                <a href="{{ route('superadmin.bookings.cards.all', [$booking->id]) }}"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                </a> 
-  
+                                    @if($reportCount > 0)
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary report-btn d-flex align-items-center gap-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#reportsModal-{{ $booking->id }}">
+                                            <i data-feather="file-text" class="feather-file-text"></i>
+                                            <span>{{ $reportCount }} Report{{ $reportCount > 1 ? 's' : '' }}</span>
+                                        </button>
+
+                                        <div class="modal fade" id="reportsModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Uploaded Reports</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <ul class="list-group">
+                                                            @foreach($reportFiles as $file)
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                    <span class="text-truncate" style="max-width: 320px;" title="{{ $file['name'] }}">{{ $file['name'] }}</span>
+                                                                    <a href="{{ $file['url'] }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a>
+                                                                </li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -269,9 +309,57 @@
 
                 /* Tighten table cell spacing */
                 .table > :not(caption) > * > * {
-                    padding: 0.45rem 0.6rem;
+                    padding: 0.3rem 0.45rem;
                     vertical-align: middle;
                 }
+
+                /* Client & Reference columns: give them most of the width and show full text */
+                .client-col { width: 34%; }
+                .ref-col { width: 38%; }
+                .client-col .clamp-2,
+                .ref-col .clamp-2 {
+                    display: block;
+                    -webkit-line-clamp: initial;
+                    -webkit-box-orient: initial;
+                    overflow: visible;
+                    word-break: break-word;
+                    white-space: normal;
+                }
+
+                /* Action column: keep buttons aligned */
+                .action-col { width: 200px; }
+                .action-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+                .action-btn {
+                    width: 38px;
+                    height: 38px;
+                    padding: 0;
+                }
+                .report-btn {
+                    line-height: 1.2;
+                }
+
+                /* Position items modal to the right and widen */
+                .items-modal-right {
+                    margin-left: auto;
+                    margin-right: 24px;
+                    max-width: 1200px;
+                    width: calc(100% - 40px);
+                }
+                @media (max-width: 991.98px) {
+                    .items-modal-right {
+                        margin-right: 12px;
+                        width: auto;
+                        max-width: 100%;
+                    }
+                }
+
+                /* Slightly tighten action buttons spacing */
+                .table td .border { padding: 5px; }
             </style>
             @endpush
 

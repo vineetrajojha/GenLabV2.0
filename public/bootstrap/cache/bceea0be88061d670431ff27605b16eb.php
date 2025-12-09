@@ -169,6 +169,7 @@
                     <tr>
                         <th>#</th>
                         <th>Invoice No</th>
+                        <th>Reference No</th>
                         <th>Assigned Client</th>
                         <th>GST Amount</th>
                         <th>Total Amount</th>
@@ -182,6 +183,7 @@
                         <tr>
                             <td><?php echo e($loop->iteration); ?></td>
                             <td><?php echo e($invoice->invoice_no); ?></td>
+                            <td><?php echo e($invoice->relatedBooking->reference_no ?? 'N/A'); ?></td>
                             <td><?php echo e($invoice->relatedBooking->client->name ?? 'N/A'); ?></td>
                             <td><?php echo e($invoice->gst_amount); ?></td>
                             <td><?php echo e($invoice->total_amount); ?></td>

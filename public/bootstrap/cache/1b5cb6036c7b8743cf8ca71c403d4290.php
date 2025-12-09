@@ -30,8 +30,8 @@
     <div class="page-header">
         <div class="add-item d-flex">
             <div class="page-title">
-                <h4>Booking</h4>
-                <h6>Booking By Letter</h6>
+                <h4>Reports</h4>
+                <h6>Reports By Letter</h6>
             </div>
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
@@ -179,7 +179,7 @@
                                     </a>
                                     <!-- Modal -->
                                     <div class="modal fade" id="itemsModal-<?php echo e($booking->id); ?>" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                             <div class="modal-content">
                                                 <div class="modal-header booking-items-modal-header">
                                                     <h5 class="modal-title">Booking Items for <?php echo e($booking->client_name); ?></h5>
@@ -195,7 +195,7 @@
                                                                     <th>Job Order No</th>
                                                                     <th>Sample Description</th>
                                                                     <th>Sample Quality</th>
-                                                                    <th>Lab Analyst</th>
+                                                                    <th>Status</th>
                                                                     <th>Particulars</th>
                                                                     <th>Expected Date</th>
                                                                     <th>Amount</th>
@@ -207,7 +207,7 @@
                                                                     <td><?php echo e($item->job_order_no); ?></td>
                                                                     <td><?php echo e($item->sample_description); ?></td>
                                                                     <td><?php echo e($item->sample_quality); ?></td>
-                                                                    <td><?php echo e($item->lab_analysis_code); ?></td>
+                                                                    <td><?php echo e($item->issue_date ? 'Issued' : 'Pending'); ?></td>
                                                                     <td><?php echo e($item->particulars); ?></td>
                                                                     <td><?php echo e(\Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y')); ?></td>
                                                                     <td><?php echo e($item->amount); ?></td>
@@ -222,13 +222,14 @@
                                     </div>
                                 <?php endif; ?>
                             </td>
-                            <td class="d-flex"> 
+                            <td class="action-cell">
+                                <div class="d-flex align-items-center gap-2">
 
                             <!-- Uploaded Reports count (from Received Reports uploads) -->
                                 <?php $files = $letterFiles[$booking->id] ?? []; ?>
                                 <?php if(count($files) > 0): ?>
                                     <button type="button"
-                                            class="btn btn-sm btn-outline-primary me-2 d-flex align-items-center gap-2"
+                                            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
                                             data-bs-toggle="modal"
                                             data-bs-target="#reportsModal-<?php echo e($booking->id); ?>">
                                         <i data-feather="file-text" class="feather-file-text"></i>
@@ -257,14 +258,10 @@
                                         </div>
                                     </div>
                                 <?php endif; ?>
-
-                            <!-- View Booking Card -->
-                                <a href="<?php echo e(route('superadmin.bookings.cards.all', [$booking->id])); ?>"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                </a> 
-  
+                                <?php if(count($files) === 0): ?>
+                                    <span class="text-muted small">--</span>
+                                <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -287,6 +284,10 @@
                     word-break: break-word;
                 }
                 @media (max-width: 768px){ .truncate-cell { max-width: none; } }
+
+                /* Action column layout */
+                .action-cell { min-width: 140px; }
+                .action-cell .btn { padding: 6px 10px; }
 
                 /* Keep modal close button aligned when title is long */
                 .booking-items-modal-header {
@@ -313,6 +314,21 @@
                 .table > :not(caption) > * > * {
                     padding: 0.45rem 0.6rem;
                     vertical-align: middle;
+                }
+
+                /* Position items modal to the right so sidebar stays visible */
+                .items-modal-right {
+                    margin-left: auto;
+                    margin-right: 24px;
+                    max-width: 1200px;
+                    width: calc(100% - 40px);
+                }
+                @media (max-width: 991.98px) {
+                    .items-modal-right {
+                        margin-right: 12px;
+                        width: auto;
+                        max-width: 100%;
+                    }
                 }
             </style>
             <?php $__env->stopPush(); ?>

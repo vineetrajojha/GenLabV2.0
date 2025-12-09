@@ -135,7 +135,8 @@
                             <td class="truncate-cell">
                                 <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->particulars }}">{{ $item->particulars }}</div>
                             </td>
-                            <td class="d-flex">
+                            <td class="action-cell">
+                                <div class="d-flex align-items-center gap-2">
                                 @php
                                     $report = $item->reports->first(function ($report) {
                                         return filled($report->pivot->pdf_path ?? null);
@@ -145,18 +146,17 @@
                                 @if($report && $report->pivot->pdf_path)
                                     <a href="{{ route('viewPdf', basename($report->pivot->pdf_path)) }}"
                                        target="_blank"
-                                       class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
+                                       class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
                                        data-bs-toggle="tooltip" title="View Report">
                                         <i data-feather="file-text" class="feather-file-text"></i>
+                                        <span>View</span>
                                     </a>
                                 @endif
 
-                                <a href="{{ route('superadmin.bookings.cards.single', [$item->booking->id, $item->id]) }}"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none"
-                                    data-bs-toggle="tooltip" title="View Booking Card">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                </a>
+                                @if(!($report && $report->pivot->pdf_path))
+                                    <span class="text-muted small">--</span>
+                                @endif
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -207,6 +207,10 @@
 
     /* Allow full job order text to wrap */
     .job-order-cell{ max-width:320px; white-space:normal; word-break:break-word; overflow:visible; }
+
+    /* Action column layout */
+    .action-cell { min-width: 140px; }
+    .action-cell .btn { padding: 6px 10px; }
 </style>
 @endpush
 

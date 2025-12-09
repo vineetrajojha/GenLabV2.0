@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatMessageBroadcast;
+use App\Events\MessageSent;
 use App\Models\ChatGroup;
 use App\Models\ChatGroupMember;
 use App\Models\ChatMessage;
@@ -451,6 +453,16 @@ class ChatController extends Controller
         // Recompute group payload for sidebar ordering
         $payload = $this->serializeMessage($msg, $user);
         $groupPayload = $this->buildGroupPayload(ChatGroup::find($msg->group_id), $user->id ?? null);
+
+        // Broadcast in real-time
+        try {
+            $payload['socket_id'] = request()->header('X-Socket-Id');
+            broadcast(new ChatMessageBroadcast($payload));
+            broadcast(new MessageSent($payload));
+        } catch (\Throwable $e) {
+            // swallow broadcast errors to not block send
+        }
+
         return response()->json(['message' => $payload, 'group' => $groupPayload], 201);
     }
 
