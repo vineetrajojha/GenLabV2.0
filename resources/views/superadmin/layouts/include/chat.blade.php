@@ -2154,6 +2154,8 @@
         if (!activeGroupId) return;
         const now = Date.now();
         if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
         try {
             const url = new URL(routes.messagesSince, window.location.origin);
             url.searchParams.set('group_id', activeGroupId);
@@ -2225,6 +2227,9 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
+        // If realtime is healthy and recent, skip this poll to reduce load
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return;
         // If realtime is healthy and recent, skip this poll to reduce load
         const now = Date.now();
         if (realtimeOk && now - lastRealtimeEvent < 20000) return;
@@ -2818,6 +2823,10 @@
             // Mark realtime as healthy and record time for polling backoff
             realtimeOk = true;
             lastRealtimeEvent = Date.now();
+
+            // Mark realtime as healthy and record time for polling backoff
+            realtimeOk = true;
+            lastRealtimeEvent = Date.now();
         }
 
         if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
@@ -2860,10 +2869,12 @@
     channel.bind('pusher:subscription_error', function(status) {
         realtimeOk = false;
         lastRealtimeEvent = 0;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Subscription error:', status);
     });
     channel.bind('pusher:error', function(err) {
         realtimeOk = false;
+        lastRealtimeEvent = 0;
         lastRealtimeEvent = 0;
         console.error('[Pusher] Error:', err);
     });
