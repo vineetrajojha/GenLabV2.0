@@ -349,7 +349,7 @@
                 }
 
                 /* Position items modal to the right and widen */
-                .items-modal-right {
+                /* .items-modal-right {
                     margin-left: auto;
                     margin-right: 24px;
                     max-width: 1200px;
@@ -361,7 +361,7 @@
                         width: auto;
                         max-width: 100%;
                     }
-                }
+                } */
 
                 /* Slightly tighten action buttons spacing */
                 .table td .border { padding: 5px; }

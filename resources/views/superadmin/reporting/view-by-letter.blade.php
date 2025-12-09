@@ -312,7 +312,7 @@
                 }
 
                 /* Position items modal to the right so sidebar stays visible */
-                .items-modal-right {
+                /* .items-modal-right {
                     margin-left: auto;
                     margin-right: 24px;
                     max-width: 1200px;
@@ -324,7 +324,7 @@
                         width: auto;
                         max-width: 100%;
                     }
-                }
+                } */
             </style>
             @endpush
 
