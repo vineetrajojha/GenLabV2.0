@@ -566,7 +566,7 @@
             fab.title = 'Open chat';
             fab.innerHTML = '<i class="fa fa-comments"></i>';
             fab.className = 'btn btn-success rounded-circle shadow';
-            fab.style.cssText = 'position:fixed; right:20px; bottom:20px; width:48px; height:48px; z-index:1000;';
+            fab.style.cssText = 'position:fixed; right:20px; bottom:20px; width:48px; height:48px; z-index:1;';
             document.body.appendChild(fab);
         } catch(_) {}
     }
