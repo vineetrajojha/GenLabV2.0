@@ -32,7 +32,7 @@
 
                         <!-- Modal -->
                         <div class="modal fade" id="itemsModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Booking Items for {{ $isClient ? ($booking->marketingPerson?->name ?? 'N/A') : ($booking->client?->name ?? 'N/A') }}</h5>
@@ -48,7 +48,7 @@
                                                         <th>Job Order No</th>
                                                         <th>Sample Description</th>
                                                         <th>Sample Quality</th>
-                                                        <th>Lab Analyst</th>
+                                                        <th>Status</th>
                                                         <th>Particulars</th>
                                                         <th>Expected Date</th>
                                                         <th>Amount</th>
@@ -60,7 +60,7 @@
                                                         <td>{{ $item->job_order_no }}</td>
                                                         <td>{{ $item->sample_description }}</td>
                                                         <td>{{ $item->sample_quality }}</td>
-                                                        <td>{{ $item->lab_analysis_code }}</td>
+                                                        <td>{{ $item->issue_date ? 'Issued' : 'Pending' }}</td>
                                                         <td>{{ $item->particulars }}</td>
                                                         <td>{{ \Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y') }}</td>
                                                         <td>₹{{ number_format($item->amount, 2) }}</td>
@@ -92,3 +92,27 @@
 @if($bookings->hasPages())
     {!! $bookings->links('pagination::bootstrap-5') !!}
 @endif
+
+@push('styles')
+<style>
+    .items-modal-right {
+        margin-left: auto;
+        margin-right: 18px;
+        max-width: 1200px;
+        width: 90%;
+    }
+    .items-modal-right .modal-content {
+        margin-left: auto;
+    }
+    @media (max-width: 991.98px) {
+        .items-modal-right {
+            margin-right: 12px;
+            width: auto;
+            max-width: 100%;
+        }
+        .items-modal-right .modal-content {
+            margin-left: 0;
+        }
+    }
+</style>
+@endpush

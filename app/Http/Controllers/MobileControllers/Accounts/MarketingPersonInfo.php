@@ -200,5 +200,43 @@ class MarketingPersonInfo extends Controller
     }
 
 
+    /**
+     * Fetch distinct clients for a marketing person.
+     * GET /api/marketing-person/{user_code}/clients
+     */
+    public function fetchClients(Request $request, $user_code)
+    {
+        $marketingPerson = User::where('user_code', $user_code)->firstOrFail();
+
+        // Collect distinct client IDs from bookings for this marketing person
+        $clientIds = $marketingPerson->marketingBookings()
+            ->whereNotNull('client_id')
+            ->pluck('client_id')
+            ->unique()
+            ->toArray();
+
+        if (empty($clientIds)) {
+            return response()->json([
+                'status' => true,
+                'message' => 'No clients found for this marketing person',
+                'data' => [],
+            ], 200);
+        }
+
+        $perPage = (int) $request->get('per_page', 15);
+
+        $clients = \App\Models\Client::whereIn('id', $clientIds)
+            ->select('id', 'name', 'email', 'phone', 'gstin', 'address')
+            ->orderBy('name')
+            ->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Clients fetched successfully',
+            'data' => $clients,
+        ], 200);
+    }
+
+
 
 }

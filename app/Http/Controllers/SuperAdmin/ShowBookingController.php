@@ -10,6 +10,7 @@ use App\Services\GetUserActiveDepartment;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\BookingsExport;
+use Illuminate\Support\Facades\Storage;
 
 
 class ShowBookingController extends Controller
@@ -29,7 +30,12 @@ class ShowBookingController extends Controller
             $month  = $request->input('month');
             $year   = $request->input('year');
 
-            $query = NewBooking::with(['items', 'department', 'marketingPerson']);
+            $query = NewBooking::with([
+                'items.reports',
+                'department',
+                'marketingPerson',
+                'generatedInvoice',
+            ]);
 
             if ($department) {
                 $query->where('department_id', $department->id);
@@ -144,6 +150,12 @@ class ShowBookingController extends Controller
         if (!in_array($perPage, [25, 50, 100])) { $perPage = 25; }
         $bookings = $query->latest()->paginate($perPage)->withQueryString();
 
+        // Collect uploaded report files per booking (align with reporting view)
+        $letterFiles = [];
+        foreach ($bookings as $bk) {
+            $letterFiles[$bk->id] = $this->uploadedReportsForReference($bk->reference_no);
+        }
+
         $departments = $this->departmentService->getDepartment();
 
         return view('superadmin.showbooking.marketing.showbooking', [
@@ -153,7 +165,63 @@ class ShowBookingController extends Controller
             'search' => $request->input('search'),
             'month' => $request->input('month'),
             'year' => $request->input('year'),
+            'letterFiles' => $letterFiles,
         ]);
+    }
+    
+    /**
+     * Get all uploaded report links for a reference (mirrors ReportingController logic).
+     */
+    private function uploadedReportsForReference(?string $reference): array
+    {
+        $key = $this->sanitizeLetterKey((string) $reference);
+        if ($key === '') {
+            return [];
+        }
+
+        $dir = "public/letters/{$key}";
+        if (!Storage::exists($dir)) {
+            return [];
+        }
+
+        $meta = [];
+        $metaPath = $dir.'/_meta.json';
+        if (Storage::exists($metaPath)) {
+            $rawMeta = json_decode(Storage::get($metaPath), true);
+            if (is_array($rawMeta)) {
+                $meta = $rawMeta;
+            }
+        }
+
+        $links = [];
+        $files = Storage::files($dir);
+        usort($files, function ($a, $b) {
+            return Storage::lastModified($b) <=> Storage::lastModified($a);
+        });
+
+        foreach ($files as $path) {
+            $base = basename($path);
+            if ($base === '_meta.json' || str_starts_with($base, '_')) {
+                continue;
+            }
+            $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['pdf','jpg','jpeg','png','doc','docx'], true)) {
+                continue;
+            }
+            $original = $meta[$base]['original'] ?? $base;
+            $links[] = [
+                'url' => route('superadmin.reporting.letters.show', ['job' => $reference, 'filename' => $base]),
+                'name' => $original,
+                'stored' => $base,
+            ];
+        }
+
+        return $links;
+    }
+
+    private function sanitizeLetterKey(string $input): string
+    {
+        return preg_replace('/[^A-Za-z0-9_\-]/', '-', trim($input)) ?: '';
     }
     
 }

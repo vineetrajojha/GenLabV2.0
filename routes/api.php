@@ -7,8 +7,10 @@ use App\Http\Controllers\Api\Attendance\EsslWebhookController;
 use App\Http\Controllers\Api\ChatApiController;
 use App\Http\Controllers\MobileControllers\Accounts\MarketingPersonInfo; 
 use App\Http\Controllers\Api\ExpenseApiController;
+use App\Http\Controllers\Api\MarketingDashboardController;
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 
 // Static test file endpoint for client testing
@@ -21,6 +23,10 @@ Route::get('static/test-file', function() {
 });
 
 Route::post('attendance/essl/webhook', EsslWebhookController::class)->name('api.attendance.essl.webhook');
+
+// Debug helper routes removed. These were used for local E2E testing only.
+// If you need similar functionality for local debugging, re-add guarded
+// routes behind `app.debug` or remove before pushing to remote.
 
 // User Auth Routes
 Route::prefix('user')->group(function () {
@@ -139,7 +145,7 @@ Route::middleware(['multi_jwt:api_admin'])->prefix('admin/expenses')->group(func
 });
 
 
-Route::prefix('marketing-person')->group(function () {
+Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function () {
 
     // Fetch Bookings
     Route::get('{user_code}/bookings', 
@@ -166,4 +172,20 @@ Route::prefix('marketing-person')->group(function () {
         [MarketingPersonInfo::class, 'fetchCashTransaction']
     );
 
+    // Fetch Clients
+    Route::get('{user_code}/clients',
+        [MarketingPersonInfo::class, 'fetchClients']
+    );
+
+});
+
+/*
+ | Marketing Dashboard API
+ | Provides overview and compact summary for marketing dashboard widgets
+*/
+Route::middleware(['multi_jwt:api'])->prefix('marketing-dashboard')->group(function () {
+    Route::get('{user_code}/overview', [MarketingDashboardController::class, 'overview']);
+    Route::get('{user_code}/summary', [MarketingDashboardController::class, 'summary']);
+    // Time-series / chart data endpoint
+    Route::get('{user_code}/series', [MarketingDashboardController::class, 'series']);
 });

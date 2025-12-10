@@ -70,7 +70,6 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Marketing Person</th>
                         <th>Total Bookings</th>
                         <th>Total Booking Amount</th>
                         <th>Total Invoice Amount</th>
@@ -82,11 +81,6 @@
                     @forelse($ledgerData as $index => $row)
                         <tr onclick="window.location='{{ route('superadmin.marketing-person-ledger.show', $row['person']->user_code) }}'" style="cursor:pointer;">
                             <td>{{ $marketingPersons->firstItem() + $index }}</td>
-                            <td>
-                                <a href="{{ route('superadmin.marketing-person-ledger.show', $row['person']->user_code) }}">
-                                    {{ $row['person']->name ?? 'N/A' }}
-                                </a>
-                            </td>
                             <td>{{ $row['total_bookings'] }}</td>
                             <td>{{ number_format($row['total_booking_amount'], 2) }}</td>
                             <td>{{ number_format($row['total_invoice_amount'], 2) }}</td>
@@ -103,7 +97,7 @@
                 @if($ledgerData->isNotEmpty())
                 <tfoot class="table-light fw-bold">
                     <tr>
-                        <td colspan="3" class="text-end">Grand Total:</td>
+                        <td colspan="2" class="text-end">Grand Total:</td>
                         <td>{{ number_format($totals['total_booking_amount'], 2) }}</td>
                         <td>{{ number_format($totals['total_invoice_amount'], 2) }}</td>
                         <td class="text-success">{{ number_format($totals['paid_amount'], 2) }}</td>

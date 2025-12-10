@@ -163,6 +163,7 @@
                     <tr>
                         <th>#</th>
                         <th>Invoice No</th>
+                        <th>Reference No</th>
                         <th>Assigned Client</th>
                         <th>GST Amount</th>
                         <th>Total Amount</th>
@@ -176,6 +177,7 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>{{ $invoice->invoice_no }}</td>
+                            <td>{{ $invoice->relatedBooking->reference_no ?? 'N/A' }}</td>
                             <td>{{ $invoice->relatedBooking->client->name ?? 'N/A' }}</td>
                             <td>{{ $invoice->gst_amount }}</td>
                             <td>{{ $invoice->total_amount }}</td>

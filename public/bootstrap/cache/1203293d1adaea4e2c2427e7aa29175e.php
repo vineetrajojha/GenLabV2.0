@@ -13,12 +13,14 @@
     <div class="chat-popup-body p-0 position-relative" style="height:100%; display:flex;">
         <!-- Sidebar and Conversation reused -->
         <aside class="border-end" style="width:360px; display:flex; flex-direction:column; min-height:0;">
-            <div class="p-2" style="background:#f9fafb;">
+            <div class="p-2 d-flex align-items-center justify-content-between" style="background:#f9fafb; gap:8px;">
                 <div class="input-group input-group-sm" style="border-radius:8px; overflow:hidden;">
                     <span class="input-group-text bg-white border-0"><i class="fa fa-search text-muted"></i></span>
                     <input id="chatGroupSearch" type="text" class="form-control border-0" placeholder="Search or start new chat" style="background:#fff;">
                     <button id="chatNewSessionBtn" class="btn btn-success" type="button" title="New Session"><i class="fa fa-plus"></i></button>
                 </div>
+                <!-- Sidebar badge intentionally kept hidden -->
+                <span id="chatSidebarBadge" class="chat-unread" style="display:none;">0</span>
             </div>
             <div id="chatGroups" class="list-group list-group-flush" style="overflow:auto; flex:1;"></div>
         </aside>
@@ -181,14 +183,19 @@
 }
 .wa-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .wa-bubble {
-  position: relative;
-  max-width: 70%;
-  padding: 12px 14px;
-  border-radius: var(--chat-radius);
-  font-size: 14px;
-  line-height: 1.4;
-  box-shadow: var(--chat-shadow);
-  overflow: hidden;
+    position: relative;
+    max-width: 78%;
+    padding: 12px 14px;
+    border-radius: var(--chat-radius);
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: var(--chat-shadow);
+    overflow: hidden;
+}
+.wa-bubble.media-only {
+    padding: 8px;
+    background: transparent;
+    box-shadow: none;
 }
 .wa-bubble.sent {
   background: var(--chat-msg-out);
@@ -205,16 +212,30 @@
 .wa-bubble.status-cancel { background: #fee2e2 !important; border: 1px solid #fecaca; }
 .wa-content { display: flex; flex-direction: column; gap: 8px; }
 .wa-text { white-space: pre-wrap; word-wrap: break-word; color:#111827; }
-.wa-image { max-width: 100%; }
-.wa-image img { max-width: 100%; height: auto; max-height: 320px; object-fit: contain; display: block; }
-.wa-caption { font-size: 13px; color:#334155; }
+.wa-media { width: 100%; max-width: 360px; border-radius: 14px; overflow: hidden; background: #f8fafc; border: 1px solid #e2e8f0; box-shadow: 0 8px 24px rgba(15,23,42,0.12); }
+.wa-image { background: #0b1220; }
+.wa-image img { width: 100%; height: auto; max-height: 420px; object-fit: contain; display: block; background:#0b1220; }
+.wa-image .wa-image-bar { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background: linear-gradient(90deg,#0f172a,#1e293b); color:#e2e8f0; font-size:12px; }
+.wa-image .wa-image-bar a { color:#a5f3fc; text-decoration:none; font-weight:600; }
+.wa-image .wa-image-bar a:hover { text-decoration:underline; }
+.wa-image .wa-image-bar .name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%; }
+.wa-caption { font-size: 13px; color:#334155; margin-top:6px; }
 .wa-file { display:flex; align-items:center; gap:12px; }
 .wa-file .wa-icon { width:40px; height:40px; border-radius:8px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; }
 .wa-file .wa-info { display:flex; flex-direction:column; }
 .wa-file .wa-name { font-weight:600; color:#111827; line-height:1.2; }
 .wa-file .wa-actions { display:flex; gap:10px; font-size:12px; }
 .wa-file .wa-actions a { color: var(--chat-primary-dark); text-decoration:none; }
-.wa-audio audio { width: 100%; max-width: 320px; height: 36px; }
+.wa-audio { display:none; }
+.wa-voice-card { background: rgba(15, 118, 110, 0.08); border:1px solid rgba(15,118,110,0.18); color:#0f172a; border-radius:16px; padding:10px 12px; box-shadow: 0 6px 18px rgba(15,23,42,0.12); width: 100%; max-width: 360px; }
+.wa-voice { display:flex; align-items:center; gap:12px; }
+.wa-voice-btn { width:44px; height:44px; border-radius:50%; border:none; background:#0ea5e9; color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 6px 14px rgba(14,165,233,0.35); }
+.wa-voice-btn.pause { background:#f97316; box-shadow:0 6px 14px rgba(249,115,22,0.35); }
+.wa-voice-track { flex:1; display:flex; align-items:center; gap:10px; }
+.wa-voice-bar { position:relative; flex:1; height:6px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+.wa-voice-bar .fill { position:absolute; top:0; left:0; height:100%; width:0%; background:#0ea5e9; transition: width 120ms linear; }
+.wa-voice-time { font-size:12px; color:#475569; min-width:44px; text-align:right; }
+.wa-voice-meta { font-size:12px; color:#475569; margin-top:6px; display:flex; justify-content:space-between; align-items:center; }
 /* Meta row below content (not overlapping) */
 .wa-meta-row { margin-top: 6px; font-size: 12px; color: var(--chat-muted); display:flex; align-items:center; gap:6px; }
 .wa-row.sent .wa-meta-row { justify-content:flex-end; }
@@ -292,7 +313,8 @@
 
 /* Sidebar unread marker */
 /* Remove visual dot usage; keep count badge only */
-.chat-unread{ font-size:12px; background:#22c55e; color:#fff; border-radius:999px; padding:1px 8px; line-height:18px; min-width:22px; text-align:center; }
+.chat-unread{ font-size:12px; background:#22c55e; color:#fff; border-radius:999px; padding:1px 8px; line-height:18px; min-width:22px; text-align:center; box-shadow:0 4px 10px rgba(34,197,94,0.25); }
+.chat-unread-dot{ width:10px; height:10px; border-radius:50%; background:#f43f5e; display:inline-block; margin-left:8px; }
 
 /* WhatsApp-like: unread chats look bolder */
 #chatGroups .list-group-item.has-unread .chat-title{ font-weight:700; color:#111827; }
@@ -303,12 +325,12 @@
 .wa-day > span{ background:#e2e8f0; color:#334155; padding:4px 10px; font-size:12px; border-radius:999px; border:1px solid #cbd5e1; line-height:1; }
 
 /* WhatsApp-like PDF/document bubble */
-.wa-doc{ display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; background: transparent; }
+.wa-doc{ display:flex; align-items:center; gap:14px; padding:14px; border-radius:14px; background: #f8fafc; border:1px solid #e2e8f0; box-shadow: 0 8px 24px rgba(15,23,42,0.08); width:100%; max-width:360px; }
 .wa-doc-link{ display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit; flex:1; min-width:0; }
 .wa-doc-icon{ width:44px; height:56px; border-radius:8px; background:#e2e8f0; color:#334155; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
 .wa-doc-icon svg{ width:24px; height:24px; display:block; }
 .wa-doc-info{ display:flex; flex-direction:column; min-width:0; }
-.wa-doc-name{ font-weight:600; color:#111827; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 260px; }
+.wa-doc-name{ font-weight:700; color:#0f172a; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 220px; }
 .wa-doc-meta{ font-size:12px; color: var(--chat-muted); }
 .wa-doc-download{ margin-left:auto; color: var(--chat-primary-dark); text-decoration:none; font-size:16px; padding:6px; border-radius:8px; }
 .wa-doc-download:hover{ background: rgba(0,0,0,0.06); }
@@ -352,12 +374,15 @@
         messages: '<?php echo e(url('/chat/messages')); ?>',
         messagesSince: '<?php echo e(url('/chat/messages/since')); ?>',
         send: '<?php echo e(url('/chat/messages')); ?>',
+        delete: (id) => `${'<?php echo e(url('/chat/messages')); ?>'}/${id}`,
         react: (id) => `${'<?php echo e(url('/chat/messages')); ?>'}/${id}/reactions`,
         direct: (userId) => `${'<?php echo e(url('/chat/direct')); ?>'}/${userId}`,
         searchUsers: (q) => `${'<?php echo e(url('/chat/users/search')); ?>'}?q=${encodeURIComponent(q)}`,
         directWith: (id) => `${'<?php echo e(url('/chat/direct-with')); ?>'}/${id}`,
         markSeen: '<?php echo e(url('/chat/mark-seen')); ?>',
         unreadCounts: '<?php echo e(url('/chat/unread-counts')); ?>',
+        clearGroup: (id) => `${'<?php echo e(url('/chat/groups')); ?>'}/${id}/clear`,
+        deleteGroup: (id) => `${'<?php echo e(url('/chat/groups')); ?>'}/${id}`,
         // NEW: toggle chat-admin for a user (route to add in routes/web.php)
         setChatAdmin: (userId) => `${'<?php echo e(url('/chat/users')); ?>'}/${userId}/chat-admin`
     };
@@ -412,23 +437,58 @@
     const activeTitle = document.getElementById('chatActiveTitle');
     const activeAvatar = document.getElementById('chatActiveAvatar');
     const popupEl = document.getElementById('chatPopup');
+        // Track last known unread totals to detect new unseen messages when chat is closed
+        let lastUnreadTotal = 0;
+        let lastUnreadMap = new Map();
 
     // Central badge updater: sums unread from allGroups and updates the header badge in real-time
     function updateHeaderBadge(){
         try {
             const badge = window.chatNotifBadge || document.getElementById('chatNotifBadge');
+            // Sidebar badge intentionally hidden; keep element but never show/unset it.
             const total = Array.isArray(allGroups) ? allGroups.reduce((s,g)=> s + (parseInt(g.unread)||0), 0) : 0;
-            if (!badge) return;
-            if (total > 0) {
-                badge.textContent = total > 99 ? '99+' : String(total);
-                badge.style.display = 'flex';
-            } else {
-                badge.textContent = '';
-                badge.style.display = 'none';
+            if (badge){
+                if (total > 0) {
+                    badge.textContent = total > 99 ? '99+' : String(total);
+                    badge.style.display = 'flex';
+                } else {
+                    badge.textContent = '';
+                    badge.style.display = 'none';
+                }
             }
+            const sideBadge = document.getElementById('chatSidebarBadge');
+            if (sideBadge) { sideBadge.style.display = 'none'; }
         } catch(_) {}
     }
     window.__CHAT_UPDATE_BADGE__ = updateHeaderBadge;
+
+    // Update existing list items' unread badges without re-rendering the whole sidebar
+    function syncUnreadBadges(map){
+        if (!groupsEl || !(map instanceof Map)) return;
+        const items = groupsEl.querySelectorAll('.list-group-item');
+        items.forEach(it => {
+            const gid = String(it.dataset.groupId || '');
+            const count = map.get(gid) || 0;
+            const isActive = String(activeGroupId) === gid;
+            const show = count > 0 && !isActive;
+            let badge = it.querySelector('.chat-unread');
+            if (show){
+                if (!badge){
+                    badge = document.createElement('span');
+                    badge.className = 'chat-unread';
+                    // Try to append to the right container; fallback to item
+                    const right = it.querySelector('.ms-auto.d-flex.align-items-center') || it;
+                    right.appendChild(badge);
+                }
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.style.display = 'inline-flex';
+                it.classList.add('has-unread');
+            } else {
+                if (badge) badge.style.display = 'none';
+                it.classList.remove('has-unread');
+            }
+        });
+    }
 
     // Server-truth fetch for unread counts; updates allGroups.unread and header badge
     window.__CHAT_FETCH_COUNTS__ = async function(){
@@ -445,7 +505,32 @@
                     g.unread = n;
                 }
             }
-            if (typeof renderGroups === 'function') renderGroups(allGroups);
+            // Update badges in place to avoid sidebar blinking
+            syncUnreadBadges(map);
+            const totalFromFetch = groupsCounts.reduce((s,x)=> s + (parseInt(x.count)||0), 0);
+            const chatOpen = isChatOpen();
+            // Show toast if new unread appeared while chat is closed; prefer the first group whose count increased
+            if (!chatOpen && totalFromFetch > lastUnreadTotal) {
+                let picked = null;
+                for (const entry of groupsCounts){
+                    const gid = String(entry.group_id);
+                    const prev = lastUnreadMap.get(gid) || 0;
+                    const cur = parseInt(entry.count)||0;
+                    if (cur > prev){ picked = entry; break; }
+                }
+                if (!picked) { picked = groupsCounts.find(x=> (parseInt(x.count)||0) > 0) || null; }
+                if (picked){
+                    const gid = String(picked.group_id);
+                    const g = (allGroups || []).find(x=> String(x.id) === gid);
+                    const latest = g && g.latest ? g.latest : null;
+                    const sender = (latest && (latest.sender_name || (latest.user && latest.user.name))) || (g ? g.name : 'New message');
+                    const snippet = shortenSnippet((latest && (latest.content || latest.original_name)) || '[New message]');
+                    const title = sender || 'New message';
+                    showGlobalChatNotification(`${title}: ${snippet}`, { groupId: gid, replyToId: latest ? latest.id : null });
+                }
+            }
+            lastUnreadMap = map;
+            lastUnreadTotal = totalFromFetch;
             updateHeaderBadge();
         } catch(_) {}
     };
@@ -499,6 +584,10 @@
     let activeGroupId = null; let lastMessageId = 0;
     let mediaRecorder = null; let recordedChunks = [];
     let cache = []; let allGroups = [];
+    let lastGroupsSignature = '';
+    let realtimeOk = false;
+    let lastRealtimeEvent = 0;
+    let lastSocketId = null;
     window.allGroups = allGroups; // Expose globally for realtime updates
     let idIndex = new Set(); // track message ids to dedupe
     let polling = false; // prevent overlapping polls
@@ -597,6 +686,7 @@
     filterUnbookedBtn && filterUnbookedBtn.addEventListener('click', (e)=>{ e.preventDefault(); toggleFilter('unbooked'); });
 
     const initials = (s)=> (s||'?').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+    const groupsSignature = (list)=> Array.isArray(list) ? list.map(g=> `${g.id}|${g.last_msg_id||0}|${g.unread||0}`).join(',') : '';
     const fmtTime = (ts)=> { try { const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return ts; } };
     // Helpers for day labels
     const toDate = (ts)=> { try { return new Date(ts); } catch { return new Date(); } };
@@ -606,6 +696,10 @@
 
     // Groups
     function renderGroups(list){
+        const sig = groupsSignature(list);
+        if (sig && sig === lastGroupsSignature) return;
+        lastGroupsSignature = sig;
+
         groupsEl.innerHTML = '';
         const sorted = Array.isArray(list) ? list.slice().sort((a,b)=>{
             const la = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
@@ -625,7 +719,9 @@
                 : `<div class="wa-avatar me-2">${initials2}</div>`;
 
             const latest = g.latest || {};
-            const unreadCount = parseInt(g.unread)||0;
+            // Do not show unread badge for the currently open group
+            const isActive = String(g.id) === String(activeGroupId);
+            const unreadCount = isActive ? 0 : (parseInt(g.unread)||0);
             const hasUnread = unreadCount > 0;
 
             // Mark item as unread for bold styling
@@ -633,7 +729,9 @@
 
             const right = document.createElement('div');
             right.className='ms-auto d-flex align-items-center';
-            right.innerHTML = hasUnread ? `<span class="chat-unread">${unreadCount>99?'99+':unreadCount}</span>` : '';
+            right.innerHTML = hasUnread
+                ? `<span class="chat-unread">${unreadCount>99?'99+':unreadCount}</span>`
+                : '';
 
             const meta = document.createElement('div');
             meta.className='flex-grow-1';
@@ -658,6 +756,7 @@
                  <div class="chat-preview">${previewText}</div>`;
 
             item.innerHTML = avatarHtml + meta.outerHTML + right.outerHTML;
+            item.addEventListener('contextmenu', (e)=> openGroupMenu(e, g));
             item.addEventListener('click', (e)=>{ e.preventDefault(); selectGroup(g.id, g.name, item); });
             groupsEl.appendChild(item);
         });
@@ -665,6 +764,102 @@
         if (typeof updateHeaderBadge === 'function') { try { updateHeaderBadge(); } catch(_){} }
     }
     window.renderGroups = renderGroups;
+
+    // Personal chat context menu (right-click)
+    let groupContextMenu = null;
+    function closeGroupMenu(){ if (groupContextMenu){ groupContextMenu.remove(); groupContextMenu = null; } }
+    document.addEventListener('click', closeGroupMenu);
+    document.addEventListener('contextmenu', (e)=>{
+        if (groupContextMenu && !groupContextMenu.contains(e.target)) closeGroupMenu();
+    }, true);
+
+    function isPersonalGroup(g){
+        return g && typeof g.slug === 'string' && g.slug.startsWith('dm-');
+    }
+
+    async function clearGroup(g){
+        if (!g) return; closeGroupMenu();
+        if (!isPersonalGroup(g)) return showChatToast('Clear is only for personal chats', 'error');
+        let ok = false;
+        if (popupEl) {
+            ok = await confirmInsidePopup({ title:'Clear chat', text:`Clear all messages with ${g.name}?`, okText:'Clear', cancelText:'Cancel' });
+        } else if (window.Swal && Swal.fire) {
+            const r = await Swal.fire({ title:'Clear chat', text:`Clear all messages with ${g.name}?`, showCancelButton:true, confirmButtonText:'Clear' });
+            ok = r && r.isConfirmed;
+        } else {
+            ok = confirm(`Clear all messages with ${g.name}?`);
+        }
+        if (!ok) return;
+        const res = await fetch(routes.clearGroup(g.id), { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+        if (!res.ok) return showChatToast('Failed to clear chat', 'error');
+        showChatToast('Chat cleared', 'success');
+        if (Number(activeGroupId) === Number(g.id)) { cache = []; messagesEl.innerHTML = ''; fetchMessages(g.id); }
+    }
+
+    async function deleteGroup(g){
+        if (!g) return; closeGroupMenu();
+        if (!isPersonalGroup(g)) return showChatToast('Delete is only for personal chats', 'error');
+        let ok = false;
+        if (popupEl) {
+            ok = await confirmInsidePopup({ title:'Delete chat', text:`Delete personal chat with ${g.name}? This removes it for you.`, okText:'Delete', cancelText:'Cancel' });
+        } else if (window.Swal && Swal.fire) {
+            const r = await Swal.fire({ title:'Delete chat', text:`Delete personal chat with ${g.name}? This removes it for you.`, showCancelButton:true, confirmButtonText:'Delete' });
+            ok = r && r.isConfirmed;
+        } else {
+            ok = confirm(`Delete personal chat with ${g.name}? This removes it for you.`);
+        }
+        if (!ok) return;
+        const res = await fetch(routes.deleteGroup(g.id), { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+        if (!res.ok) return showChatToast('Failed to delete chat', 'error');
+        showChatToast('Chat deleted', 'success');
+        // Remove from local list
+        const idx = allGroups.findIndex(x => Number(x.id) === Number(g.id));
+        if (idx >= 0){ allGroups.splice(idx,1); renderGroups(allGroups); }
+        if (Number(activeGroupId) === Number(g.id)) {
+            activeGroupId = null; window.activeGroupId = null; cache = []; idIndex.clear();
+            messagesEl.innerHTML = '';
+            emptyEl.style.display = 'flex'; loadingEl.style.display = 'none';
+            const next = allGroups[0];
+            if (next) {
+                const node = groupsEl.querySelector(`.list-group-item[data-group-id="${next.id}"]`);
+                selectGroup(next.id, next.name, node);
+            } else {
+                inputAreaEl.style.display = 'none';
+                activeTitle.textContent = 'Inbox';
+                activeAvatar.textContent = 'IN';
+            }
+        }
+    }
+
+    function openGroupMenu(e, g){
+        e.preventDefault(); e.stopPropagation(); closeGroupMenu();
+        const menu = document.createElement('div');
+        menu.style.position = popupEl ? 'absolute' : 'fixed';
+        const anchorRect = popupEl ? popupEl.getBoundingClientRect() : { left:0, top:0 };
+        menu.style.left = (e.clientX - anchorRect.left) + 'px';
+        menu.style.top = (e.clientY - anchorRect.top) + 'px';
+        menu.style.background = '#fff';
+        menu.style.border = '1px solid #e2e8f0';
+        menu.style.borderRadius = '10px';
+        menu.style.boxShadow = '0 12px 30px rgba(0,0,0,0.16)';
+        menu.style.zIndex = 1500;
+        menu.style.minWidth = '160px';
+        const mkItem = (label, handler, danger)=>{
+            const it = document.createElement('div');
+            it.textContent = label;
+            it.style.padding = '10px 14px';
+            it.style.cursor = 'pointer';
+            it.style.color = danger ? '#b91c1c' : '#0f172a';
+            it.addEventListener('click', (ev)=>{ ev.stopPropagation(); handler(); closeGroupMenu(); });
+            it.addEventListener('mouseenter', ()=> it.style.background = '#f1f5f9');
+            it.addEventListener('mouseleave', ()=> it.style.background = '#fff');
+            return it;
+        };
+        menu.appendChild(mkItem('Clear chat', ()=> clearGroup(g), false));
+        menu.appendChild(mkItem('Delete chat', ()=> deleteGroup(g), true));
+        (popupEl || document.body).appendChild(menu);
+        groupContextMenu = menu;
+    }
 
     function selectGroup(id, name, node){
         // Clear filters on group change
@@ -679,10 +874,12 @@
         requestAnimationFrame(syncMessagesPadding);
         fetchMessages(id);
 
-        // Clear unread locally for this group so the dot disappears immediately
+        // Clear unread locally for this group so the badge disappears immediately
         try {
             const g = allGroups.find(x => String(x.id) === String(id));
-            if (g) { g.unread = 0; renderGroups(allGroups); updateHeaderBadge(); }
+            if (g) { g.unread = 0; }
+            renderGroups(allGroups);
+            updateHeaderBadge();
         } catch(_) {}
 
         // Show filter buttons only for Bookings group
@@ -804,6 +1001,13 @@
         return scan(m, 0);
     }
 
+    function shortenSnippet(s, limit = 80){
+        if (!s) return '';
+        const str = String(s).trim();
+        if (str.length <= limit) return str;
+        return str.slice(0, limit - 1) + '…';
+    }
+
     function displayName(u){
         if (!u) return 'U';
         const name = (u.name || '').toString().trim();
@@ -816,16 +1020,43 @@
         return n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
     }
 
-    function avatarLabel(m){
-        // If avatar URL provided, render <img> (CHANGED: normalize URL)
-        if (m && m.user && m.user.avatar) return { html: '<img src="'+toAbsoluteUrl(m.user.avatar)+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
-        const n = (m && m.user && m.user.name) ? m.user.name : (m && m.sender_name ? m.sender_name : 'U');
-        const init = n ? n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase() : 'U';
-        return { html: null, text: init };
+    function parseForwarded(content){
+        if (!content || typeof content !== 'string') return null;
+        const lines = content.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+        if (!lines.length) return null;
+        const urlLine = lines.find(l=> /^https?:\/\//i.test(l));
+        const markerLine = lines.find(l=> /^forwarded attachment:/i.test(l));
+        if (!urlLine || !markerLine) return null;
+        const nameMatch = /forwarded attachment:\s*(.+)/i.exec(markerLine);
+        const name = nameMatch ? nameMatch[1].trim() : 'Attachment';
+        const url = urlLine;
+        const lower = url.toLowerCase();
+        let kind = 'file';
+        if (/[.](jpg|jpeg|png|gif|webp|bmp|heic|heif)(\?|$)/i.test(lower)) kind = 'image';
+        else if (/[.]pdf(\?|$)/i.test(lower)) kind = 'pdf';
+        else if (/[.](mp3|wav|m4a|ogg|oga|webm|aac)(\?|$)/i.test(lower)) kind = 'audio';
+        return { name, url, kind };
     }
 
     function senderName(m){
-        return (m && m.user && m.user.name) ? m.user.name : ((m && m.sender_name) ? m.sender_name : 'User');
+        if (!m) return 'User';
+        const guard = (m.sender_guard || '').toString().toLowerCase();
+        const name =
+            m.sender_name ||
+            m.senderName ||
+            m.admin_name ||
+            (m.admin && m.admin.name) ||
+            (m.user && m.user.name) ||
+            (guard === 'superadmin' || guard === 'super_admin' ? 'Super Admin' : (guard === 'admin' ? 'Admin' : 'User'));
+        return name || 'User';
+    }
+
+    function avatarLabel(m){
+        // If avatar URL provided, render <img> (CHANGED: normalize URL)
+        if (m && m.user && m.user.avatar) return { html: '<img src="'+toAbsoluteUrl(m.user.avatar)+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
+        const n = senderName(m);
+        const init = n ? n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase() : 'U';
+        return { html: null, text: init };
     }
 
     // Messages
@@ -993,6 +1224,267 @@
         return rootId;
     }
 
+    function fmtSec(sec){
+        const s = Math.max(0, Math.floor(sec));
+        const m = Math.floor(s/60); const r = s % 60;
+        return m + ':' + String(r).padStart(2,'0');
+    }
+
+    function forwardInsidePopup(groups){
+        return new Promise((resolve)=>{
+            if (!popupEl) { resolve(null); return; }
+            const wrap = document.createElement('div');
+            wrap.style.position='absolute'; wrap.style.inset='0'; wrap.style.background='rgba(15,23,42,0.35)';
+            wrap.style.display='flex'; wrap.style.alignItems='center'; wrap.style.justifyContent='center'; wrap.style.zIndex=1300;
+            const card = document.createElement('div');
+            card.style.background='#fff'; card.style.padding='16px'; card.style.borderRadius='12px';
+            card.style.boxShadow='0 14px 34px rgba(0,0,0,0.20)'; card.style.width='320px'; card.style.maxWidth='92%';
+            const title = document.createElement('div'); title.textContent='Forward Message'; title.style.fontWeight='700'; title.style.marginBottom='10px';
+            const select = document.createElement('select'); select.className='form-control'; select.style.width='100%'; select.style.marginBottom='12px';
+            groups.forEach(g=>{ const opt=document.createElement('option'); opt.value=g.id; opt.textContent=g.name; select.appendChild(opt); });
+            const row=document.createElement('div'); row.style.display='flex'; row.style.gap='10px'; row.style.justifyContent='flex-end';
+            const cancel=document.createElement('button'); cancel.type='button'; cancel.textContent='Cancel'; cancel.style.padding='8px 12px'; cancel.style.border='1px solid #cbd5e1'; cancel.style.background='#fff'; cancel.style.borderRadius='10px';
+            const ok=document.createElement('button'); ok.type='button'; ok.textContent='Forward'; ok.style.padding='8px 12px'; ok.style.border='none'; ok.style.background='#0ea5e9'; ok.style.color='#fff'; ok.style.borderRadius='10px';
+            row.appendChild(cancel); row.appendChild(ok);
+            card.appendChild(title); card.appendChild(select); card.appendChild(row);
+            wrap.appendChild(card); popupEl.appendChild(wrap);
+            cancel.addEventListener('click', ()=>{ wrap.remove(); resolve(null); });
+            ok.addEventListener('click', ()=>{ const v=select.value; wrap.remove(); resolve(v); });
+            wrap.addEventListener('click',(e)=>{ if(e.target===wrap){ wrap.remove(); resolve(null);} });
+        });
+    }
+
+    function showChatToast(text, tone){
+        if (!popupEl){ alert(text); return; }
+        const toast = document.createElement('div');
+        toast.textContent = text;
+        toast.style.position = 'absolute';
+        toast.style.right = '18px';
+        toast.style.bottom = '18px';
+        toast.style.maxWidth = '360px';
+        toast.style.padding = '10px 14px';
+        toast.style.borderRadius = '12px';
+        toast.style.color = '#0f172a';
+        toast.style.fontWeight = '600';
+        toast.style.boxShadow = '0 12px 30px rgba(0,0,0,0.18)';
+        toast.style.zIndex = 1400;
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 160ms ease, transform 160ms ease';
+        toast.style.transform = 'translateY(6px)';
+        const bg = tone === 'error' ? '#fecdd3' : '#bbf7d0';
+        toast.style.background = bg;
+        popupEl.appendChild(toast);
+        requestAnimationFrame(()=>{
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        setTimeout(()=>{
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(6px)';
+            setTimeout(()=> toast.remove(), 200);
+        }, 2000);
+    }
+
+    function isChatOpen(){
+        if (!popupEl) return false;
+        try {
+            const style = window.getComputedStyle ? getComputedStyle(popupEl) : popupEl.style;
+            return style && style.display !== 'none' && style.visibility !== 'hidden';
+        } catch(_) { return popupEl.style.display !== 'none'; }
+    }
+
+    // Lightweight page-level notification when chat UI is closed; supports quick reply
+    function showGlobalChatNotification(text, opts = {}){
+        const existing = document.querySelector('.chat-global-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'chat-global-toast';
+        // Split "Sender: message" format
+        const raw = String(text || 'New message');
+        const parts = raw.split(':');
+        const title = (parts.shift() || 'New message').trim();
+        const body = (parts.join(':') || '').trim();
+        const initialsVal = (title || 'N').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+
+        Object.assign(toast.style, {
+            position: 'fixed',
+            right: '18px',
+            bottom: '18px',
+            maxWidth: '340px',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            background: '#ffffff',
+            color: '#0f172a',
+            fontWeight: '500',
+            boxShadow: '0 16px 38px rgba(0,0,0,0.20)',
+            zIndex: 20000,
+            opacity: '0',
+            transform: 'translateY(8px)',
+            transition: 'opacity 180ms ease, transform 180ms ease',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center'
+        });
+
+        const avatar = document.createElement('div');
+        Object.assign(avatar.style, {
+            width: '38px', height: '38px', borderRadius: '50%',
+            background: '#25d366', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: '700', letterSpacing: '0.4px', flexShrink: '0'
+        });
+        avatar.textContent = initialsVal || 'N';
+
+        const textWrap = document.createElement('div');
+        Object.assign(textWrap.style, { display:'flex', flexDirection:'column', gap:'2px', minWidth:'0', flex:'1' });
+        const titleEl = document.createElement('div');
+        Object.assign(titleEl.style, { fontWeight:'700', color:'#111827', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' });
+        titleEl.textContent = title || 'New message';
+        const bodyEl = document.createElement('div');
+        Object.assign(bodyEl.style, { fontSize:'13px', color:'#334155', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' });
+        bodyEl.textContent = body || 'Tap to view';
+        textWrap.appendChild(titleEl); textWrap.appendChild(bodyEl);
+
+        // Quick reply controls
+        const replyWrap = document.createElement('div');
+        Object.assign(replyWrap.style, { display:'flex', alignItems:'center', gap:'6px', width:'100%' });
+        const replyInput = document.createElement('input');
+        replyInput.type = 'text';
+        replyInput.placeholder = 'Type a reply';
+        Object.assign(replyInput.style, {
+            flex:'1', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'6px 10px', fontSize:'13px'
+        });
+        const replyBtn = document.createElement('button');
+        replyBtn.type = 'button';
+        replyBtn.textContent = 'Send';
+        Object.assign(replyBtn.style, {
+            border:'none', background:'#25d366', color:'#fff', borderRadius:'10px', padding:'6px 10px', fontWeight:'700', fontSize:'13px', cursor:'pointer'
+        });
+
+        const sendReply = async ()=>{
+            const txt = (replyInput.value||'').trim();
+            if (!txt || !opts.groupId) return;
+            replyBtn.disabled = true;
+            try {
+                await window.__CHAT_QUICK_REPLY__(opts.groupId, txt, opts.replyToId);
+                replyInput.value = '';
+                // also open chat
+                if (window.__CHAT_OPEN_GROUP__) window.__CHAT_OPEN_GROUP__(opts.groupId);
+            } catch(_) {}
+            finally {
+                replyBtn.disabled = false;
+                // hide shortly after send
+                scheduleHide(2000);
+            }
+        };
+        replyBtn.addEventListener('click', sendReply);
+        replyInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); sendReply(); } });
+
+        replyWrap.appendChild(replyInput);
+        replyWrap.appendChild(replyBtn);
+
+        const contentWrap = document.createElement('div');
+        Object.assign(contentWrap.style, { display:'flex', flexDirection:'column', gap:'6px', minWidth:'0', flex:'1' });
+        contentWrap.appendChild(textWrap);
+        contentWrap.appendChild(replyWrap);
+
+        toast.appendChild(avatar);
+        toast.appendChild(contentWrap);
+
+        document.body.appendChild(toast);
+        requestAnimationFrame(()=>{
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        // Auto-hide logic that pauses while typing
+        let hideTimer = null;
+        const scheduleHide = (delayMs = 3200)=>{
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(()=>{
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(()=> toast.remove(), 240);
+            }, delayMs);
+        };
+        scheduleHide(3200);
+
+        const pauseHide = ()=> clearTimeout(hideTimer);
+        replyInput.addEventListener('focus', pauseHide);
+        replyInput.addEventListener('input', pauseHide);
+        replyInput.addEventListener('keydown', pauseHide);
+        replyInput.addEventListener('blur', ()=> scheduleHide(3000));
+        replyBtn.addEventListener('mouseenter', pauseHide);
+        replyBtn.addEventListener('mouseleave', ()=> scheduleHide(3000));
+    }
+
+    function confirmInsidePopup(opts){
+        return new Promise((resolve)=>{
+            const wrap = document.createElement('div');
+            wrap.style.position = 'absolute';
+            wrap.style.inset = '0';
+            wrap.style.background = 'rgba(15,23,42,0.35)';
+            wrap.style.display = 'flex';
+            wrap.style.alignItems = 'center';
+            wrap.style.justifyContent = 'center';
+            wrap.style.zIndex = 1300;
+
+            const card = document.createElement('div');
+            card.style.background = '#fff';
+            card.style.borderRadius = '14px';
+            card.style.boxShadow = '0 16px 40px rgba(0,0,0,0.20)';
+            card.style.padding = '20px 20px 16px';
+            card.style.width = '320px';
+            card.style.maxWidth = '92%';
+            card.style.textAlign = 'center';
+
+            const title = document.createElement('div');
+            title.style.fontSize = '18px';
+            title.style.fontWeight = '700';
+            title.style.marginBottom = '8px';
+            title.textContent = opts.title || 'Confirm';
+            const text = document.createElement('div');
+            text.style.fontSize = '14px';
+            text.style.color = '#334155';
+            text.style.marginBottom = '16px';
+            text.textContent = opts.text || '';
+
+            const btnRow = document.createElement('div');
+            btnRow.style.display = 'flex';
+            btnRow.style.gap = '10px';
+            btnRow.style.justifyContent = 'center';
+
+            const cancel = document.createElement('button');
+            cancel.type='button';
+            cancel.textContent = opts.cancelText || 'Cancel';
+            cancel.style.padding='8px 14px';
+            cancel.style.border='1px solid #cbd5e1';
+            cancel.style.background='#fff';
+            cancel.style.borderRadius='10px';
+            cancel.style.cursor='pointer';
+            const ok = document.createElement('button');
+            ok.type='button';
+            ok.textContent = opts.okText || 'Delete';
+            ok.style.padding='8px 14px';
+            ok.style.border='none';
+            ok.style.background='#dc2626';
+            ok.style.color='#fff';
+            ok.style.borderRadius='10px';
+            ok.style.cursor='pointer';
+
+            btnRow.appendChild(ok); btnRow.appendChild(cancel);
+            card.appendChild(title); card.appendChild(text); card.appendChild(btnRow);
+            wrap.appendChild(card);
+            popupEl.appendChild(wrap);
+
+            function clean(v){ wrap.remove(); resolve(v); }
+            ok.addEventListener('click', ()=> clean(true));
+            cancel.addEventListener('click', ()=> clean(false));
+            wrap.addEventListener('click', (e)=>{ if (e.target === wrap) clean(false); });
+        });
+    }
+
     function messageRow(m){
         const mine = !!m.mine;
         const row = document.createElement('div'); row.className = 'wa-row ' + (mine ? 'sent' : 'received');
@@ -1013,13 +1505,7 @@
         }
         const content = document.createElement('div'); content.className = 'wa-content';
         // Show sender name with admin-aware fallback
-        const guard = (m.sender_guard || '').toString().toLowerCase();
-        const senderNameText =
-            m.sender_name ||
-            m.admin_name ||
-            (m.admin && m.admin.name) ||
-            (m.user && m.user.name) ||
-            (guard === 'superadmin' || guard === 'super_admin' ? 'Super Admin' : (guard === 'admin' ? 'Admin' : 'User'));
+        const senderNameText = senderName(m);
         const nameEl = document.createElement('div'); nameEl.className = 'wa-sender'; nameEl.textContent = senderNameText;
         // Only real admin should open legacy direct chats on name click
         if (isRootAdmin && m.user && m.user.id){
@@ -1034,7 +1520,8 @@
         const mime = (m.mime || m.mimetype || m.file_mime || m.content_type || '').toString().toLowerCase();
         const hasFile = !!m.file_url;
         const textValue = bestText(m);
-        const textTrim = (textValue||'').trim();
+        const fullContent = (m && typeof m.content === 'string') ? m.content : (textValue || '');
+        const textTrim = (fullContent||'').trim();
         const isAdminBooked = (m.sender_guard === 'admin') && /^booked\b/i.test(textTrim);
         const isAdminHold = (m.sender_guard === 'admin') && /^hold\b/i.test(textTrim);
         const isAdminCancel = (m.sender_guard === 'admin') && /^cancel\b/i.test(textTrim);
@@ -1046,17 +1533,87 @@
         if (stEff){ applyStatusClass(bubble, stEff); }
 
         const isImage = type === 'image' || (hasFile && mime.startsWith('image/'));
-        const isAudio = type === 'voice' || type === 'audio' || (hasFile && mime.startsWith('audio/'));
+        const isAudio = type === 'voice' || type === 'audio' || (hasFile && (mime.startsWith('audio/') || mime === 'video/webm' || mime === 'application/octet-stream'));
+        const fileUrl = toAbsoluteUrl(m.file_url || m.file_path || '');
+        const isMediaOnly = (isImage || isAudio || isPdf) && !textValue;
+
+        const forwarded = parseForwarded(fullContent || textValue);
 
         if (type === 'text' || (!hasFile && textValue)){
-            const t = document.createElement('div'); t.className = 'wa-text'; t.textContent = textValue || '';
-            content.appendChild(t);
+            const isForwarded = (!hasFile && forwarded);
+            if (!isForwarded){
+                const t = document.createElement('div'); t.className = 'wa-text'; t.textContent = fullContent || textValue || '';
+                content.appendChild(t);
+            }
+            // If this is a forwarded attachment text, render a preview card and hide raw link
+            if (!hasFile && forwarded){
+                const badge = document.createElement('div'); badge.className='wa-meta-row'; badge.style.fontWeight='600'; badge.style.color='#0ea5e9'; badge.textContent='Forwarded';
+                content.appendChild(badge);
+                const f = forwarded;
+                const fUrl = toAbsoluteUrl(f.url);
+                if (f.kind === 'image'){
+                    const wrap = document.createElement('div'); wrap.className = 'wa-image wa-media';
+                    const img = document.createElement('img'); img.src = fUrl; img.alt = f.name; img.loading='lazy'; img.decoding='async';
+                    img.onerror = ()=>{ wrap.innerHTML = '<div class="p-3 text-danger small">Image unavailable</div>'; };
+                    const bar = document.createElement('div'); bar.className='wa-image-bar';
+                    const name = document.createElement('span'); name.className='name'; name.textContent = f.name;
+                    const view = document.createElement('a'); view.href = fUrl; view.target='_blank'; view.rel='noopener noreferrer'; view.textContent='Open';
+                    bar.appendChild(name); bar.appendChild(view);
+                    wrap.appendChild(img); wrap.appendChild(bar);
+                    content.appendChild(wrap);
+                } else if (f.kind === 'audio'){
+                    const wrap = document.createElement('div'); wrap.className='wa-voice-card';
+                    const audio = document.createElement('audio'); audio.src = fUrl; audio.preload='metadata'; audio.style.display='none';
+                    const voice = document.createElement('div'); voice.className='wa-voice';
+                    const playBtn = document.createElement('button'); playBtn.type='button'; playBtn.className='wa-voice-btn'; playBtn.innerHTML='<i class="fa fa-play"></i>';
+                    const track = document.createElement('div'); track.className='wa-voice-track';
+                    const bar = document.createElement('div'); bar.className='wa-voice-bar';
+                    const fill = document.createElement('div'); fill.className='fill'; bar.appendChild(fill);
+                    const time = document.createElement('div'); time.className='wa-voice-time'; time.textContent='0:00';
+                    track.appendChild(bar); track.appendChild(time);
+                    voice.appendChild(playBtn); voice.appendChild(track);
+                    playBtn.addEventListener('click', ()=>{
+                        if (audio.paused){ playBtn.classList.add('pause'); playBtn.innerHTML='<i class="fa fa-pause"></i>'; audio.play().catch(()=>{}); }
+                        else { playBtn.classList.remove('pause'); playBtn.innerHTML='<i class="fa fa-play"></i>'; audio.pause(); }
+                    });
+                    audio.addEventListener('loadedmetadata', ()=>{ time.textContent = fmtSec(Math.max(0, Math.floor(audio.duration||0))); });
+                    audio.addEventListener('timeupdate', ()=>{
+                        const cur = audio.currentTime||0, dur = audio.duration||1;
+                        fill.style.width = Math.min(100, (cur/dur)*100)+'%';
+                        time.textContent = fmtSec(cur);
+                    });
+                    audio.addEventListener('ended', ()=>{ playBtn.classList.remove('pause'); playBtn.innerHTML='<i class="fa fa-play"></i>'; fill.style.width='0%'; });
+                    wrap.appendChild(voice); wrap.appendChild(audio); content.appendChild(wrap);
+                } else if (f.kind === 'pdf'){
+                    const wrap = document.createElement('div'); wrap.className='wa-doc';
+                    const fileUrl = fUrl;
+                    const link = document.createElement('a'); link.href = fileUrl; link.target='_blank'; link.rel='noopener noreferrer'; link.className='wa-doc-link';
+                    link.addEventListener('click', function(e){ e.stopPropagation(); });
+                    const icon = document.createElement('div'); icon.className='wa-doc-icon';
+                    icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM13 3.5 18.5 9H13V3.5z"/><rect x="7" y="13" width="10" height="1.8" rx=".9" fill="currentColor"/><rect x="7" y="16" width="6" height="1.8" rx=".9" fill="currentColor"/></svg>';
+                    const info = document.createElement('div'); info.className='wa-doc-info';
+                    const name = document.createElement('div'); name.className='wa-doc-name'; name.title = f.name; name.textContent = f.name;
+                    const meta = document.createElement('div'); meta.className='wa-doc-meta'; meta.textContent = 'PDF';
+                    info.appendChild(name); info.appendChild(meta);
+                    link.appendChild(icon); link.appendChild(info);
+                    const dl = document.createElement('a'); dl.href = fileUrl; dl.download = f.name; dl.className='wa-doc-download'; dl.innerHTML = '<i class="fa fa-download"></i>';
+                    wrap.appendChild(link); wrap.appendChild(dl);
+                    content.appendChild(wrap);
+                }
+            }
         } else if (isImage){
-            const wrap = document.createElement('div'); wrap.className = 'wa-image';
-            // CHANGED: build absolute URL correctly
-            const imgUrl = toAbsoluteUrl(m.file_url || '');
+            const wrap = document.createElement('div'); wrap.className = 'wa-image wa-media';
+            const imgUrl = fileUrl;
             const img = document.createElement('img'); img.src = imgUrl; img.alt = original || 'image'; img.loading = 'lazy'; img.decoding = 'async';
+            img.onerror = ()=>{
+                wrap.innerHTML = '<div class="p-3 text-danger small">Image unavailable</div>';
+            };
+            const bar = document.createElement('div'); bar.className = 'wa-image-bar';
+            const name = document.createElement('span'); name.className='name'; name.textContent = original || 'Image';
+            const view = document.createElement('a'); view.href = imgUrl; view.target = '_blank'; view.rel='noopener noreferrer'; view.textContent = 'Open';
+            bar.appendChild(name); bar.appendChild(view);
             wrap.appendChild(img);
+            wrap.appendChild(bar);
             content.appendChild(wrap);
             if (textValue){ const cap = document.createElement('div'); cap.className='wa-caption'; cap.textContent = textValue; content.appendChild(cap); }
         } else if (isPdf){
@@ -1083,9 +1640,48 @@
                 }
             }
         } else if (isAudio){
-            const wrap = document.createElement('div'); wrap.className='wa-audio';
-            // CHANGED: build absolute URL correctly
-            const audio = document.createElement('audio'); audio.controls = true; audio.src = toAbsoluteUrl(m.file_url || '');
+            const wrap = document.createElement('div'); wrap.className = 'wa-voice-card';
+            const audioUrl = fileUrl;
+            const audio = document.createElement('audio'); audio.src = audioUrl; audio.preload = 'metadata'; audio.style.display='none';
+
+            const voice = document.createElement('div'); voice.className='wa-voice';
+            const playBtn = document.createElement('button'); playBtn.type='button'; playBtn.className='wa-voice-btn'; playBtn.innerHTML = '<i class="fa fa-play"></i>';
+            const track = document.createElement('div'); track.className='wa-voice-track';
+            const bar = document.createElement('div'); bar.className='wa-voice-bar';
+            const fill = document.createElement('div'); fill.className='fill'; bar.appendChild(fill);
+            const time = document.createElement('div'); time.className='wa-voice-time'; time.textContent = '0:00';
+            track.appendChild(bar); track.appendChild(time);
+            voice.appendChild(playBtn); voice.appendChild(track);
+
+            playBtn.addEventListener('click', ()=>{
+                if (audio.paused){
+                    playBtn.classList.add('pause');
+                    playBtn.innerHTML = '<i class="fa fa-pause"></i>';
+                    audio.play().catch(()=>{});
+                } else {
+                    playBtn.classList.remove('pause');
+                    playBtn.innerHTML = '<i class="fa fa-play"></i>';
+                    audio.pause();
+                }
+            });
+
+            audio.addEventListener('loadedmetadata', ()=>{
+                const dur = Math.max(0, Math.floor(audio.duration || 0));
+                time.textContent = fmtSec(dur);
+            });
+            audio.addEventListener('timeupdate', ()=>{
+                const cur = audio.currentTime || 0;
+                const dur = audio.duration || 1;
+                fill.style.width = Math.min(100, (cur/dur)*100) + '%';
+                time.textContent = fmtSec(cur);
+            });
+            audio.addEventListener('ended', ()=>{
+                playBtn.classList.remove('pause');
+                playBtn.innerHTML = '<i class="fa fa-play"></i>';
+                fill.style.width = '0%';
+            });
+
+            wrap.appendChild(voice);
             wrap.appendChild(audio);
             content.appendChild(wrap);
             if (textValue){ const cap = document.createElement('div'); cap.className='wa-caption'; cap.textContent = textValue; content.appendChild(cap); }
@@ -1095,6 +1691,7 @@
             content.appendChild(t);
         }
         bubble.appendChild(content);
+        if (isMediaOnly) { bubble.classList.add('media-only'); }
         // Show message ID at bottom for PDF, Hold, Cancel, Booked bubbles
         if (isPdf || isAdminHold || isAdminCancel || isAdminBooked) {
             const msgIdRow = document.createElement('div'); msgIdRow.className = 'wa-meta-row'; msgIdRow.style.display = 'flex'; msgIdRow.style.justifyContent = 'space-between';
@@ -1396,11 +1993,22 @@
         // Pick a group to forward to
         try{
             const groups = allGroups.filter(g=> g.id !== activeGroupId);
-            if (!groups.length) return alert('No other groups to forward to.');
+            if (!groups.length){
+                if (window.Swal && Swal.fire){
+                    await swalInChat({ icon:'info', title:'No other groups to forward to.' });
+                } else {
+                    alert('No other groups to forward to.');
+                }
+                return;
+            }
             let groupId = null;
-            if (window.Swal && Swal.fire){
+            // Always prefer in-popup picker; fallback to prompt only if popup missing
+            if (popupEl) {
+                groupId = await forwardInsidePopup(groups);
+                if (!groupId) return;
+            } else if (window.Swal && Swal.fire){
                 const opts = groups.map(g=> `<option value="${g.id}">${g.name}</option>`).join('');
-                const r = await swalInChat({
+                const r = await Swal.fire({
                     title: 'Forward Message',
                     html: `<select id="forwardGroup" class="form-control">${opts}</select>`,
                     showCancelButton: true,
@@ -1411,23 +2019,34 @@
                 groupId = r.value;
             } else {
                 groupId = prompt('Enter group Name to forward to:');
+                if (!groupId) return;
             }
             if (!groupId) return;
             const msg = getMsgById(messageId);
             if (!msg) return;
+            let content = bestText(msg) || '';
+            // If original had an attachment, forward as text with link to preserve access without re-upload
+            if (msg.file_url){
+                const link = toAbsoluteUrl(msg.file_url);
+                const fname = (msg.original_name || 'attachment').toString();
+                const note = 'Forwarded attachment: ' + fname;
+                content = content ? (content + '\n\n' + note + '\n' + link) : (note + '\n' + link);
+            }
+            if (!content) { content = '[Forwarded message]'; }
             const payload = {
-                group_id: groupId,
-                type: msg.type,
-                content: bestText(msg),
+                group_id: Number(groupId),
+                type: 'text',
+                content,
                 reply_to_message_id: null
             };
-            if (msg.file_url){
-                // For simplicity, just send text; file forwarding needs backend support
-                payload.content += '\n[Forwarded attachment: ' + (msg.original_name||'file') + ']';
-            }
-            await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' }, body: JSON.stringify(payload) });
-            alert('Message forwarded.');
-        } catch(e){ alert('Failed to forward.'); }
+            const res = await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error('forward-fail');
+            const dest = groups.find(g=> String(g.id) === String(groupId));
+            const label = dest ? dest.name : 'selected group';
+            showChatToast('Forwarded to ' + label, 'success');
+        } catch(e){
+            showChatToast('Failed to forward. Please try again.', 'error');
+        }
     }
 
     function promptShare(messageId){
@@ -1452,9 +2071,13 @@
     }
     
     async function promptDelete(messageId){
-        // Use SweetAlert2 for confirmation if available
-        if (window.Swal && typeof Swal.fire === 'function') {
-            const result = await Swal.fire({
+        // Use SweetAlert2 anchored inside chat popup
+        suppressOutsideClose = true;
+        let confirmed = false;
+        if (popupEl) {
+            confirmed = await confirmInsidePopup({ title:'Delete Message', text:'Are you sure you want to delete this message?', okText:'Delete', cancelText:'Cancel' });
+        } else if (window.Swal && typeof Swal.fire === 'function') {
+            const result = await swalInChat({
                 title: 'Delete Message',
                 text: 'Are you sure you want to delete this message?',
                 icon: 'warning',
@@ -1463,18 +2086,26 @@
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#d33'
             });
-            if (!result.isConfirmed) return;
+            confirmed = !!(result && result.isConfirmed);
         } else {
-            if (!confirm('Delete this message?')) return;
+            confirmed = confirm('Delete this message?');
         }
+        if (!confirmed) { suppressOutsideClose = false; return; }
         try{
-            await fetch(routes.send + '/' + messageId, { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
-            fetchMessages(activeGroupId);
+            const res = await fetch(routes.delete(messageId), { method:'DELETE', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' } });
+            if (!res.ok) throw new Error('delete-fail');
+            // Optimistically remove from cache and rerender
+            cache = Array.isArray(cache) ? cache.filter(m => m && m.id !== messageId) : cache;
+            renderMessages(cache);
+            // Refresh from server to keep unread/latest correct
+            if (popupEl){ popupEl.style.display = 'flex'; setState({ open:true }); }
+            if (activeGroupId) fetchMessages(activeGroupId);
         } catch(e){ alert('Delete failed.'); }
+        finally { suppressOutsideClose = false; }
     }
 
     // Backend
-    async function fetchGroups(){
+    async function fetchGroups(opts = {}){
         try {
             const res = await fetch(routes.groups, { headers: { 'Accept':'application/json' } });
             if (!res.ok) {
@@ -1494,19 +2125,73 @@
             renderGroups(allGroups);
             updateHeaderBadge();
             if (window.__CHAT_FETCH_COUNTS__) { try { await window.__CHAT_FETCH_COUNTS__(); } catch(_){} }
-            try {
-                const state = getState();
-                if (state && state.activeGroupId){
-                    const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
-                    if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
-                }
-            } catch(_) {}
+            if (!opts.silent) {
+                try {
+                    const state = getState();
+                    if (state && state.activeGroupId){
+                        const item = groupsEl.querySelector(`.list-group-item[data-group-id="${state.activeGroupId}"]`);
+                        if (item) { selectGroup(state.activeGroupId, item.dataset.groupName || '', item); }
+                    }
+                    // Track unread baseline using current sidebar data
+                    const totalUnread = Array.isArray(allGroups) ? allGroups.reduce((sum, g)=> sum + (parseInt(g.unread) || 0), 0) : 0;
+                    lastUnreadTotal = totalUnread;
+                } catch(_) {}
+            }
         } catch (err) {
             console.error('chat/groups error:', err);
             groupsEl.innerHTML = '<div class="p-3 text-muted small">Unable to load chats.</div>';
         }
     }
     window.fetchGroups = fetchGroups;
+
+    // Passive sidebar refresher (fallback if realtime push misses)
+    setInterval(()=>{ fetchGroups({ silent:true }); }, 8000);
+    // Periodic unread count sync from server truth
+    setInterval(()=>{ if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__(); }, 12000);
+
+    // Lightweight messages_since poller to keep active chat + sidebar in sync if push misses
+    setInterval(async ()=>{
+        if (!activeGroupId) return;
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
+        try {
+            const url = new URL(routes.messagesSince, window.location.origin);
+            url.searchParams.set('group_id', activeGroupId);
+            url.searchParams.set('after_id', lastMessageId || 0);
+            const res = await fetch(url, { headers:{ 'Accept':'application/json' } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!Array.isArray(data) || !data.length) return;
+            const fresh = data.map(m=>{ flagMine(m); return m; });
+            cache = cache.concat(fresh);
+            fresh.forEach(m=> idIndex.add(m.id));
+            lastMessageId = cache.length ? cache[cache.length-1].id : lastMessageId;
+            renderMessages(cache);
+            // Update sidebar latest/unread
+            const ts = fresh[fresh.length-1]?.created_at || new Date().toISOString();
+            const g = allGroups.find(x => Number(x.id) === Number(activeGroupId));
+            if (g) {
+                const last = fresh[fresh.length-1];
+                g.latest = {
+                    id: last.id,
+                    type: last.type,
+                    content: last.content,
+                    original_name: last.original_name,
+                    sender_guard: last.sender_guard,
+                    sender_name: last.sender_name,
+                    user: last.user || null,
+                    created_at: ts
+                };
+                g.last_msg_id = last.id;
+                g.last_msg_at = ts;
+                g.unread = 0;
+                // move to top
+                const idx = allGroups.indexOf(g);
+                if (idx > 0){ allGroups.splice(idx,1); allGroups.unshift(g); }
+                renderGroups(allGroups);
+            }
+        } catch(_){}
+    }, 4000);
 
     async function fetchMessages(groupId){
         loadingEl.style.display = 'block';
@@ -1527,7 +2212,6 @@
             try {
                 await markGroupSeen(groupId, lastMessageId);
                 updateHeaderBadge();
-                if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__();
             } catch(_) {}
         } catch(err){
             console.error('fetchMessages error:', err);
@@ -1541,6 +2225,9 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
+        // If realtime is healthy and recent, skip this poll to reduce load
+        const now = Date.now();
+        if (realtimeOk && now - lastRealtimeEvent < 20000) return;
         polling = true;
         try{
             const url = new URL(routes.messagesSince, window.location.origin);
@@ -1577,11 +2264,24 @@
     async function sendMessage(formData){
         if (!formData) return;
         try {
-            const res = await fetch(routes.send, { method:'POST', headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json' }, body: formData });
+            const res = await fetch(routes.send, {
+                method:'POST',
+                headers:{
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept':'application/json',
+                    'X-Socket-Id': window.pusher && window.pusher.connection ? window.pusher.connection.socket_id : ''
+                },
+                body: formData
+            });
             if (!res.ok) throw new Error('send-fail');
             const data = await res.json();
             if (data && data.group) { upsertGroup(data.group); }
-            if (activeGroupId) fetchMessages(activeGroupId);
+            if (data && data.message && Number(data.message.group_id) === Number(activeGroupId)) {
+                const m = data.message; flagMine(m);
+                if (!idIndex.has(m.id)) { cache.push(m); idIndex.add(m.id); lastMessageId = m.id; window.lastMessageId = m.id; renderMessages(cache); }
+            } else if (activeGroupId) {
+                fetchMessages(activeGroupId);
+            }
         } catch(e){ alert('Failed to send message.'); }
     }
 
@@ -1599,13 +2299,24 @@
         try{
             const res = await fetch(routes.send, {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' },
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept':'application/json',
+                    'Content-Type':'application/json',
+                    'X-Socket-Id': window.pusher && window.pusher.connection ? window.pusher.connection.socket_id : ''
+                },
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error('json-fail');
             const data = await res.json();
             if (data && data.group) { upsertGroup(data.group); }
-            fetchMessages(activeGroupId);
+            if (data && data.message && Number(data.message.group_id) === Number(activeGroupId)) {
+                const m = data.message; flagMine(m);
+                if (!idIndex.has(m.id)) { cache.push(m); idIndex.add(m.id); lastMessageId = m.id; window.lastMessageId = m.id; renderMessages(cache); }
+                try { markGroupSeen(activeGroupId, m.id); } catch(_) {}
+            } else {
+                fetchMessages(activeGroupId);
+            }
         } catch(err){
             const fd = new FormData();
             fd.append('group_id', activeGroupId);
@@ -1635,6 +2346,7 @@
                 headers:{ 'X-CSRF-TOKEN': csrfToken, 'Accept':'application/json', 'Content-Type':'application/json' },
                 body: JSON.stringify({ group_id: groupId, last_id: lastId || undefined })
             });
+            if (window.__CHAT_FETCH_COUNTS__) window.__CHAT_FETCH_COUNTS__();
         } catch(e) { /* ignore */ }
     }
 
@@ -1688,6 +2400,7 @@
     msgInput.addEventListener('input', toggleSendMic);
 
     // Voice recording
+    let mediaStream = null;
     async function toggleRecording(){
         if (mediaRecorder && mediaRecorder.state === 'recording'){
             mediaRecorder.stop(); recordingHint.style.display='none'; voiceBtn.classList.remove('btn-danger');
@@ -1696,14 +2409,15 @@
         }
         try {
            
-            const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
-            recordedChunks = []; mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+            recordedChunks = []; mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
             mediaRecorder.ondataavailable = (e)=>{ if (e.data.size > 0) recordedChunks.push(e.data); };
             mediaRecorder.onstop = ()=>{
                 const blob = new Blob(recordedChunks, { type:'audio/webm' });
                 const file = new File([blob], 'voice.webm', { type:'audio/webm' });
                 const fd = new FormData(); fd.append('group_id', activeGroupId); fd.append('type','voice'); fd.append('file', file);
                 sendMessage(fd);
+                try { if (mediaStream) { mediaStream.getTracks().forEach(t=> t.stop()); mediaStream = null; } } catch(_){ mediaStream = null; }
                 syncMessagesPadding();
             };
             mediaRecorder.start(); recordingHint.style.display='block'; voiceBtn.classList.add('btn-danger');
@@ -1920,8 +2634,10 @@
         window.addEventListener('touchend', onDragEnd);
     }
 
-    // --- Hide popup when clicking outside (always, even if expanded) ---
+    // --- Hide popup when clicking outside (guarded) ---
+    let suppressOutsideClose = false;
     document.addEventListener('mousedown', function(e){
+        if (suppressOutsideClose) return;
         if (!popupEl || popupEl.style.display !== 'flex') return;
         if (!popupEl.contains(e.target)){
             popupEl.style.display = 'none';
@@ -1929,6 +2645,7 @@
         }
     });
     document.addEventListener('touchstart', function(e){
+        if (suppressOutsideClose) return;
         if (!popupEl || popupEl.style.display !== 'flex') return;
         if (!popupEl.contains(e.target)){
             popupEl.style.display = 'none';
@@ -1998,21 +2715,71 @@
     window.__CHAT_PUSHER_BOUND__ = true;
 
     // Pusher Cloud integration
-    Pusher.logToConsole = true;
-    var pusher = new Pusher('500d2fa7a4b11dbfeb91', {
-        cluster: 'ap2',
-        forceTLS: true
+    Pusher.logToConsole = false;
+    const pusherKey = <?php echo json_encode(config('broadcasting.connections.pusher.key') ?? env('PUSHER_APP_KEY'), 15, 512) ?> || '';
+    const pusherCluster = <?php echo json_encode((config('broadcasting.connections.pusher.options.cluster') ?? config('broadcasting.connections.pusher.cluster') ?? env('PUSHER_APP_CLUSTER')), 15, 512) ?> || 'mt1';
+    var pusher = new Pusher(pusherKey, {
+        cluster: pusherCluster,
+        forceTLS: true,
+        // Disable stats to reduce latency
+        disableStats: true,
+        // Faster reconnection strategy
+        pongTimeout: 8000,
+        unavailableTimeout: 10000,
+        activityTimeout: 10000,
+        // Explicit transports to favor WebSocket
+        enabledTransports: ['ws', 'wss']
     });
     var channel = pusher.subscribe('chat');
+    window.pusher = pusher;
+    window.pusherChannel = channel;
+
+    pusher.connection.bind('state_change', function(s){
+        if (s.current === 'connected') {
+            lastSocketId = pusher.connection.socket_id;
+            realtimeOk = true; lastRealtimeEvent = Date.now();
+        }
+        if (s.current === 'disconnected' || s.current === 'failed' || s.current === 'unavailable') {
+            realtimeOk = false; lastRealtimeEvent = 0;
+        }
+    });
     function handleChatEvent(data) {
         var msg = data && data.message ? data.message : data;
         flagMine(msg);
 
         if (Array.isArray(window.allGroups)) {
+            const allowedIds = new Set(window.allGroups.map(x => Number(x.id)));
+            if (!allowedIds.has(Number(msg.group_id))) {
+                // Upsert placeholder and refresh so newly visible chats are not dropped
+                const placeholder = {
+                    id: msg.group_id,
+                    name: msg.group_name || 'New chat',
+                    slug: (msg.group_slug || '').toString().toLowerCase(),
+                    unread: 0,
+                    latest: null
+                };
+                window.allGroups.unshift(placeholder);
+                if (typeof fetchGroups === 'function') { try { fetchGroups({ silent: true }); } catch(_) {} }
+            }
+            const currentGroup = window.allGroups.find(x => Number(x.id) === Number(msg.group_id));
+            const slug = (currentGroup && currentGroup.slug ? currentGroup.slug : '').toString().toLowerCase();
+            const isBookings = slug === 'bookings';
+            const senderGuard = (msg.sender_guard || '').toString().toLowerCase();
+            const senderIsAdmin = senderGuard === 'admin' || senderGuard === 'superadmin' || senderGuard === 'super_admin';
+            const viewerIsAdmin = !!(window.isRootAdmin || window.isSuperAdmin);
+            const viewerId = window.currentUser && window.currentUser.id != null ? Number(window.currentUser.id) : null;
+            const senderId = msg.user_id != null ? Number(msg.user_id) : (msg.user && msg.user.id != null ? Number(msg.user.id) : null);
+            const fromSameSocket = lastSocketId && msg.socket_id && msg.socket_id === lastSocketId;
+            const mine = !!msg.mine || (viewerId !== null && senderId !== null && viewerId === senderId) || fromSameSocket;
+            // For Bookings group: non-admin viewers only react to admin or own messages
+            if (isBookings && !viewerIsAdmin && !senderIsAdmin && !mine) {
+                return;
+            }
             let found = false;
             for (let i = 0; i < window.allGroups.length; ++i) {
                 if (Number(window.allGroups[i].id) === Number(msg.group_id)) {
                     const g = window.allGroups[i];
+                    const ts = msg.created_at || new Date().toISOString();
                     g.latest = {
                         id: msg.id,
                         type: msg.type,
@@ -2021,10 +2788,10 @@
                         sender_guard: msg.sender_guard,
                         sender_name: msg.sender_name,
                         user: msg.user || null,
-                        created_at: msg.created_at
+                        created_at: ts
                     };
                     g.last_msg_id = msg.id;
-                    g.last_msg_at = msg.created_at;
+                    g.last_msg_at = ts;
                     // Only increment unread if not mine and not the active chat
                     if (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) {
                         g.unread = (parseInt(g.unread)||0) + 1;
@@ -2035,46 +2802,42 @@
                     break;
                 }
             }
-            if (!found) {
-                // If we don't know the group yet (likely a DM the user can see), refetch groups to pull proper metadata
-                if (typeof window.fetchGroups === 'function') {
-                    window.fetchGroups();
-                } else {
-                    window.allGroups.unshift({
-                        id: msg.group_id,
-                        slug: msg.group_slug || '',
-                        name: msg.sender_name || 'Chat',
-                        avatar: (msg.user && msg.user.avatar) || '',
-                        latest: {
-                            id: msg.id,
-                            type: msg.type,
-                            content: msg.content,
-                            original_name: msg.original_name,
-                            sender_guard: msg.sender_guard,
-                            sender_name: msg.sender_name,
-                            user: msg.user || null,
-                            created_at: msg.created_at
-                        },
-                        last_msg_id: msg.id,
-                        last_msg_at: msg.created_at,
-                        unread: (!msg.mine && Number(msg.group_id) !== Number(window.activeGroupId)) ? 1 : 0
-                    });
-                }
-            }
             if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
+            updateHeaderBadge();
+
+            // If chat UI is closed and this isn't the active group, show a lightweight notification
+            const chatOpen = isChatOpen();
+            const isActive = Number(msg.group_id) === Number(window.activeGroupId);
+            if (!chatOpen && !isActive && !mine) {
+                const snippet = shortenSnippet(bestText(msg) || '[New message]');
+                const sender = msg.sender_name || (msg.user && msg.user.name) || 'New message';
+                const title = sender || 'New message';
+                showGlobalChatNotification(`${title}: ${snippet}`, { groupId: msg.group_id, replyToId: msg.id });
+            }
+
+            // Mark realtime as healthy and record time for polling backoff
+            realtimeOk = true;
+            lastRealtimeEvent = Date.now();
         }
 
         if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
 
-        // --- FIX: Do NOT append message bubble directly for active group ---
-        // Instead, always rely on fetchMessages to update the UI.
+        // Active group: append message in realtime without waiting for poll/fetch
         if (window.activeGroupId && Number(msg.group_id) === Number(window.activeGroupId)) {
-            // Remove direct append:
-            // if (typeof messageRow === 'function' && window.messagesEl) {
-            //     window.messagesEl.appendChild(messageRow(msg));
-            //     window.messagesEl.scrollTop = window.messagesEl.scrollHeight;
-            // }
-            // Active group is read
+            try {
+                if (!idIndex.has(msg.id)) {
+                    cache.push(msg);
+                    idIndex.add(msg.id);
+                    lastMessageId = msg.id;
+                    window.lastMessageId = lastMessageId;
+                    renderMessages(cache);
+                }
+            } catch(_) {}
+
+            // Mark as seen when user is viewing this group
+            try { markGroupSeen(msg.group_id, msg.id); } catch(_) {}
+
+            // Mark active group read
             if (Array.isArray(window.allGroups)) {
                 for (let i = 0; i < window.allGroups.length; ++i) {
                     if (Number(window.allGroups[i].id) === Number(msg.group_id)) {
@@ -2085,8 +2848,6 @@
                 if (typeof window.renderGroups === 'function') window.renderGroups(window.allGroups);
             }
             if (typeof window.__CHAT_UPDATE_BADGE__ === 'function') window.__CHAT_UPDATE_BADGE__();
-            // Always fetch messages to update UI
-            fetchMessages(window.activeGroupId);
         }
     }
     channel.bind('App\\Events\\MessageSent', handleChatEvent);
@@ -2097,9 +2858,13 @@
         console.log('[Pusher] Subscribed to chat channel');
     });
     channel.bind('pusher:subscription_error', function(status) {
+        realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Subscription error:', status);
     });
     channel.bind('pusher:error', function(err) {
+        realtimeOk = false;
+        lastRealtimeEvent = 0;
         console.error('[Pusher] Error:', err);
     });
 })();

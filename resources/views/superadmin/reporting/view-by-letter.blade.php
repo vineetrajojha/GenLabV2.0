@@ -29,8 +29,8 @@
     <div class="page-header">
         <div class="add-item d-flex">
             <div class="page-title">
-                <h4>Booking</h4>
-                <h6>Booking By Letter</h6>
+                <h4>Reports</h4>
+                <h6>Reports By Letter</h6>
             </div>
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
@@ -174,7 +174,7 @@
                                     </a>
                                     <!-- Modal -->
                                     <div class="modal fade" id="itemsModal-{{ $booking->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                             <div class="modal-content">
                                                 <div class="modal-header booking-items-modal-header">
                                                     <h5 class="modal-title">Booking Items for {{ $booking->client_name }}</h5>
@@ -190,7 +190,7 @@
                                                                     <th>Job Order No</th>
                                                                     <th>Sample Description</th>
                                                                     <th>Sample Quality</th>
-                                                                    <th>Lab Analyst</th>
+                                                                    <th>Status</th>
                                                                     <th>Particulars</th>
                                                                     <th>Expected Date</th>
                                                                     <th>Amount</th>
@@ -202,7 +202,7 @@
                                                                     <td>{{ $item->job_order_no }}</td>
                                                                     <td>{{ $item->sample_description }}</td>
                                                                     <td>{{ $item->sample_quality }}</td>
-                                                                    <td>{{ $item->lab_analysis_code }}</td>
+                                                                    <td>{{ $item->issue_date ? 'Issued' : 'Pending' }}</td>
                                                                     <td>{{ $item->particulars }}</td>
                                                                     <td>{{ \Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y') }}</td>
                                                                     <td>{{ $item->amount }}</td>
@@ -217,13 +217,14 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="d-flex"> 
+                            <td class="action-cell">
+                                <div class="d-flex align-items-center gap-2">
 
                             <!-- Uploaded Reports count (from Received Reports uploads) -->
                                 @php $files = $letterFiles[$booking->id] ?? []; @endphp
                                 @if(count($files) > 0)
                                     <button type="button"
-                                            class="btn btn-sm btn-outline-primary me-2 d-flex align-items-center gap-2"
+                                            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
                                             data-bs-toggle="modal"
                                             data-bs-target="#reportsModal-{{ $booking->id }}">
                                         <i data-feather="file-text" class="feather-file-text"></i>
@@ -252,14 +253,10 @@
                                         </div>
                                     </div>
                                 @endif
-
-                            <!-- View Booking Card -->
-                                <a href="{{ route('superadmin.bookings.cards.all', [$booking->id]) }}"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                </a> 
-  
+                                @if(count($files) === 0)
+                                    <span class="text-muted small">--</span>
+                                @endif
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -282,6 +279,10 @@
                     word-break: break-word;
                 }
                 @media (max-width: 768px){ .truncate-cell { max-width: none; } }
+
+                /* Action column layout */
+                .action-cell { min-width: 140px; }
+                .action-cell .btn { padding: 6px 10px; }
 
                 /* Keep modal close button aligned when title is long */
                 .booking-items-modal-header {
@@ -309,6 +310,21 @@
                     padding: 0.45rem 0.6rem;
                     vertical-align: middle;
                 }
+
+                /* Position items modal to the right so sidebar stays visible */
+                /* .items-modal-right {
+                    margin-left: auto;
+                    margin-right: 24px;
+                    max-width: 1200px;
+                    width: calc(100% - 40px);
+                }
+                @media (max-width: 991.98px) {
+                    .items-modal-right {
+                        margin-right: 12px;
+                        width: auto;
+                        max-width: 100%;
+                    }
+                } */
             </style>
             @endpush
 

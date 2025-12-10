@@ -33,7 +33,7 @@
 
                         <!-- Modal -->
                         <div class="modal fade" id="itemsModal-<?php echo e($booking->id); ?>" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-dialog modal-dialog-centered modal-xl items-modal-right">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Booking Items for <?php echo e($isClient ? ($booking->marketingPerson?->name ?? 'N/A') : ($booking->client?->name ?? 'N/A')); ?></h5>
@@ -49,7 +49,7 @@
                                                         <th>Job Order No</th>
                                                         <th>Sample Description</th>
                                                         <th>Sample Quality</th>
-                                                        <th>Lab Analyst</th>
+                                                        <th>Status</th>
                                                         <th>Particulars</th>
                                                         <th>Expected Date</th>
                                                         <th>Amount</th>
@@ -61,7 +61,7 @@
                                                         <td><?php echo e($item->job_order_no); ?></td>
                                                         <td><?php echo e($item->sample_description); ?></td>
                                                         <td><?php echo e($item->sample_quality); ?></td>
-                                                        <td><?php echo e($item->lab_analysis_code); ?></td>
+                                                        <td><?php echo e($item->issue_date ? 'Issued' : 'Pending'); ?></td>
                                                         <td><?php echo e($item->particulars); ?></td>
                                                         <td><?php echo e(\Carbon\Carbon::parse($item->lab_expected_date)->format('d-m-Y')); ?></td>
                                                         <td>₹<?php echo e(number_format($item->amount, 2)); ?></td>
@@ -95,4 +95,28 @@
     <?php echo $bookings->links('pagination::bootstrap-5'); ?>
 
 <?php endif; ?>
+
+<?php $__env->startPush('styles'); ?>
+<style>
+    .items-modal-right {
+        margin-left: auto;
+        margin-right: 18px;
+        max-width: 1200px;
+        width: 90%;
+    }
+    .items-modal-right .modal-content {
+        margin-left: auto;
+    }
+    @media (max-width: 991.98px) {
+        .items-modal-right {
+            margin-right: 12px;
+            width: auto;
+            max-width: 100%;
+        }
+        .items-modal-right .modal-content {
+            margin-left: 0;
+        }
+    }
+</style>
+<?php $__env->stopPush(); ?>
 <?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/marketingPerson/partials_bookings.blade.php ENDPATH**/ ?>

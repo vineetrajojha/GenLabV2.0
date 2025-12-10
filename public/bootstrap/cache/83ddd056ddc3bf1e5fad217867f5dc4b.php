@@ -108,26 +108,29 @@
                 <table class="table">
                     <thead class="table-light">
                         <tr>
-                            <th><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
-                            <th>Job Order No</th>
+                            <th class="checkbox-col"><label class="checkboxs"><input type="checkbox" id="select-all"><span class="checkmarks"></span></label></th>
+                            <th class="compact-col">Job Order No</th>
+                            <th class="ref-col">Reference No</th>
                             <th style="width:180px;">Client Name</th>
-                            <th style="width:240px;">Sample Description</th>
                             <th>Sample Quality</th>
                             <th style="width:240px;">Particulars</th>
-  
-                            <th>Action</th>
+                            <th>Status</th>
+                            <th>Letter</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $__empty_1 = true; $__currentLoopData = $items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
-                            <td><label class="checkboxs"><input type="checkbox"><span class="checkmarks"></span></label></td>
-                            <td class="job-order-cell" data-bs-toggle="tooltip" title="<?php echo e($item->job_order_no); ?>"><?php echo e($item->job_order_no); ?></td>
-                            <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->booking?->client_name ?? '-'); ?>"><?php echo e($item->booking?->client_name ?? '-'); ?></div>
+                            <td class="checkbox-col"><label class="checkboxs mb-0" style="margin-right:2px;"><input type="checkbox"><span class="checkmarks"></span></label></td>
+                            <td class="job-order-cell compact-col" data-bs-toggle="tooltip" title="<?php echo e($item->job_order_no); ?>"><?php echo e($item->job_order_no); ?></td>
+                            <td class="ref-cell ref-col">
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->booking?->reference_no ?? '-'); ?>">
+                                    <?php echo e($item->booking?->reference_no ?? '-'); ?>
+
+                                </div>
                             </td>
                             <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->sample_description); ?>"><?php echo e($item->sample_description); ?></div>
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->booking?->client_name ?? '-'); ?>"><?php echo e($item->booking?->client_name ?? '-'); ?></div>
                             </td>
                             <td>
                                 <div class="cell-inner"><?php echo e($item->sample_quality); ?></div>
@@ -135,17 +138,40 @@
                             <td class="truncate-cell">
                                 <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->particulars); ?>"><?php echo e($item->particulars); ?></div>
                             </td>
-                           
-                           
-                            <td class="d-flex"> 
-                                <!-- View Button --> 
-                                 <!-- View Booking Card -->
-                                    <a href="<?php echo e(route('superadmin.bookings.cards.single', [$item->booking->id, $item->id])); ?>"
-                                    target="_blank"
-                                    class="me-2 border rounded d-flex align-items-center p-2 text-decoration-none">
-                                        <i data-feather="eye" class="feather-eye"></i>
-                                    </a>
- 
+                            <?php
+                                $status = $item->issue_date ? 'Issued' : ($item->received_at ? 'Received' : 'Pending');
+                                $statusClass = $item->issue_date ? 'bg-success' : ($item->received_at ? 'bg-info' : 'bg-warning');
+                                $receiverName = $item->received_by_name ?? optional($item->receivedBy)->name;
+                                $statusDetail = match(true) {
+                                    !is_null($item->issue_date) => 'Issued on '.optional($item->issue_date)->format('d-M-Y'),
+                                    !is_null($item->received_at) => 'Received by '.($receiverName ?: 'N/A').' on '.optional($item->received_at)->format('d-M-Y H:i'),
+                                    default => 'Pending – not yet received',
+                                };
+                                $letterUrl = null;
+                                $path = $item->booking?->upload_letter_path ?? null;
+                                if ($path) {
+                                    try {
+                                        if(\Illuminate\Support\Str::startsWith($path, ['http://','https://'])){
+                                            $letterUrl = $path;
+                                        } else {
+                                            if(\Illuminate\Support\Facades\Storage::disk('public')->exists($path)){
+                                                $letterUrl = \Illuminate\Support\Facades\Storage::url($path);
+                                            } else {
+                                                $letterUrl = asset($path);
+                                            }
+                                        }
+                                    } catch (\Exception $e) {
+                                        $letterUrl = asset($path);
+                                    }
+                                }
+                            ?>
+                            <td><span class="badge <?php echo e($statusClass); ?>" data-bs-toggle="tooltip" title="<?php echo e($statusDetail); ?>"><?php echo e($status); ?></span></td>
+                            <td>
+                                <?php if($letterUrl): ?>
+                                    <a href="<?php echo e($letterUrl); ?>" target="_blank" class="btn btn-sm btn-outline-primary">View Letter</a>
+                                <?php else: ?>
+                                    <span class="badge bg-light text-muted">No Letter</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -196,6 +222,43 @@
 
     /* Allow full job order text to wrap */
     .job-order-cell{ max-width:320px; white-space:normal; word-break:break-word; overflow:visible; }
+
+    /* Reference number: allow wrap across up to 3+ lines without ellipsis */
+    .ref-cell { max-width: 220px; }
+    .ref-cell .cell-inner {
+        display: block;
+        white-space: normal;
+        word-break: break-word;
+        overflow: visible;
+        line-height: 1.25;
+    }
+
+    /* Compact columns */
+    .checkbox-col {
+        width: 20px;
+        padding-left: 0;
+        padding-right: 0;
+        text-align: center;
+    }
+    .checkbox-col label.checkboxs { display:inline-flex; align-items:center; margin-right:1px; }
+
+    .compact-col {
+        padding-left: 5px;
+        padding-right: 5px;
+        width: 170px;
+    }
+
+    .ref-col {
+        padding-left: 5px;
+        padding-right: 5px;
+        width: 200px;
+    }
+
+    /* Global table cell padding to 5px to reduce spacing between all columns */
+    table.table td,
+    table.table th {
+        padding: 5px !important;
+    }
 </style>
 <?php $__env->stopPush(); ?>
 

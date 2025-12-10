@@ -82,9 +82,9 @@
 
                         <!-- Key Actions -->
                         <div class="d-flex flex-column gap-2">
-                            <a href="<?php echo e(route('superadmin.bookings.newbooking')); ?>" class="btn btn-hero shadow-sm fw-bold">
-                                <i class="ti ti-plus me-1"></i> New Booking
-                            </a>
+                            <!-- <a href="<?php echo e(route('superadmin.bookings.newbooking')); ?>" class="btn btn-hero shadow-sm fw-bold">
+                                <i class="ti ti-plus me-1"></i> New
+                            </a> -->
                             <a href="<?php echo e(route('superadmin.marketing.expenses.view')); ?>" class="btn btn-hero-outline btn-glass">
                                 <i class="ti ti-wallet me-1"></i> View Expenses
                             </a>
