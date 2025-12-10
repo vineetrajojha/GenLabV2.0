@@ -33,6 +33,7 @@
     <div class="search-set">
         <form method="GET" action="<?php echo e(route('superadmin.accountBookingsLetters.index')); ?>" class="d-flex input-group">
             <input type="text" name="search" value="<?php echo e(request('search')); ?>" class="form-control" placeholder="Search...">
+             <input type="hidden" name="department_id" value="<?php echo e(request('department_id')); ?>">
             <button class="btn btn-outline-secondary" type="submit">🔍</button>
         </form>
     </div>
@@ -40,7 +41,8 @@
     <!-- Month & Year Filter -->
     <div class="search-set">
         <form method="GET" action="<?php echo e(route('superadmin.accountBookingsLetters.index')); ?>" class="d-flex input-group gap-2">
-            <select name="month" class="form-control">
+        <input type="hidden" name="department_id" value="<?php echo e(request('department_id')); ?>">    
+        <select name="month" class="form-control">
                 <option value="">Select Month</option>
                 <?php $__currentLoopData = range(1,12); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <option value="<?php echo e($m); ?>" <?php echo e(request('month') == $m ? 'selected' : ''); ?>>
