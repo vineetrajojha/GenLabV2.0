@@ -34,6 +34,7 @@
     <div class="search-set">
         <form method="GET" action="{{ route('superadmin.accountBookingsLetters.index') }}" class="d-flex input-group">
             <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search...">
+             <input type="hidden" name="department_id" value="{{ request('department_id') }}">
             <button class="btn btn-outline-secondary" type="submit">🔍</button>
         </form>
     </div>
@@ -41,7 +42,8 @@
     <!-- Month & Year Filter -->
     <div class="search-set">
         <form method="GET" action="{{ route('superadmin.accountBookingsLetters.index') }}" class="d-flex input-group gap-2">
-            <select name="month" class="form-control">
+        <input type="hidden" name="department_id" value="{{ request('department_id') }}">    
+        <select name="month" class="form-control">
                 <option value="">Select Month</option>
                 @foreach(range(1,12) as $m)
                     <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>

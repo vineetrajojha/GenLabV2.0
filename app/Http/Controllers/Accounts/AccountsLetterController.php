@@ -40,11 +40,13 @@ class AccountsLetterController extends Controller
             $query->where('department_id', $departmentId);
             $department = Department::find($departmentId);
         } else {
-            $department = null;
+            $department = null; 
         }
 
         if (!empty($clientId)) {
             $query->where('client_id', $clientId);
+        }else{
+            $query->whereNull('client_id'); 
         }
 
         // Search filter
