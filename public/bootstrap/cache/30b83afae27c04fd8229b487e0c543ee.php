@@ -246,13 +246,10 @@
                         </div>
                     </div>
                 </div>
-                 
-            </div>
-    
-        
+            </div> 
+
              
             <div class="d-flex align-items-center justify-content-end mb-4 mt-4">
-                
                 <button type="button" class="btn btn-secondary me-2">Cancel</button>
                 <button type="submit" class="btn btn-primary">Submit Data</button>
             </div>

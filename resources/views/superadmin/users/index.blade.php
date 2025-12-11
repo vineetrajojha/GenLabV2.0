@@ -114,7 +114,15 @@
                                                 {{-- Delete Button --}}
                                                 <button type="button" class="btn btn-danger btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ $user->id }}">
                                                     <i class="fa fa-trash"></i> Delete
-                                                </button>
+                                                </button>  
+
+                                                <!-- Send Notification Button -->
+                                                    <button type="button" class="btn btn-info btn-sm mb-1"
+                                                            data-bs-toggle="modal" data-bs-target="#sendNotificationModal{{ $user->id }}">
+                                                        <i class="fa fa-paper-plane"></i> Notify
+                                                    </button>
+
+
 
                                                 {{-- Edit Modal --}}
                                                 <div class="modal fade" id="editUserModal{{ $user->id }}" tabindex="-1" aria-labelledby="editUserLabel{{ $user->id }}" aria-hidden="true">
@@ -185,8 +193,57 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </div> 
 
+                                                <!-- Send Notification Modal -->
+                                                    <div class="modal fade" id="sendNotificationModal{{ $user->id }}" tabindex="-1"
+                                                        aria-labelledby="sendNotificationLabel{{ $user->id }}" aria-hidden="true">
+                                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                                            <div class="modal-content">
+
+                                                                <form action="{{ route('superadmin.users.sendNotification', $user->id) }}"
+                                                                    method="POST" enctype="multipart/form-data">
+                                                                    @csrf
+
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title" id="sendNotificationLabel{{ $user->id }}">
+                                                                            Send Notification to {{ $user->name }}
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                    </div>
+
+                                                                    <div class="modal-body">
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Custom Message</label>
+                                                                            <textarea name="message" class="form-control" rows="4" required
+                                                                                    placeholder="Type your message here..."></textarea>
+                                                                        </div>
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Attach Image (optional)</label>
+                                                                            <input type="file" name="image"
+                                                                                class="form-control"
+                                                                                accept="image/png,image/jpeg,image/jpg">
+                                                                            <small class="text-muted">Max size: 2MB</small>
+                                                                        </div>
+
+                                                                    </div>
+
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary"
+                                                                                data-bs-dismiss="modal">Cancel</button>
+
+                                                                        <button type="submit" class="btn btn-primary">
+                                                                            <i class="fa fa-paper-plane"></i> Send Notification
+                                                                        </button>
+                                                                    </div>
+
+                                                                </form>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                             </td>
                                         </tr>
                                     @empty
@@ -202,5 +259,8 @@
             </div>
         </div>
     </div>
-</div>
+</div> 
+
+
+
 @endsection

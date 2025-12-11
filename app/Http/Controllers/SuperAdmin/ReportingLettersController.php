@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Throwable;
 use App\Models\BookingItem;
 use App\Models\NewBooking;
+use App\Jobs\SendMarketingNotificationJob; 
 
 // Optional PDF page count support; if library missing we'll skip.
 
@@ -93,7 +94,7 @@ class ReportingLettersController extends Controller
             'job' => ['required', 'string', 'max:255'],
             'letters' => ['required'],
             'letters.*' => ['file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:20480'], // 20MB each
-        ]);
+        ]); 
 
         [$jobKey] = $this->resolveLetterKey($validated['job']);
         $fallbackKey = $this->sanitizeJob($validated['job']);
@@ -165,6 +166,35 @@ class ReportingLettersController extends Controller
                 $allowed = ['pdf','jpg','jpeg','png','doc','docx'];
                 return $ext && in_array($ext, $allowed, true);
             })));
+        } 
+
+        $booking = NewBooking::where('reference_no', $request->job)->firstOrFail();
+        $marketingUser = $booking->marketingPerson;
+
+        if ($marketingUser) {
+
+            // Build clickable file links
+            $fileLinks = [];
+            foreach ($uploaded as $file) {
+                $fileLinks[] = $file['download_url'];
+            }
+
+            $linksText = implode("\n", array_map(fn($url, $index) => ($index+1) . ". " . $url, $fileLinks, array_keys($fileLinks)));
+
+            $reportCount = count($files);
+
+            SendMarketingNotificationJob::dispatch(
+                $marketingUser,
+                "New Report Uploaded",
+                "New reports have been uploaded for Booking Ref: {$booking->reference_no}.\n\n"
+                ."Total Reports: {$reportCount}\n\n"
+                ."Download Links:\n{$linksText}",
+                [
+                    "total_reports" => $reportCount,
+                    "client_name"   => $booking->client->name ?? null,
+                    "reference_no"  => $booking->reference_no,
+                ]
+            );
         }
         return response()->json([
             'ok' => true,

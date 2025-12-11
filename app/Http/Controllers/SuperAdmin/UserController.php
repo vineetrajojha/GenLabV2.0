@@ -7,7 +7,8 @@ use App\Models\Role;
 use App\Models\Permission; 
 use Illuminate\Http\Request;
 use App\Services\UserRegistroService; 
-use App\Models\User;
+use App\Models\User; 
+use App\Jobs\SendMarketingNotificationJob; 
 
 
 class UserController extends Controller
@@ -51,5 +52,36 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         return $this->service->delete($user);
+    } 
+
+    public function sendNotification(Request $request, $id)
+    {
+        $request->validate([
+            'message' => 'required|string|max:5000',
+            'image' => 'nullable|image|max:2048', // 2MB
+        ]);
+
+        $user = User::findOrFail($id);
+
+        // Handle image upload if provided
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('public/notifications');
+            $imagePath = str_replace('public/', 'storage/', $imagePath);
+        }
+
+        // Example: Send notification via Job
+        SendMarketingNotificationJob::dispatch(
+            $user,
+            "Admin Notification",
+            $request->message,
+            [
+                "image" => $imagePath,
+            ]
+        );
+
+        return back()->with('success', "Notification sent to {$user->name}.");
     }
+
+
 }

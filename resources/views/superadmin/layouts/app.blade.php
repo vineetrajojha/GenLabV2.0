@@ -43,7 +43,6 @@
     <link rel="stylesheet" href="{{ url('assets/css/style.css') }}">
     
     @stack('styles')
-
     <!-- Global page loader styles -->
     <style>
         :root{ --loader-color-1: #fe9f43; --loader-color-2: #d88b34; --loader-color-rgb: 254,159,67; }
