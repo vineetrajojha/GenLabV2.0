@@ -152,6 +152,12 @@ Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function
         [MarketingPersonInfo::class, 'fetchBookings']
     );
 
+    // Booking items by letter (mobile API) - mirrors bookingByLetter Blade view
+    Route::get('{user_code}/bookings/by-letter', [MarketingPersonInfo::class, 'bookingByLetter'])->name('api.marketing.booking.by-letter');
+
+    // Booking list for "Booking By Letter" view (includes items, reports, invoice)
+    Route::get('{user_code}/bookings/showbooking', [MarketingPersonInfo::class, 'showBookingApi'])->name('api.marketing.booking.showbooking');
+
     // Fetch Without Bill Bookings
     Route::get('{user_code}/bookings/without-bill', 
         [MarketingPersonInfo::class, 'WithoutBillBookings']
