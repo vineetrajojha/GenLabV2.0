@@ -1,0 +1,57 @@
+{
+  "info": {
+    "name": "Marketing - Personal Expenses API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "marketing-personal-expenses-001"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost" },
+    { "key": "token", "value": "<JWT_TOKEN>" },
+    { "key": "user_code", "value": "MKT001" }
+  ],
+  "item": [
+    {
+      "name": "Get Personal Expenses (List)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/marketing-person/{{user_code}}/personal/expenses?perPage=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "marketing-person", "{{user_code}}", "personal", "expenses" ],
+          "query": [
+            { "key": "perPage", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Personal Expense (Upload)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "section", "value": "Travel", "type": "text" },
+            { "key": "expense_date", "value": "2025-12-13", "type": "text" },
+            { "key": "amount", "value": "1200", "type": "text" },
+            { "key": "description", "value": "Parking fee", "type": "text" },
+            { "key": "file", "type": "file", "src": "" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/marketing-person/{{user_code}}/personal/expenses",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "api", "marketing-person", "{{user_code}}", "personal", "expenses" ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
