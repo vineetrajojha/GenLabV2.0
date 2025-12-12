@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Services\{GetUserActiveDepartment,BillingService};
 use App\Services\InvoicePdfService;
 use App\Http\Requests\GenerateInvoiceRequest;
+use App\Jobs\SendMarketingNotificationJob;
 
 use App\Http\Controllers\Transactions\CashPaymentController;
 
@@ -274,6 +275,22 @@ class InvoiceController extends Controller
                         $item->save();
                     }
                 }
+            } 
+
+            // ---------------------------
+            // SEND NOTIFICATION TO MARKETING USER
+            // --------------------------- 
+            
+            $marketingUser = User::where('user_code', $booking->marketing_id)->first();
+            if ($marketingUser) {
+                SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    "Invoice Successfully Revised",
+                    "Invoice No: {$invoice_no} has been reviewed and updated in the system.",
+                    [
+                        "total_amount" => $invoice->total_amount
+                    ]
+                );
             }
 
             return redirect()->back()->with('success', 'Invoice updated successfully.');
@@ -299,7 +316,7 @@ class InvoiceController extends Controller
             $invoiceData['invoice']['invoiceType'] = strtoupper(str_replace('_', ' ', $invoiceType));
             // dd($invoiceData['invoice']['invoiceType']); 
             // exit; 
-
+           
             return $this->invoicePdfService->generate($invoiceData);
 
         } catch (\Throwable $e) {
@@ -349,6 +366,23 @@ class InvoiceController extends Controller
         // Save relative path to invoice table
         $invoice->invoice_letter_path = 'uploads/invoices/' . $fileName;
         $invoice->save();
+        
+            // ---------------------------
+            // SEND NOTIFICATION TO MARKETING USER
+            // --------------------------- 
+            
+            $marketingUser = User::where('user_code', $invoice->marketing_user_code)->first();
+
+            if ($marketingUser) {
+                SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    "Invoice Upload",
+                    "Invoice No: {$invoice->invoice_no} has been updated.",
+                    [
+                        "invoice_pdf" => $invoice->invoice_letter_path,
+                    ]
+                );
+            }
 
         return back()->with('success', "File uploaded successfully: $fileName");
     }
@@ -367,32 +401,57 @@ class InvoiceController extends Controller
     public function cancel(Invoice $invoice)
     {
         try {
+            $notificationTitle = "";
+            $notificationMessage = "";
+
             // Case 1: Pending invoice (0) → Cancel
             if ($invoice->status == 0) {
                 $invoice->status = 2;
                 $invoice->save();
+
                 $message = 'Invoice has been cancelled successfully.';
+                $notificationTitle = 'Invoice Cancelled';
+                $notificationMessage = "Invoice No: {$invoice->invoice_no} has been cancelled.";
 
             // Case 2: Already cancelled (2) → Undo cancel
             } elseif ($invoice->status == 2) {
                 $invoice->status = 0;
                 $invoice->save();
-                $message = 'Invoice cancellation has been undone.';
 
-            // Case 3: Paid (1), Partial (3), Settled (4) → Delete transactions then reset
+                $message = 'Invoice cancellation has been undone.';
+                $notificationTitle = 'Invoice Restored';
+                $notificationMessage = "Invoice No: {$invoice->invoice_no} has been restored to pending.";
+
+            // Case 3: Paid/Partial/Settled → Delete transactions → Reset to pending
             } elseif (in_array($invoice->status, [1, 3, 4])) {
-                // Call destroy method (should return true/false)
+
                 $success = $this->cashPaymentController->destroyInvoiceTransactions($invoice->id);
 
                 if ($success) {
                     $message = 'All transactions and TDS entries have been deleted. Invoice status reset to Pending.';
+                    $notificationTitle = 'Invoice Reset';
+                    $notificationMessage = "Invoice No: {$invoice->invoice_no} has been reset to pending after deleting all transactions.";
                 } else {
                     return redirect()->back()->with('error', 'Failed to delete transactions for this invoice.');
                 }
 
-            // Case 4: Other statuses → Not allowed
+            // Case 4: Not allowed
             } else {
                 return redirect()->back()->with('error', 'This invoice cannot be cancelled.');
+            }
+
+            // MARKETING USER NOTIFICATION
+            $marketingUser = User::where('user_code', $invoice->marketing_user_code)->first();
+
+            if ($marketingUser) {
+                SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    $notificationTitle,
+                    $notificationMessage,
+                    [
+                        "invoice_pdf" => $invoice->invoice_letter_path,
+                    ]
+                );
             }
 
             return redirect()->back()->with('success', $message);
@@ -406,5 +465,5 @@ class InvoiceController extends Controller
             return redirect()->back()->with('error', 'Something went wrong while processing the invoice.');
         }
     }
-
+    
 }

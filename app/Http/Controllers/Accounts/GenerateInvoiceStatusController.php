@@ -13,7 +13,7 @@ use App\Models\{NewBooking, Department, Invoice, InvoiceBookingItem, PaymentSett
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\{GetUserActiveDepartment, BillingService};
 use App\Services\{InvoicePdfService, NumberToWordsService}; 
-
+use App\Jobs\SendMarketingNotificationJob;
 
 use Illuminate\Support\Facades\DB;
 
@@ -263,6 +263,30 @@ class GenerateInvoiceStatusController extends Controller
             $invoice = $this->storeInvoiceData($invoiceData, $invoiceType);
 
             $invoiceData['invoice']['invoiceType'] = strtoupper(str_replace('_', ' ', $invoiceType));
+            
+            // ---------------------------
+            // SEND NOTIFICATION TO MARKETING USER
+            // --------------------------- 
+           
+            $bookingId = $invoiceData['booking_id'] ?? null;
+            $booking = null;
+
+            if ($bookingId) {
+                $booking = NewBooking::select('client_id', 'marketing_id')->find($bookingId);
+            }  
+
+            $marketingUser = $booking->marketingPerson;
+            if ($marketingUser) {
+                SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    "New Invoice Generated",
+                    "A new invoice has been generated. Invoice No: {$invoiceData['invoice']['invoice_no']}.",
+                    [
+                        "total_amount" => $invoiceData['invoice']['total_amount'],
+                        "client_name"  => $booking->client->name,
+                    ]
+                );
+            } 
             
             return $this->invoicePdfService->generate($invoiceData);
 

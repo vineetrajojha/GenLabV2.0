@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\NumberToWordsService;
 use Illuminate\Support\Facades\DB; 
+use App\Jobs\SendMarketingNotificationJob; 
 
 
 use App\Models\SiteSetting;
@@ -100,7 +101,22 @@ class QuotationController extends Controller
                 'letterhead' => $letterhead
             ]);
 
-            DB::commit(); // Commit transaction
+            DB::commit(); // Commit transaction 
+
+
+            if ($marketingUser) {
+            SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    "New Quotation Issued",
+                    "Quotation No: {$request->quotation_no} has been generated and is now available for review.",
+                    [
+                        "quotation_no" => $request->quotation_no, 
+                        "payable_amount" => $quotationData['totals']['payable_amount']
+                    ]
+                );
+            }
+
+
             return redirect()->back()->with('success', 'Quotation created successfully.');
 
         } catch (\Exception $e) {
@@ -165,7 +181,22 @@ class QuotationController extends Controller
                 'letterhead' => $letterhead
             ]);
 
-            DB::commit(); // Commit transaction
+            DB::commit(); // Commit transaction 
+
+
+            if ($marketingUser) {
+            SendMarketingNotificationJob::dispatch(
+                $marketingUser,
+                "Quotation Successfully Revised",
+                "Quotation No: {$quotation->quotation_no} has been reviewed and updated in the system.",
+                [
+                    "quotation_no" => $quotation->quotation_no, 
+                    "payable_amount" => $$quotationData['totals']['payable_amount'], 
+                ]
+            );
+        }
+
+
             return redirect()->back()->with('success', 'Quotation updated successfully.');
 
         } catch (\Exception $e) {
@@ -180,7 +211,8 @@ class QuotationController extends Controller
      */
     public function destroy(Quotation $quotation)
     {
-        try {
+        try { 
+            
             $quotation->delete();
             return redirect()->route('quotations.index')->with('success', 'Quotation deleted successfully.');
         } catch (\Exception $e) {

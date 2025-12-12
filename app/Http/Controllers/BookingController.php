@@ -146,15 +146,13 @@ class BookingController extends Controller
                     "New Booking assigned!",
                     "New Booking assigned with Ref_No :{$request->reference_no}",
                     [
+                        "client_name" => $booking->client_name, 
                         "booking_id" => $booking->id,
                         "updated_by" => auth()->id(),
                         "status"     => $booking->status
                     ]
                 );
             } 
-
-            
-
             return $this->bookingCardService->renderCardsForBooking($booking);            
 
         } catch (\Exception $e) {
@@ -227,23 +225,25 @@ class BookingController extends Controller
                     } 
                 }
             }); 
+        
 
-
-            // Find user where user_code == marketing_id
+            // ---------------------------
+            // SEND NOTIFICATION TO MARKETING USER
+            // ---------------------------
             $marketingUser = User::where('user_code', $request->marketing_id)->first();
 
-            if ($marketingUser && $marketingUser->device_token) {
-
-                $this->fcmService->sendNotification(
-                    $marketingUser->device_token,
+            if ($marketingUser) {
+                SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
                     "Booking Updated",
-                    "A booking assigned to you has been updated.",
+                    "Booking Ref_No :{$request->reference_no} has been updated.",
                     [
                         "booking_id" => $new_booking->id,
                         "updated_by" => auth()->user()->name ?? "System",
+                        "client_name" => $new_booking->client_name, 
                     ]
                 );
-            }         
+            } 
 
             return redirect()
                 ->back()
@@ -265,11 +265,28 @@ class BookingController extends Controller
      */
     public function destroy(NewBooking $new_booking)
     {
-        try {
+        try { 
+
+            $marketingUser = User::where('user_code', $new_booking->marketing_id)->first(); 
+            $Ref_No =  $new_booking->reference_no; 
+            $booking_id = $new_booking->id; 
+            $client_name = $new_booking->client_name; 
+
             DB::transaction(function () use ($new_booking) {
                 $new_booking->items()->delete();
                 $new_booking->delete();
-            });
+            }); 
+            
+            SendMarketingNotificationJob::dispatch(
+                    $marketingUser,
+                    "Booking Deleted",
+                    "Booking Ref_No :{$request->reference_no} has been deleted.",
+                    [
+                        "booking_id" => $booking_id,
+                        "updated_by" => auth()->user()->name ?? "System",
+                        "client_name" => $client_name, 
+                    ]
+            );
 
             return redirect()
                 ->back()

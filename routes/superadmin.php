@@ -150,7 +150,8 @@ Route::middleware(['multi_auth:web,admin'])->prefix('superadmin')->name('superad
             Route::put('{user}', [UserController::class, 'update'])->name('update');
             Route::put('users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('updatePermissions');
 
-            Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy');
+            Route::delete('{user}', [UserController::class, 'destroy'])->name('destroy'); 
+            Route::post('{id}/send-notification',[UserController::class, 'sendNotification'])->name('sendNotification');
 
     });
 

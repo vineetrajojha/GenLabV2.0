@@ -132,7 +132,15 @@
                                                 
                                                 <button type="button" class="btn btn-danger btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#deleteUserModal<?php echo e($user->id); ?>">
                                                     <i class="fa fa-trash"></i> Delete
-                                                </button>
+                                                </button>  
+
+                                                <!-- Send Notification Button -->
+                                                    <button type="button" class="btn btn-info btn-sm mb-1"
+                                                            data-bs-toggle="modal" data-bs-target="#sendNotificationModal<?php echo e($user->id); ?>">
+                                                        <i class="fa fa-paper-plane"></i> Notify
+                                                    </button>
+
+
 
                                                 
                                                 <div class="modal fade" id="editUserModal<?php echo e($user->id); ?>" tabindex="-1" aria-labelledby="editUserLabel<?php echo e($user->id); ?>" aria-hidden="true">
@@ -204,8 +212,58 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                </div> 
 
+                                                <!-- Send Notification Modal -->
+                                                    <div class="modal fade" id="sendNotificationModal<?php echo e($user->id); ?>" tabindex="-1"
+                                                        aria-labelledby="sendNotificationLabel<?php echo e($user->id); ?>" aria-hidden="true">
+                                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                                            <div class="modal-content">
+
+                                                                <form action="<?php echo e(route('superadmin.users.sendNotification', $user->id)); ?>"
+                                                                    method="POST" enctype="multipart/form-data">
+                                                                    <?php echo csrf_field(); ?>
+
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title" id="sendNotificationLabel<?php echo e($user->id); ?>">
+                                                                            Send Notification to <?php echo e($user->name); ?>
+
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                    </div>
+
+                                                                    <div class="modal-body">
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Custom Message</label>
+                                                                            <textarea name="message" class="form-control" rows="4" required
+                                                                                    placeholder="Type your message here..."></textarea>
+                                                                        </div>
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Attach Image (optional)</label>
+                                                                            <input type="file" name="image"
+                                                                                class="form-control"
+                                                                                accept="image/png,image/jpeg,image/jpg">
+                                                                            <small class="text-muted">Max size: 2MB</small>
+                                                                        </div>
+
+                                                                    </div>
+
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary"
+                                                                                data-bs-dismiss="modal">Cancel</button>
+
+                                                                        <button type="submit" class="btn btn-primary">
+                                                                            <i class="fa fa-paper-plane"></i> Send Notification
+                                                                        </button>
+                                                                    </div>
+
+                                                                </form>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -221,7 +279,10 @@
             </div>
         </div>
     </div>
-</div>
+</div> 
+
+
+
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV1.0\resources\views/superadmin/users/index.blade.php ENDPATH**/ ?>
