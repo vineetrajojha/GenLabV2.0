@@ -158,15 +158,27 @@ Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function
     // Booking list for "Booking By Letter" view (includes items, reports, invoice)
     Route::get('{user_code}/bookings/showbooking', [MarketingPersonInfo::class, 'showBookingApi'])->name('api.marketing.booking.showbooking');
 
+    // View-By-Letter bookings (mobile API) - mirrors view-by-letter.blade.php
+    Route::get('{user_code}/bookings/view-by-letter', [MarketingPersonInfo::class, 'viewByLetterApi'])->name('api.marketing.bookings.view-by-letter');
+
+    // Reports by Job Order (mobile API) - mirrors view-by-job-order.blade.php
+    Route::get('{user_code}/reports/by-job-order', [MarketingPersonInfo::class, 'viewByJobOrderApi'])->name('api.marketing.reports.by-job-order');
+
     // Fetch Without Bill Bookings
     Route::get('{user_code}/bookings/without-bill', 
         [MarketingPersonInfo::class, 'WithoutBillBookings']
     );
 
+    // Bookings pending invoice generation (mobile)
+    Route::get('{user_code}/bookings/generate-invoice', [MarketingPersonInfo::class, 'generateInvoiceListApi'])->name('api.marketing.bookings.generate-invoice');
+
     // Fetch Invoices
     Route::get('{user_code}/invoices', 
         [MarketingPersonInfo::class, 'fetchInvoices']
     );
+
+    // Invoice list for marketing index (mobile API)
+    Route::get('{user_code}/invoices/list', [MarketingPersonInfo::class, 'invoiceListApi'])->name('api.marketing.invoices.list');
 
     // Fetch Invoice Transactions
     Route::get('{user_code}/invoice-transactions', 
@@ -182,6 +194,10 @@ Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function
     Route::get('{user_code}/clients',
         [MarketingPersonInfo::class, 'fetchClients']
     );
+
+    // Personal expenses (mobile): list and create
+    Route::get('{user_code}/personal/expenses', [MarketingPersonInfo::class, 'personalExpensesListApi'])->name('api.marketing.personal.expenses.list');
+    Route::post('{user_code}/personal/expenses', [MarketingPersonInfo::class, 'personalExpensesStoreApi'])->name('api.marketing.personal.expenses.store');
 
 });
 
