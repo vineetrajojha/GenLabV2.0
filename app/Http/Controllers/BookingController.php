@@ -144,7 +144,7 @@ class BookingController extends Controller
                 SendMarketingNotificationJob::dispatch(
                     $marketingUser,
                     "New Booking assigned!",
-                    "New Booking assigned with Ref_No :{$request->reference_no}",
+                    "{$booking->client_name} with Ref_No :{$request->reference_no}",
                     [
                         "client_name" => $booking->client_name, 
                         "booking_id" => $booking->id,
@@ -152,7 +152,7 @@ class BookingController extends Controller
                         "status"     => $booking->status
                     ]
                 );
-            } 
+            }
             return $this->bookingCardService->renderCardsForBooking($booking);            
 
         } catch (\Exception $e) {

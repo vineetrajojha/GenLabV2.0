@@ -26,44 +26,116 @@
 @endif
 
 
+
 <div class="row g-3">
 
     <!-- Card 1: GSTIN Search -->
     <div class="col-sm-6">
-        <div class="card">
-            <div class="card-body">
-                <form id="gstinForm" class="row g-2 align-items-end" method="POST" action="">
+        <div class="card shadow-sm h-100">
+            <div class="card-body p-4">
+                <h6 class="fw-semibold mb-3">
+                    <i class="bi bi-search me-1 text-primary"></i> GSTIN Search
+                </h6>
+
+                <form id="gstinForm" class="row g-2 align-items-end" method="POST">
                     @csrf
                     <div class="col-sm-8">
-                        <label class="form-label">ENTER GSTIN</label>
-                        <input type="text" name="gstin" id="gstinInput" class="form-control" placeholder="Enter GSTIN" required>
+                        <label class="form-label">Enter GSTIN</label>
+                        <input type="text"
+                               name="gstin"
+                               id="gstinInput"
+                               class="form-control"
+                               placeholder="Enter GSTIN"
+                               required>
                     </div>
-                    <div class="col-sm-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    <div class="col-sm-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-1"></i> Search
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Card 2: File Upload -->
-    <!-- <div class="col-sm-6">
-        <div class="card">
-            <div class="card-body">
-                <form id="gstinUploadForm" class="d-flex flex-column" enctype="multipart/form-data" method="POST" action="">
+    <!-- Card 2: GSTIN File Upload -->
+    <div class="col-sm-6">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-body p-4">
+
+                <!-- Header -->
+                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                    <span class="bg-primary bg-opacity-10 text-primary rounded-circle p-2">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </span>
+                    Upload Invoice
+                </h6>
+
+                <form id="gstinUploadForm"
+                      enctype="multipart/form-data"
+                      method="POST"
+                      action="{{ route('superadmin.gstin.upload') }}">
+
                     @csrf
-                    <label for="gstinFile" class="btn btn-secondary w-50 mb-2">Upload File</label>
-                    <input type="file" id="gstinFile" name="gstin_file" class="d-none">
-                    <small id="fileName" class="text-muted">No file selected</small>
-                    <button type="submit" class="btn btn-success w-50 mt-3">Save</button>
+                    <input type="hidden"
+                           name="invoice_id"
+                           value="{{ $booking->generatedInvoice?->id ?? '0' }}">
+
+                    <!-- Hidden File Input -->
+                    <input type="file"
+                           id="gstinFile"
+                           name="gstin_file"
+                           class="d-none"
+                           onchange="document.getElementById('fileName').innerText = this.files[0]?.name || 'No file selected'">
+
+                    <!-- Upload Area -->
+                    <label for="gstinFile"
+                           class="w-100 border border-dashed rounded-3 p-4 text-center bg-light mb-3"
+                           style="cursor:pointer">
+                        <i class="bi bi-cloud-upload fs-3 text-primary mb-1 d-block"></i>
+                        <div class="fw-medium">Click to upload invoice</div>
+                        <small class="text-muted">PDF, JPG, PNG</small>
+                    </label>
+
+                    <!-- Footer Actions -->
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+                        <small id="fileName" class="text-muted">
+                            No file selected
+                        </small>
+
+                        <div class="d-flex gap-2">
+
+                            <!-- View Button -->
+                            <a href="{{ $booking->generatedInvoice?->invoice_letter_path
+                                        ? url($booking->generatedInvoice->invoice_letter_path)
+                                        : '#' }}"
+                               target="_blank"
+                               class="btn btn-outline-secondary btn-sm
+                               {{ empty($booking->generatedInvoice?->invoice_letter_path) ? 'disabled' : '' }}">
+                                <i class="bi bi-eye">View</i>
+                            </a>
+
+                            <!-- Save Button -->
+                            <button type="submit" class="btn btn-success btn-sm px-3">
+                                <i class="bi bi-check-circle me-1"></i> Save
+                            </button>
+
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
-    </div> -->
+    </div>
+
 </div>
 
+
+
 <!-- GSTIN Details / Error Modal -->
-<div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
+
+    <div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -84,7 +156,7 @@
       </div>
     </div>
   </div>
-</div>
+    </div>
 
 
 <div class="content">

@@ -277,22 +277,6 @@ class InvoiceController extends Controller
                 }
             } 
 
-            // ---------------------------
-            // SEND NOTIFICATION TO MARKETING USER
-            // --------------------------- 
-            
-            $marketingUser = User::where('user_code', $booking->marketing_id)->first();
-            if ($marketingUser) {
-                SendMarketingNotificationJob::dispatch(
-                    $marketingUser,
-                    "Invoice Successfully Revised",
-                    "Invoice No: {$invoice_no} has been reviewed and updated in the system.",
-                    [
-                        "total_amount" => $invoice->total_amount
-                    ]
-                );
-            }
-
             return redirect()->back()->with('success', 'Invoice updated successfully.');
 
         } catch (\Throwable $e) {

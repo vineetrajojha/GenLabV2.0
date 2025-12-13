@@ -1,27 +1,28 @@
-@php
+<?php
     use Illuminate\Support\Str;
-@endphp
+?>
 
-@extends('superadmin.layouts.app')
 
-@section('title', 'Invoice Report')
 
-@section('content')
-@if ($errors->any())
+<?php $__env->startSection('title', 'Invoice Report'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php if($errors->any()): ?>
     <div class="alert alert-danger">
         <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($error); ?></li>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </ul>
     </div>
-@endif
+<?php endif; ?>
 
-@if (session('success'))
+<?php if(session('success')): ?>
     <div class="alert alert-success">
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
     </div>
-@endif
+<?php endif; ?>
 
 <!-- <div class="row g-3">
 
@@ -30,7 +31,7 @@
         <div class="card">
             <div class="card-body">
                 <form id="gstinForm" class="row g-2 align-items-end" method="POST" action="">
-                    @csrf
+                    <?php echo csrf_field(); ?>
                     <div class="col-sm-8">
                         <label class="form-label">ENTER GSTIN</label>
                         <input type="text" name="gstin" id="gstinInput" class="form-control" placeholder="Enter GSTIN" required>
@@ -47,9 +48,9 @@
     <div class="col-sm-6">
         <div class="card">
             <div class="card-body">
-                <form id="gstinUploadForm" class="d-flex flex-column" enctype="multipart/form-data" method="POST" action="{{route('superadmin.gstin.upload')}}">
-                    @csrf
-                    <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                <form id="gstinUploadForm" class="d-flex flex-column" enctype="multipart/form-data" method="POST" action="<?php echo e(route('superadmin.gstin.upload')); ?>">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="invoice_id" value="<?php echo e($invoice->id); ?>">
                     <label for="gstinFile" class="btn btn-secondary w-50 mb-2">Upload File</label>
                     <input type="file" id="gstinFile" name="gstin_file" class="d-none">
                     <small id="fileName" class="text-muted">No file selected</small>
@@ -72,7 +73,7 @@
                 </h6>
 
                 <form id="gstinForm" class="row g-2 align-items-end" method="POST">
-                    @csrf
+                    <?php echo csrf_field(); ?>
                     <div class="col-sm-8">
                         <label class="form-label">Enter GSTIN</label>
                         <input type="text"
@@ -108,12 +109,12 @@
                 <form id="gstinUploadForm"
                       enctype="multipart/form-data"
                       method="POST"
-                      action="{{ route('superadmin.gstin.upload') }}">
+                      action="<?php echo e(route('superadmin.gstin.upload')); ?>">
 
-                    @csrf
+                    <?php echo csrf_field(); ?>
                     <input type="hidden"
                            name="invoice_id"
-                           value="{{ $invoice->id ?? '0' }}">
+                           value="<?php echo e($invoice->id ?? '0'); ?>">
 
                     <!-- Hidden File Input -->
                     <input type="file"
@@ -140,12 +141,12 @@
 
                         <div class="d-flex gap-2">
                             <!-- View Button -->
-                            <a href="{{ $invoice->invoice_letter_path
+                            <a href="<?php echo e($invoice->invoice_letter_path
                                         ? url($invoice->invoice_letter_path)
-                                        : '#' }}"
+                                        : '#'); ?>"
                                target="_blank"
                                class="btn btn-outline-secondary btn-sm
-                               {{ empty($invoice->invoice_letter_path) ? 'disabled' : '' }}">
+                               <?php echo e(empty($invoice->invoice_letter_path) ? 'disabled' : ''); ?>">
                                 <i class="bi bi-eye">View</i>
                             </a>
 
@@ -190,21 +191,21 @@
 <div class="content">
 
     <form id="invoiceForm" method="POST">
-        @csrf
-        @method('PUT') 
+        <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?> 
 
 
-        <input type="hidden" id="td_booking_id" name="booking_id" value="{{ $invoice->new_booking_id}}">
-        <input type="hidden" id="td_invoice_id" name="invoice_id" value="{{ $invoice->id}}">
-        <input type="hidden" id="td_invoice_no" name="invoice_no" value="{{ $invoice->invoice_no}}">
+        <input type="hidden" id="td_booking_id" name="booking_id" value="<?php echo e($invoice->new_booking_id); ?>">
+        <input type="hidden" id="td_invoice_id" name="invoice_id" value="<?php echo e($invoice->id); ?>">
+        <input type="hidden" id="td_invoice_no" name="invoice_no" value="<?php echo e($invoice->invoice_no); ?>">
 
         <div class="page-header d-flex justify-content-between align-items-center">
             <div class="page-title">
-                <h4 class="fw-bold text-uppercase">{{ str_replace('_', ' ', $invoice->type) }}</h4>
+                <h4 class="fw-bold text-uppercase"><?php echo e(str_replace('_', ' ', $invoice->type)); ?></h4>
                 <h6>PDF </h6>
             </div>
             <div class="page-btn">
-                <button type="submit" class="btn btn-danger" formaction="{{ route('superadmin.invoices.generateInvoice', $invoice->id) }}">
+                <button type="submit" class="btn btn-danger" formaction="<?php echo e(route('superadmin.invoices.generateInvoice', $invoice->id)); ?>">
                     <i class="fa fa-file-pdf me-2"></i>Download PDF
                 </button>
             </div>
@@ -217,33 +218,33 @@
                 <table class="table table-bordered mb-4">
                     <tr>
                         <th>Client Name</th>
-                        <td class="noteditable" id="td_client_name">{{ $invoice->relatedBooking->client_name ?? 'N/A' }}</td>
+                        <td class="noteditable" id="td_client_name"><?php echo e($invoice->relatedBooking->client_name ?? 'N/A'); ?></td>
                         <th>Marketing Person</th>
-                        <td class="noteditable" id="td_marketing_person">{{ $invoice->relatedBooking->marketingPerson->name ?? 'N/A' }}</td>
+                        <td class="noteditable" id="td_marketing_person"><?php echo e($invoice->relatedBooking->marketingPerson->name ?? 'N/A'); ?></td>
                     </tr>
                     <tr>
                         <th>Invoice No </th>
-                        <td   class="noteditable" id="td_invoice_no">{{$invoice->invoice_no ?? ''}}</td>
+                        <td   class="noteditable" id="td_invoice_no"><?php echo e($invoice->invoice_no ?? ''); ?></td>
                         <th>Reference No</th>
-                        <td contenteditable="true" class="editable" id="td_reference_no">{{ $invoice->relatedBooking->reference_no ?? ''}}</td>
+                        <td contenteditable="true" class="editable" id="td_reference_no"><?php echo e($invoice->relatedBooking->reference_no ?? ''); ?></td>
                     </tr>
                     <tr>
                         <th>Invoice Date</th>
-                        <td contenteditable="true" class="editable" id="td_invoice_date">{{ $invoice->invoice_date }}</td>
+                        <td contenteditable="true" class="editable" id="td_invoice_date"><?php echo e($invoice->invoice_date); ?></td>
                         <th>Letter Date</th>
-                        <td  contenteditable="true" class="editable" id="td_letter_date">{{ \Carbon\Carbon::parse($invoice->letter_date)->format('d-m-Y') ??'' }}</td>
+                        <td  contenteditable="true" class="editable" id="td_letter_date"><?php echo e(\Carbon\Carbon::parse($invoice->letter_date)->format('d-m-Y') ??''); ?></td>
                     </tr>
                     <tr>
                         <th>Name of Work</th>
-                        <td contenteditable="true" class="editable" id="td_name_of_work">{{ $invoice->name_of_work ?? '' }}</td>
+                        <td contenteditable="true" class="editable" id="td_name_of_work"><?php echo e($invoice->name_of_work ?? ''); ?></td>
                         <th>Bill Issue To</th>
-                        <td contenteditable="true" class="editable" id="td_bill_issue_to">{{ $invoice->issue_to ?? '' }}</td>
+                        <td contenteditable="true" class="editable" id="td_bill_issue_to"><?php echo e($invoice->issue_to ?? ''); ?></td>
                     </tr>
                     <tr>
                         <th>Client GSTIN</th>
-                        <td contenteditable="true" class="editable" id="td_client_gstin">{{ $invoice->client_gstin ?? '' }}</td>
+                        <td contenteditable="true" class="editable" id="td_client_gstin"><?php echo e($invoice->client_gstin ?? ''); ?></td>
                         <th>Address</th>
-                        <td contenteditable="true" class="editable" id="td_address">{{ $invoice->address ?? '' }}</td>
+                        <td contenteditable="true" class="editable" id="td_address"><?php echo e($invoice->address ?? ''); ?></td>
                     </tr>
                 </table>
 
@@ -261,16 +262,16 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($invoice->bookingItems as $item)
+                        <?php $__currentLoopData = $invoice->bookingItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td contenteditable="true" class="editable">{{ $item->sample_discription }}</td>
-                                <td>{{ $item->job_order_no }}</td>
-                                <td contenteditable="true" class="editable qty">{{ $item->qty ?? 1 }}</td>
-                                <td contenteditable="true" class="editable rate">{{ number_format($item->rate,2) }}</td>
+                                <td><?php echo e($loop->iteration); ?></td>
+                                <td contenteditable="true" class="editable"><?php echo e($item->sample_discription); ?></td>
+                                <td><?php echo e($item->job_order_no); ?></td>
+                                <td contenteditable="true" class="editable qty"><?php echo e($item->qty ?? 1); ?></td>
+                                <td contenteditable="true" class="editable rate"><?php echo e(number_format($item->rate,2)); ?></td>
                                 <td class="amount">0.00</td>
                             </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                     <tfoot>
                         <tr>
@@ -279,7 +280,7 @@
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">Discount %</th>
-                            <td contenteditable="true" class="editable" id="discountPercent">{{$invoice->discount_percent}}</td>
+                            <td contenteditable="true" class="editable" id="discountPercent"><?php echo e($invoice->discount_percent); ?></td>
                             <th id="discountAmount">0.00</th>
                         </tr>
                         <tr>
@@ -288,17 +289,17 @@
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">CGST %</th>
-                            <td contenteditable="true" class="editable" id="cgstPercent">{{$invoice->cgst_percent ?? 0}}</td>
+                            <td contenteditable="true" class="editable" id="cgstPercent"><?php echo e($invoice->cgst_percent ?? 0); ?></td>
                             <th id="cgstAmount">0.00</th>
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">SGST %</th>
-                            <td contenteditable="true" class="editable" id="sgstPercent">{{$invoice->sgst_percent ?? 0}}</td>
+                            <td contenteditable="true" class="editable" id="sgstPercent"><?php echo e($invoice->sgst_percent ?? 0); ?></td>
                             <th id="sgstAmount">0.00</th>
                         </tr>
                         <tr>
                             <th colspan="4" class="text-end">IGST %</th>
-                            <td contenteditable="true" class="editable" id="igstPercent">{{$invoice->igst_percent ?? 0}}</td>
+                            <td contenteditable="true" class="editable" id="igstPercent"><?php echo e($invoice->igst_percent ?? 0); ?></td>
                             <th id="igstAmount">0.00</th>
                         </tr>
                         <tr>
@@ -318,31 +319,31 @@
                 <table class="table table-bordered mb-4">
                     <tr>
                         <th>Instructions</th>
-                        <td class="noteditable" id="td_bank_instructions">{{ $bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD' }}</td>
+                        <td class="noteditable" id="td_bank_instructions"><?php echo e($bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD'); ?></td>
                     </tr>
                     <tr>
                         <th>Bank Name</th>
-                        <td class="noteditable" id="td_bank_name">{{ $bankInfo->name ?? 'SBI' }}</td>
+                        <td class="noteditable" id="td_bank_name"><?php echo e($bankInfo->name ?? 'SBI'); ?></td>
                     </tr>
                     <tr>
                         <th>Branch Name</th>
-                        <td class="noteditable" id="td_branch_name">{{ $bankInfo->branch_name ?? 'Harauli' }}</td>
+                        <td class="noteditable" id="td_branch_name"><?php echo e($bankInfo->branch_name ?? 'Harauli'); ?></td>
                     </tr>
                     <tr>
                         <th>Account No</th>
-                        <td class="noteditable" id="td_account_no">{{ $bankInfo->account_no ?? '000121210' }}</td>
+                        <td class="noteditable" id="td_account_no"><?php echo e($bankInfo->account_no ?? '000121210'); ?></td>
                     </tr>
                     <tr>
                         <th>IFSC CODE</th>
-                        <td class="noteditable" id="td_ifsc_code">{{ $bankInfo->ifsc_code ?? "SB00001"}}</td>
+                        <td class="noteditable" id="td_ifsc_code"><?php echo e($bankInfo->ifsc_code ?? "SB00001"); ?></td>
                     </tr>
                     <tr>
                         <th>Pan No</th>
-                        <td class="noteditable" id="td_pan_no">{{$bankInfo->pan_no??'AHTPJ45454'}}</td>
+                        <td class="noteditable" id="td_pan_no"><?php echo e($bankInfo->pan_no??'AHTPJ45454'); ?></td>
                     </tr>
                     <tr>
                         <th>GSTIN</th>
-                        <td class="noteditable" id="td_gstin">{{$bankInfo->gstin??'87457187441417644'}}</td>
+                        <td class="noteditable" id="td_gstin"><?php echo e($bankInfo->gstin??'87457187441417644'); ?></td>
                     </tr>
                 </table>
 
@@ -354,17 +355,17 @@
                 <div class="d-flex justify-content-end align-items-center gap-3 mb-3">
 
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="typeOption" id="typeInvoice" value="tax_invoice" {{ $invoice->type === 'tax_invoice' ? 'checked' : '' }}>
+                        <input class="form-check-input" type="radio" name="typeOption" id="typeInvoice" value="tax_invoice" <?php echo e($invoice->type === 'tax_invoice' ? 'checked' : ''); ?>>
                         <label class="form-check-label" for="typeInvoice">Tax Invoice</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="typeOption" id="typePI" value="proforma_invoice" {{ $invoice->type === 'proforma_invoice' ? 'checked' : '' }}>
+                        <input class="form-check-input" type="radio" name="typeOption" id="typePI" value="proforma_invoice" <?php echo e($invoice->type === 'proforma_invoice' ? 'checked' : ''); ?>>
                         <label class="form-check-label" for="typePI">Proforma Invoice</label>
                     </div>
                 </div>
 
                  <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-success" formaction="{{ route('superadmin.invoices.update', $invoice->id ) }}">
+                    <button type="submit" class="btn btn-success" formaction="<?php echo e(route('superadmin.invoices.update', $invoice->id )); ?>">
                         <i class="fa fa-file-pdf me-2"></i>Save Invoice
                     </button>
                 </div>
@@ -374,7 +375,7 @@
     </form>
 </div>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .table-bordered th, .table-bordered td {
         border: 1px solid #000 !important;
@@ -396,9 +397,9 @@
         font-weight: bold;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script> 
     function updateAmounts() {
         let total = 0;
@@ -523,15 +524,15 @@
 
     window.addEventListener('DOMContentLoaded', updateAmounts);
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.getElementById('gstinForm').addEventListener('submit', function(e) {
     e.preventDefault(); 
 
-    const gstinApiUrl = @json($gstinApiUrl);
-    const gstinApiKey = @json($gstinApiKey);
+    const gstinApiUrl = <?php echo json_encode($gstinApiUrl, 15, 512) ?>;
+    const gstinApiKey = <?php echo json_encode($gstinApiKey, 15, 512) ?>;
 
     let gstin = document.getElementById('gstinInput').value;
 
@@ -578,9 +579,9 @@ document.getElementById('gstinForm').addEventListener('submit', function(e) {
         });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
     // Show selected file name below upload button
     document.getElementById('gstinFile').addEventListener('change', function() {
@@ -588,5 +589,7 @@ document.getElementById('gstinForm').addEventListener('submit', function(e) {
         document.getElementById('fileName').textContent = fileName;
     });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV1.0\GenLabV3.0\resources\views/superadmin/accounts/invoiceList/edit.blade.php ENDPATH**/ ?>

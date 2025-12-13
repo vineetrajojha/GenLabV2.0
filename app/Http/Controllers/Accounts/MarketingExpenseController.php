@@ -39,6 +39,7 @@ class MarketingExpenseController extends Controller
 
     public function approved(Request $request)
     {
+       
         $section = $request->input('section', 'marketing');
         if(!in_array($section, ['marketing', 'office', 'personal'], true)){
             $section = 'marketing';
@@ -100,7 +101,35 @@ class MarketingExpenseController extends Controller
             // If the approved rows are requested as a partial (AJAX), return just the rows
             if ($request->ajax() && $request->input('approved_partial')) {
                 return view('superadmin.marketing.expenses._approved_rows', ['approvedList' => $approvedList]);
-            }
+            } 
+            
+
+            // --------------------------------    
+            // SEND NOTIFICATION TO EXPENSE OWNER (MARKETING USER)
+            // --------------------------------- 
+
+            $expense = $marketingExpenses->first();    // or the specific approved expense
+
+            if ($expense && $expense->marketingPerson) {
+
+                $marketingUser = User::where('user_code', $expense->marketingPerson->user_code)->first();
+              
+                if ($marketingUser) {
+                    SendMarketingNotificationJob::dispatch(
+                        $marketingUser,
+                        "Expense Approved",
+                        "Your expense of ₹{$expense->amount} has been approved.",
+                        [
+                            "type"        => "expense_approved",
+                            "expense_id"  => $expense->id,
+                            "section"     => $expense->section,
+                            "amount"      => $expense->amount,
+                            "approved_by" => auth()->id(),
+                            "status"      => "approved"
+                        ]
+                    );
+                }
+            } 
 
             return view('superadmin.marketing.expenses.approve', [
                 'expenses' => $paginator,
@@ -110,7 +139,7 @@ class MarketingExpenseController extends Controller
                 'approvedList' => $approvedList,
                 'selected_per_page' => $perPage,
                 'selected_approved_per_page' => $approvedPerPage,
-            ]);
+            ]); 
         }
 
         $query = $this->buildExportQuery($request, $section, 'pending');
@@ -300,7 +329,10 @@ class MarketingExpenseController extends Controller
 
         // Build 'Checked In' items from saved cleared PDFs that belong to this user
         $base = 'marketing_expenses/in_account';
-        $files = Storage::disk('public')->exists($base) ? Storage::disk('public')->files($base) : [];
+        // $files = Storage::disk('public')->directoryExists($base) ? Storage::disk('public')->files($base) : [];  
+
+        $files = Storage::disk('public')->directoryExists($base)? Storage::disk('public')->files($base): [];
+
         $checkedIn = collect($files)->filter(function($f){ return str_ends_with($f, '.pdf'); })->map(function($path){
             $metaPath = $path . '.json';
             $meta = null;
