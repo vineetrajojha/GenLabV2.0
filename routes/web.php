@@ -151,19 +151,14 @@ Route::middleware('auth:admin,superadmin')->group(function () {
         ->name('chat.setChatAdmin');
 });
 
+use Spatie\Browsershot\Browsershot; 
 
-Route::get('/test-fcm', function () {
+Route::get('/html-to-pdf', function () {
+    $html = '<h1>Hello, PDF!</h1><p>This is a sample PDF generated from HTML using Browsershot.</p>';
+    Browsershot::html($html)
+        ->setChromePath('C:\Program Files\Google\Chrome\Application\chrome.exe')
+        ->format('A4')
+        ->save(storage_path('app/html.pdf'));
 
-    $token = "d7i163iGSaOqdfD12LJCBL:APA91bHcK8hn8dWonm6nRwG7oHisBc-oCmAaDllH-3tCNxjdX7rt-3O7t94NTaqyJnroyIEi-xHfg9chiHws79VrgTg6NlS1qVQjf0I-xCrOEV4SQbDx5i4";
-
-    $fcm = new \App\Services\FCMService();
-
-    $response = $fcm->sendNotification(
-        $token,
-        "Test Notification",
-        "Your FCM is connected successfully!",
-        ["debug" => "true"]   // ✅ must be string
-    );
-
-    dd($response);
+    return 'PDF Generated';
 });

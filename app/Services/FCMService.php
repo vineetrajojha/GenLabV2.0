@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use Google\Client;
+use Illuminate\Support\Facades\Log; 
 
 class FCMService
 {
@@ -14,6 +15,7 @@ class FCMService
 
         $accessToken = $client->fetchAccessTokenWithAssertion()['access_token'];
 
+        $data = array_map(fn($v) => (string) $v, $data); 
         // Build message
         $message = [
             "message" => [
@@ -29,8 +31,14 @@ class FCMService
         // Send to FCM v1 endpoint
         $url = "https://fcm.googleapis.com/v1/projects/" . env('FIREBASE_PROJECT_ID') . "/messages:send";
 
+         
         $response = \Http::withToken($accessToken)
             ->post($url, $message);
+        
+        Log::info("FCMService response", [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);  
 
         return $response->json();
     }

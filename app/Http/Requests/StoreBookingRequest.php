@@ -61,9 +61,24 @@ class StoreBookingRequest extends FormRequest
             'booking_items.*.amount'                  => 'required|numeric|min:0',
             'booking_items.*.lab_analysis_code'       => ['required', Rule::exists('users', 'user_code')->whereNull('deleted_at')],
             'booking_items.*.job_order_no'            => [
-                'required',
-                // 'regex:/^[A-Z]{3,4}\d{8}\d{3}$/',
-            ],
+                                                        'required',
+                                                        function ($attribute, $value, $fail) {
+                                                            $index = explode('.', $attribute)[1]; // booking_items index
+                                                            $itemId = $this->booking_items[$index]['id'] ?? null;
+
+                                                            $query = \DB::table('booking_items')
+                                                                ->where('job_order_no', $value);
+
+                                                            // Ignore same row during update
+                                                            if ($itemId) {
+                                                                $query->where('id', '!=', $itemId);
+                                                            }
+
+                                                            if ($query->exists()) {
+                                                                $fail('This Job Order No already exists.');
+                                                            }
+                                                        },
+                                                    ],
         ];
 
         // Apply only when creating or updating with changed date
