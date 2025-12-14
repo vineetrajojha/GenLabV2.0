@@ -1,30 +1,30 @@
-@extends('superadmin.layouts.app')
 
-@section('title', 'Invoice Report')
 
-@section('content')
+<?php $__env->startSection('title', 'Invoice Report'); ?>
 
-{{-- ===================== FLASH / VALIDATION MESSAGES ===================== --}}
-@if ($errors->any())
+<?php $__env->startSection('content'); ?>
+
+
+<?php if($errors->any()): ?>
 <div class="alert alert-danger">
     <ul class="mb-0">
-        @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-        @endforeach
+        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <li><?php echo e($error); ?></li>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </ul>
 </div>
-@endif
+<?php endif; ?>
 
-@if (session('error'))
-<div class="alert alert-danger">{{ session('error') }}</div>
-@endif
+<?php if(session('error')): ?>
+<div class="alert alert-danger"><?php echo e(session('error')); ?></div>
+<?php endif; ?>
 
-@if (session('success'))
-<div class="alert alert-success">{{ session('success') }}</div>
-@endif
+<?php if(session('success')): ?>
+<div class="alert alert-success"><?php echo e(session('success')); ?></div>
+<?php endif; ?>
 
 
-{{-- ===================== INVOICE STYLES ===================== --}}
+
 <style>
 /* ================= A4 PAGE ================= */
 .a4-page {
@@ -108,20 +108,22 @@
 
 
 <div class="row"> 
-    {{-- ===================== INVOICE PAGE ===================== --}}
+    
     <div class="a4-page">
         <div class="invoice-preview">
 
-            {{-- ===================== HEADER ===================== --}}
+            
             <table>
                 <thead>
                     <tr>
                         <th class="col-left text-uppercase" contenteditable="true">
-                            GSTIN: {{ $invoiceData['bankDetails']['gstin'] ?? '9113464642541' }}
+                            GSTIN: <?php echo e($invoiceData['bankDetails']['gstin'] ?? '9113464642541'); ?>
+
                         </th>
 
                         <th class="text-centre text-uppercase" colspan="2" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoiceType'] ?? 'Tax Invoice' }}
+                            <?php echo e($invoiceData['invoice']['invoiceType'] ?? 'Tax Invoice'); ?>
+
                         </th>
 
                         <th class="text-centre">Scan to Pay</th>
@@ -129,60 +131,66 @@
                 </thead>
 
                 <tbody>
-                    {{-- ===================== BILL TO ===================== --}}
+                    
                     <tr>
                         <th class="col-left text-start">Bill Issue To:</th>
 
                         <td class="col-wide text-start text-uppercase" colspan="2" contenteditable="true">
-                            {{ $invoiceData['invoice']['bill_issue_to'] ?? '' }}<br>
-                            {!! nl2br(e($invoiceData['invoice']['address'] ?? '')) !!}<br>
+                            <?php echo e($invoiceData['invoice']['bill_issue_to'] ?? ''); ?><br>
+                            <?php echo nl2br(e($invoiceData['invoice']['address'] ?? '')); ?><br>
                             <span contenteditable="false" style="font-weight:bold;">
                                 GSTIN:
                             </span> 
-                            {{ $invoiceData['invoice']['client_gstin'] ?? '' }}
+                            <?php echo e($invoiceData['invoice']['client_gstin'] ?? ''); ?>
+
                         </td>
 
                         <td class="text-centre">
-                            @if(!empty($qrcode))
-                                <img src="data:image/svg+xml;base64,{{ $qrcode }}" width="100">
-                            @endif
+                            <?php if(!empty($qrcode)): ?>
+                                <img src="data:image/svg+xml;base64,<?php echo e($qrcode); ?>" width="100">
+                            <?php endif; ?>
                         </td>
                     </tr>
 
-                    {{-- ===================== META DETAILS ===================== --}}
+                    
                     <tr>
                         <th class="text-start">Invoice No:</th>
                         <td colspan="3" class="text-uppercase" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoice_no'] ?? '' }}
+                            <?php echo e($invoiceData['invoice']['invoice_no'] ?? ''); ?>
+
                         </td>
                     </tr>
 
                     <tr>
                         <th class="text-start">Invoice Date:</th>
                         <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoice_date'] ?? now()->format('d-m-Y') }}
+                            <?php echo e($invoiceData['invoice']['invoice_date'] ?? now()->format('d-m-Y')); ?>
+
                         </td>
                     </tr>
 
                     <tr>
                         <th class="text-start">Ref. No & Date:</th>
                         <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['ref_no'] ?? '' }}
-                            {{ $invoiceData['invoice']['ref_date'] ?? '' }}
+                            <?php echo e($invoiceData['invoice']['ref_no'] ?? ''); ?>
+
+                            <?php echo e($invoiceData['invoice']['ref_date'] ?? ''); ?>
+
                         </td>
                     </tr>
 
                     <tr>
                         <th class="text-start">Name of Work:</th>
                         <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['name_of_work'] ?? '' }}
+                            <?php echo e($invoiceData['invoice']['name_of_work'] ?? ''); ?>
+
                         </td>
                     </tr>
                 </tbody>
             </table>
 
 
-            {{-- ===================== ITEM DETAILS ===================== --}}
+            
             <table >
                 <thead>
                     <tr>
@@ -197,28 +205,31 @@
                 </thead>
 
                 <tbody>
-                @if($booking->items->isNotEmpty())
-                    @foreach($booking->items as $item)
+                <?php if($booking->items->isNotEmpty()): ?>
+                    <?php $__currentLoopData = $booking->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr class="item-row">
-                            <!-- <td contenteditable="true">{{ $loop->iteration }}</td> -->
+                            <!-- <td contenteditable="true"><?php echo e($loop->iteration); ?></td> -->
                             <td contenteditable="true" class="editable description">
-                                {{ $item->sample_description }}
+                                <?php echo e($item->sample_description); ?>
+
                             </td>
-                            <td>{{ $item->job_order_no }}</td>
-                            <td>{{ $booking->sac_code ?? '' }}</td>
+                            <td><?php echo e($item->job_order_no); ?></td>
+                            <td><?php echo e($booking->sac_code ?? ''); ?></td>
                             <td contenteditable="true" class="editable qty">
-                                {{ $item->qty ?? 1 }}
+                                <?php echo e($item->qty ?? 1); ?>
+
                             </td>
                             <td contenteditable="true" class="editable rate">
-                                {{ number_format($item->amount, 2) }}
+                                <?php echo e(number_format($item->amount, 2)); ?>
+
                             </td>
                             <td class="amount">0.00</td>
                         </tr>
-                    @endforeach
-                @else
-                    @for($i = 1; $i <= 9; $i++)
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <?php else: ?>
+                    <?php for($i = 1; $i <= 9; $i++): ?>
                         <tr class="item-row">
-                            <td>{{ $i }}</td>
+                            <td><?php echo e($i); ?></td>
                             <td contenteditable="true" class="editable description"></td>
                             <td></td>
                             <td></td>
@@ -226,11 +237,11 @@
                             <td contenteditable="true" class="editable rate">0.00</td>
                             <td class="amount" contenteditable="true">0.00</td>
                         </tr>
-                    @endfor
-                @endif
+                    <?php endfor; ?>
+                <?php endif; ?>
 
 
-                {{-- ===================== TOTALS ===================== --}}
+                
                 <tr class="total-row">
                         <td colspan="5" class="text-right">Total Amount</td>
                         <td id="totalAmount">0.00</td>
@@ -299,35 +310,35 @@
 
                 </tbody>
             </table> 
-            {{-- ===================== BANK DETAILS ===================== --}}
+            
             <!-- Bank Details -->
             <table class="bank-table">
                 <tbody>
                     <tr>
                         <th class="text-start">INSTRUCTIONS:</th>
-                        <td colspan="2">{{ $bankInfo->instructions ?? '' }}</td>
+                        <td colspan="2"><?php echo e($bankInfo->instructions ?? ''); ?></td>
                     </tr>
                     <tr>
                         <th class="text-start">BANK NAME:</th>
-                        <td>{{ $bankInfo->name ?? '' }}</td>
-                        <td class="text-centre text-uppercase">For {{$companyName ?? ''}}</td>
+                        <td><?php echo e($bankInfo->name ?? ''); ?></td>
+                        <td class="text-centre text-uppercase">For <?php echo e($companyName ?? ''); ?></td>
                     </tr>
                     <tr>
                         <th class="text-start">ACCOUNT NO:</th>
-                        <td>{{ $bankInfo->account_no ?? '' }}</td>
+                        <td><?php echo e($bankInfo->account_no ?? ''); ?></td>
                         <td rowspan="5" class="text-bottom">Authorised Signatory</td>
                     </tr>
-                    <tr><th class="text-start">BRANCH:</th><td class="text-uppercase">{{ $bankInfo->branch ?? '' }}</td></tr>
-                    <tr><th class="text-start">IFSC CODE:</th><td class="text-uppercase">{{ $bankInfo->ifsc_code ?? '' }}</td></tr>
-                    <tr><th class="text-start">PAN NO:</th><td class="text-uppercase">{{ $bankInfo->pan_no ?? '' }}</td></tr>
-                    <tr><th class="text-start">GSTIN:</th><td class="text-uppercase">{{ $bankInfo->gstin ?? '' }}</td></tr>
+                    <tr><th class="text-start">BRANCH:</th><td class="text-uppercase"><?php echo e($bankInfo->branch ?? ''); ?></td></tr>
+                    <tr><th class="text-start">IFSC CODE:</th><td class="text-uppercase"><?php echo e($bankInfo->ifsc_code ?? ''); ?></td></tr>
+                    <tr><th class="text-start">PAN NO:</th><td class="text-uppercase"><?php echo e($bankInfo->pan_no ?? ''); ?></td></tr>
+                    <tr><th class="text-start">GSTIN:</th><td class="text-uppercase"><?php echo e($bankInfo->gstin ?? ''); ?></td></tr>
                 </tbody>
             </table>
 
         </div>
     </div>
 
-   {{-- ================= EDIT PANEL (RIGHT SIDE) ================= --}}
+   
     <div class="col-lg-3">
         <div class="card shadow-sm position-sticky" style="top: 90px;">
             <div class="card-header fw-semibold">
@@ -393,7 +404,7 @@
 
 
 
-{{-- ===================== GST AOUT CALULATE (PDF) ===================== --}}
+
 <script>
     function recalculateAll() {
 
@@ -501,7 +512,7 @@
     }
 </script> 
 
-{{-- ===================== NUMBER TO WORDS CONVERSION ===================== --}}
+
 <script>
     function numberToWords(num) {
         const ones = [
@@ -554,7 +565,7 @@
         return words.trim();
     }
 </script> 
-{{-- ===================== AMOUNT IN WORDS UPDATE ===================== --}}
+
 <script>
     function updateAmountInWordsFromDOM() {
 
@@ -580,7 +591,7 @@
             `<strong>Amount in Words:</strong> ${words}`;
     }
 </script>
-{{-- ===================== EVENT LISTENERS ===================== --}}
+
 <script>
     ['input', 'keyup', 'blur'].forEach(evt => {
         document.querySelectorAll('.qty, .rate, .editable-percent').forEach(el => {
@@ -591,7 +602,7 @@
     // Initial load
     window.addEventListener('DOMContentLoaded', recalculateAll);
 </script> 
-{{-- ===================== INITIAL CALCULATION ON LOAD ===================== --}}
+
 <script>
     window.addEventListener('DOMContentLoaded', () => {
         recalculateAll();
@@ -600,19 +611,19 @@
         setTimeout(updateAmountInWordsFromDOM, 50);
     });
 </script> 
-{{-- ===================== ROUND OFF TOGGLE ===================== --}}
+
 <script>
     document.getElementById('enableRoundOff')
         .addEventListener('change', recalculateAll);
 </script>
 
-{{-- ===================== DISCOUNT TOGGLE ===================== --}}
+
 <script>
 document.getElementById('enableDiscount')
     .addEventListener('change', recalculateAll);
 </script>
 
-{{-- ===================== ROW SELECT HIGHLIGHT ===================== --}}
+
 <script>
     document.addEventListener('click', function (e) {
         const row = e.target.closest('.item-row');
@@ -626,7 +637,7 @@ document.getElementById('enableDiscount')
     });
 </script> 
 
-{{-- ===================== ADD / REMOVE ROWS ===================== --}}
+
 <script>
     function addRowAfterSelected() {
         const selected = document.querySelector('.item-row.selected');
@@ -681,7 +692,7 @@ document.getElementById('enableDiscount')
 </script> 
 
 
-{{-- ===================== GLOBAL INPUT LISTENER ===================== --}}
+
 
 <!--  GLOBAL INPUT LISTENER (PUT HERE) -->
 <script>
@@ -696,14 +707,14 @@ document.getElementById('enableDiscount')
     });
 </script>
 
-{{-- ===================== INITIAL RECALCULATION ===================== --}}
+
 <script>
     window.addEventListener('DOMContentLoaded', () => {
         recalculateAll();
     });
 </script>
 
-{{-- ===================== KEYBOARD SHORTCUTS ===================== --}}
+
 <script>
     document.addEventListener('keydown', function (e) {
 
@@ -714,7 +725,7 @@ document.getElementById('enableDiscount')
         }
     });
 </script> 
-{{-- ===================== MERGE SELECTED ROW ===================== --}}
+
 <script>
     function mergeSelectedRow() {
         const row = document.querySelector('.item-row.selected');
@@ -763,4 +774,6 @@ document.getElementById('enableDiscount')
 
 
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV3.0\GenLabV3.0\resources\views/superadmin/accounts/generateInvoice/show.blade.php ENDPATH**/ ?>
