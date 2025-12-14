@@ -5,6 +5,12 @@
 @section('content')
 
 <div class="card mt-3">
+    @php
+        $authUser = auth()->user();
+        // Guard against null roles relation before calling ->first()
+        $roleName = $authUser ? (optional(optional($authUser->roles)->first())->name ?? ($authUser->role ?? null)) : null;
+        $isMarketingUser = $roleName && stripos($roleName, 'market') !== false;
+    @endphp
     <div class="page-header">
         <div class="add-item d-flex ms-4 mt-4">
             <div class="page-title">
@@ -70,6 +76,9 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        @if(!$isMarketingUser)
+                            <th>Marketing Person</th>
+                        @endif
                         <th>Total Bookings</th>
                         <th>Total Booking Amount</th>
                         <th>Total Invoice Amount</th>
@@ -81,6 +90,9 @@
                     @forelse($ledgerData as $index => $row)
                         <tr onclick="window.location='{{ route('superadmin.marketing-person-ledger.show', $row['person']->user_code) }}'" style="cursor:pointer;">
                             <td>{{ $marketingPersons->firstItem() + $index }}</td>
+                            @if(!$isMarketingUser)
+                                <td>{{ $row['person']->name ?? $row['person']->user_code }}</td>
+                            @endif
                             <td>{{ $row['total_bookings'] }}</td>
                             <td>{{ number_format($row['total_booking_amount'], 2) }}</td>
                             <td>{{ number_format($row['total_invoice_amount'], 2) }}</td>
@@ -89,7 +101,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center">No records found.</td>
+                            <td colspan="{{ $isMarketingUser ? 6 : 7 }}" class="text-center">No records found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -97,7 +109,7 @@
                 @if($ledgerData->isNotEmpty())
                 <tfoot class="table-light fw-bold">
                     <tr>
-                        <td colspan="2" class="text-end">Grand Total:</td>
+                        <td colspan="{{ $isMarketingUser ? 2 : 3 }}" class="text-end">Grand Total:</td>
                         <td>{{ number_format($totals['total_booking_amount'], 2) }}</td>
                         <td>{{ number_format($totals['total_invoice_amount'], 2) }}</td>
                         <td class="text-success">{{ number_format($totals['paid_amount'], 2) }}</td>

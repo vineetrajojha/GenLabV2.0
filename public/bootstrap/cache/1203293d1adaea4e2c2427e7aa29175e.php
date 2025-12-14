@@ -387,7 +387,7 @@
         setChatAdmin: (userId) => `${'<?php echo e(url('/chat/users')); ?>'}/${userId}/chat-admin`
     };
     window.routes = routes;
-    window.chatNotifBadge = document.getElementById('chatNotifBadge');
+    // window.chatNotifBadge removed; we use class selectors now
 
     // NEW: robust base for absolute URLs (works under subdirectories)
     const APP_BASE = '<?php echo e(rtrim(url('/'), '/')); ?>';
@@ -444,10 +444,10 @@
     // Central badge updater: sums unread from allGroups and updates the header badge in real-time
     function updateHeaderBadge(){
         try {
-            const badge = window.chatNotifBadge || document.getElementById('chatNotifBadge');
+            const badges = document.querySelectorAll('.chat-notif-badge');
             // Sidebar badge intentionally hidden; keep element but never show/unset it.
             const total = Array.isArray(allGroups) ? allGroups.reduce((s,g)=> s + (parseInt(g.unread)||0), 0) : 0;
-            if (badge){
+            badges.forEach(badge => {
                 if (total > 0) {
                     badge.textContent = total > 99 ? '99+' : String(total);
                     badge.style.display = 'flex';
@@ -455,7 +455,7 @@
                     badge.textContent = '';
                     badge.style.display = 'none';
                 }
-            }
+            });
             const sideBadge = document.getElementById('chatSidebarBadge');
             if (sideBadge) { sideBadge.style.display = 'none'; }
         } catch(_) {}
@@ -554,18 +554,18 @@
     // Restore refs for controls
     const expandBtn = document.getElementById('chatExpandBtn');
     const closeBtn = document.getElementById('chatCloseBtn');
-    const chatToggleBtn = document.getElementById('chatToggle');
+    const chatToggleBtns = document.querySelectorAll('.chat-toggle-btn');
     const newSessionBtn = document.getElementById('chatNewSessionBtn');
 
     // Fallback: inject a floating chat toggle if header toggle is missing
-    if (!chatToggleBtn && !document.getElementById('chatToggle')) {
+    if (chatToggleBtns.length === 0 && !document.getElementById('chatToggle')) {
         try {
             const fab = document.createElement('button');
-            fab.id = 'chatToggle';
+            fab.id = 'chatToggle'; // keeping ID for fallback
             fab.type = 'button';
             fab.title = 'Open chat';
             fab.innerHTML = '<i class="fa fa-comments"></i>';
-            fab.className = 'btn btn-success rounded-circle shadow';
+            fab.className = 'btn btn-success rounded-circle shadow chat-toggle-btn';
             fab.style.cssText = 'position:fixed; right:20px; bottom:20px; width:48px; height:48px; z-index:1;';
             document.body.appendChild(fab);
         } catch(_) {}
@@ -713,7 +713,7 @@
             item.dataset.groupId = g.id; item.dataset.groupName = g.name;
 
             const initials2 = (g.name||'?').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
-            const absAvatar = g.avatar ? toAbsoluteUrl(g.avatar) : null;
+            const absAvatar = (g.avatar || g.profile_picture) ? toAbsoluteUrl(g.avatar || g.profile_picture) : null;
             const avatarHtml = absAvatar
                 ? `<div class="wa-avatar me-2"><img src="${absAvatar}" alt="${g.name||'Group'}" loading="lazy"></div>`
                 : `<div class="wa-avatar me-2">${initials2}</div>`;
@@ -1053,7 +1053,10 @@
 
     function avatarLabel(m){
         // If avatar URL provided, render <img> (CHANGED: normalize URL)
-        if (m && m.user && m.user.avatar) return { html: '<img src="'+toAbsoluteUrl(m.user.avatar)+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
+        if (m && m.user && (m.user.avatar || m.user.profile_picture)) {
+            const url = toAbsoluteUrl(m.user.avatar || m.user.profile_picture);
+            return { html: '<img src="'+url+'" alt="'+(m.user.name||'U')+'" loading="lazy">', text: null };
+        }
         const n = senderName(m);
         const init = n ? n.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase() : 'U';
         return { html: null, text: init };
@@ -2154,8 +2157,7 @@
         if (!activeGroupId) return;
         const now = Date.now();
         if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
-        const now = Date.now();
-        if (realtimeOk && now - lastRealtimeEvent < 20000) return; // rely on realtime when fresh
+       // rely on realtime when fresh
         try {
             const url = new URL(routes.messagesSince, window.location.origin);
             url.searchParams.set('group_id', activeGroupId);
@@ -2227,9 +2229,6 @@
     async function poll(){
         if (polling) return;
         if (!activeGroupId || lastMessageId === null) return;
-        // If realtime is healthy and recent, skip this poll to reduce load
-        const now = Date.now();
-        if (realtimeOk && now - lastRealtimeEvent < 20000) return;
         // If realtime is healthy and recent, skip this poll to reduce load
         const now = Date.now();
         if (realtimeOk && now - lastRealtimeEvent < 20000) return;
@@ -2561,9 +2560,17 @@
     })();
 
     // Open/Close/Expand handlers
-    chatToggleBtn && chatToggleBtn.addEventListener('click', function(e){
+    document.querySelectorAll('.chat-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function(e){
+            e.preventDefault(); openPopup();
+        });
+    });
+    // Legacy ID handler just in case
+    const legacyBtn = document.getElementById('chatToggle');
+    if(legacyBtn) legacyBtn.addEventListener('click', function(e){
         e.preventDefault(); openPopup();
     });
+
     closeBtn && closeBtn.addEventListener('click', function(){ popupEl.style.display = 'none'; setState({ open: false }); });
     expandBtn && expandBtn.addEventListener('click', function(){
         popupEl.style.display = 'flex';
@@ -2660,7 +2667,9 @@
 
     // --- When opening, restore last drag position if any ---
     function openPopup(){
+        if(!popupEl) return;
         popupEl.style.display = 'flex';
+        popupEl.style.zIndex = '9999';
         setState({ open: true });
         if (popupEl.classList.contains('expanded')) {
             popupEl.style.zIndex = '1100';
@@ -2678,7 +2687,7 @@
     }
     window.openChat = openPopup; window.openPopup = openPopup;
     document.addEventListener('click', function(e){
-        const btn = e.target.closest('#chatToggle');
+        const btn = e.target.closest('.chat-toggle-btn') || e.target.closest('#chatToggle');
         if (btn){ e.preventDefault(); openPopup(); }
     });
     document.addEventListener('keydown', function(e){ if ((e.ctrlKey||e.metaKey) && e.key === 'i'){ openPopup(); } });

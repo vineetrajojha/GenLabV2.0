@@ -594,8 +594,15 @@ class MarketingPersonInfo extends Controller
             ->whereHas('booking', function($q) use ($marketingPerson) {
                 $q->where('marketing_id', $marketingPerson->user_code);
             });
+        // Filters: search across multiple fields, department, marketing override, month/year (on booking)
+        if ($request->filled('department')) {
+            $query->whereHas('booking', function($q) use ($request) { $q->where('department_id', $request->department); });
+        }
 
-        // Search across job order, reference, client name, sample quality and particulars
+        if ($request->filled('marketing')) {
+            $query->whereHas('booking', function($q) use ($request) { $q->where('marketing_id', $request->marketing); });
+        }
+
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function($q) use ($s) {
@@ -609,7 +616,7 @@ class MarketingPersonInfo extends Controller
             });
         }
 
-        // Month/Year filter (applied to booking created_at)
+        // Month/Year filter (apply to booking created_at)
         if ($request->filled('year')) {
             $query->whereHas('booking', function($q) use ($request) { $q->whereYear('created_at', $request->year); });
         }
@@ -621,21 +628,18 @@ class MarketingPersonInfo extends Controller
 
         $items = $query->latest()->paginate($perPage);
 
-        // Transform items to match Blade columns
         $data = $items->through(function($item) {
             $booking = $item->booking;
+
+            // upload letter url resolution
             $path = $booking->upload_letter_path ?? null;
             $letterUrl = null;
             if ($path) {
                 try {
-                    if (\Illuminate\Support\Str::startsWith($path, ['http://','https://'])){
+                    if (\Illuminate\Support\Str::startsWith($path, ['http://','https://'])) {
                         $letterUrl = $path;
                     } else {
-                        if(\Illuminate\Support\Facades\Storage::disk('public')->exists($path)){
-                            $letterUrl = \Illuminate\Support\Facades\Storage::url($path);
-                        } else {
-                            $letterUrl = asset($path);
-                        }
+                        $letterUrl = \Illuminate\Support\Facades\Storage::disk('public')->exists($path) ? \Illuminate\Support\Facades\Storage::url($path) : asset($path);
                     }
                 } catch (\Exception $e) {
                     $letterUrl = asset($path);
@@ -643,7 +647,6 @@ class MarketingPersonInfo extends Controller
             }
 
             $status = $item->issue_date ? 'Issued' : ($item->received_at ? 'Received' : 'Pending');
-            $statusClass = $item->issue_date ? 'success' : ($item->received_at ? 'info' : 'pending');
             $receiverName = $item->received_by_name ?? optional($item->receivedBy)->name;
             $statusDetail = null;
             if (!is_null($item->issue_date)) {
@@ -661,16 +664,15 @@ class MarketingPersonInfo extends Controller
                 'client_name' => $booking->client_name ?? null,
                 'sample_quality' => $item->sample_quality,
                 'particulars' => $item->particulars,
+                'amount' => $item->amount !== null ? (float) $item->amount : null,
+                'lab_expected_date' => $item->lab_expected_date ? $item->lab_expected_date->toDateString() : null,
                 'status' => $status,
-                'status_class' => $statusClass,
                 'status_detail' => $statusDetail,
-                'letter_url' => $letterUrl,
-                'received_at' => $item->received_at ? $item->received_at->toDateTimeString() : null,
-                'issue_date' => $item->issue_date ? $item->issue_date->toDateString() : null,
+                'receiver' => $receiverName,
+                'upload_letter_url' => $letterUrl,
             ];
         });
 
-        // Keep meta (pagination) consistent
         return response()->json([
             'status' => true,
             'message' => 'Booking items fetched',

@@ -3,6 +3,12 @@
 <?php $__env->startSection('content'); ?>
 
 <div class="card mt-3">
+    <?php
+        $authUser = auth()->user();
+        // Guard against null roles relation before calling ->first()
+        $roleName = $authUser ? (optional(optional($authUser->roles)->first())->name ?? ($authUser->role ?? null)) : null;
+        $isMarketingUser = $roleName && stripos($roleName, 'market') !== false;
+    ?>
     <div class="page-header">
         <div class="add-item d-flex ms-4 mt-4">
             <div class="page-title">
@@ -70,6 +76,9 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
+                        <?php if(!$isMarketingUser): ?>
+                            <th>Marketing Person</th>
+                        <?php endif; ?>
                         <th>Total Bookings</th>
                         <th>Total Booking Amount</th>
                         <th>Total Invoice Amount</th>
@@ -81,6 +90,9 @@
                     <?php $__empty_1 = true; $__currentLoopData = $ledgerData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr onclick="window.location='<?php echo e(route('superadmin.marketing-person-ledger.show', $row['person']->user_code)); ?>'" style="cursor:pointer;">
                             <td><?php echo e($marketingPersons->firstItem() + $index); ?></td>
+                            <?php if(!$isMarketingUser): ?>
+                                <td><?php echo e($row['person']->name ?? $row['person']->user_code); ?></td>
+                            <?php endif; ?>
                             <td><?php echo e($row['total_bookings']); ?></td>
                             <td><?php echo e(number_format($row['total_booking_amount'], 2)); ?></td>
                             <td><?php echo e(number_format($row['total_invoice_amount'], 2)); ?></td>
@@ -89,7 +101,7 @@
                         </tr>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
-                            <td colspan="8" class="text-center">No records found.</td>
+                            <td colspan="<?php echo e($isMarketingUser ? 6 : 7); ?>" class="text-center">No records found.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -97,7 +109,7 @@
                 <?php if($ledgerData->isNotEmpty()): ?>
                 <tfoot class="table-light fw-bold">
                     <tr>
-                        <td colspan="2" class="text-end">Grand Total:</td>
+                        <td colspan="<?php echo e($isMarketingUser ? 2 : 3); ?>" class="text-end">Grand Total:</td>
                         <td><?php echo e(number_format($totals['total_booking_amount'], 2)); ?></td>
                         <td><?php echo e(number_format($totals['total_invoice_amount'], 2)); ?></td>
                         <td class="text-success"><?php echo e(number_format($totals['paid_amount'], 2)); ?></td>

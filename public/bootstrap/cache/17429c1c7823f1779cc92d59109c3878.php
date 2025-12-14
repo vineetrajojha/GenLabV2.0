@@ -1,8 +1,6 @@
-@extends('superadmin.layouts.app')
+<?php $__env->startSection('title', 'Personal Expenses'); ?>
 
-@section('title', 'Personal Expenses')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="card mt-3 shadow-sm">
     <div class="card-header border-0 pb-0">
         <div class="page-header">
@@ -33,27 +31,27 @@
     </div>
 
     <div class="card-body">
-        @php
+        <?php
             if (!isset($approvedRejected)) {
                 $approvedRejected = $expenses ?? null;
                 if (! $approvedRejected) {
                     $approvedRejected = new \Illuminate\Pagination\LengthAwarePaginator(collect([]), 0, 15, 1, ['path' => request()->url(), 'pageName' => 'page']);
                 }
             }
-        @endphp
-        {{-- Summary Cards: Total / Approved / Pending for personal expenses --}}
+        ?>
+        
         <div class="row g-3 mb-4">
-            @php
+            <?php
                 $daily_total = (float) ($dailyExpenses->sum('amount') ?? 0);
                 $daily_approved = (float) ($dailyExpenses->sum('approved_amount') ?? 0);
                 $daily_pending = max(0, $daily_total - $daily_approved);
-            @endphp
+            ?>
             <div class="col-md-4">
                 <div class="card expense-summary-card shadow-sm h-100">
                     <div class="card-body d-flex align-items-center justify-content-between">
                         <div>
                             <div class="small text-muted">Total Expenses</div>
-                            <div id="totalExp" class="h5 mb-0 fw-bold">₹{{ number_format($daily_total, 2) }}</div>
+                            <div id="totalExp" class="h5 mb-0 fw-bold">₹<?php echo e(number_format($daily_total, 2)); ?></div>
                         </div>
                         <div class="avatar-sm bg-light-primary rounded-circle d-flex align-items-center justify-content-center">
                             <i class="ti ti-wallet text-primary"></i>
@@ -66,7 +64,7 @@
                     <div class="card-body d-flex align-items-center justify-content-between">
                         <div>
                             <div class="small text-muted">Approved</div>
-                            <div id="totalApproved" class="h5 mb-0 fw-bold text-success">₹{{ number_format($daily_approved, 2) }}</div>
+                            <div id="totalApproved" class="h5 mb-0 fw-bold text-success">₹<?php echo e(number_format($daily_approved, 2)); ?></div>
                         </div>
                         <div class="avatar-sm bg-light-success rounded-circle d-flex align-items-center justify-content-center">
                             <i class="ti ti-check text-success"></i>
@@ -79,7 +77,7 @@
                     <div class="card-body d-flex align-items-center justify-content-between">
                         <div>
                             <div class="small text-muted">Pending</div>
-                            <div id="totalDue" class="h5 mb-0 fw-bold text-warning">₹{{ number_format($daily_pending, 2) }}</div>
+                            <div id="totalDue" class="h5 mb-0 fw-bold text-warning">₹<?php echo e(number_format($daily_pending, 2)); ?></div>
                         </div>
                         <div class="avatar-sm bg-light-warning rounded-circle d-flex align-items-center justify-content-center">
                             <i class="ti ti-clock text-warning"></i>
@@ -88,7 +86,7 @@
                 </div>
             </div>
         </div>
-        @if(($section ?? 'personal') === 'personal')
+        <?php if(($section ?? 'personal') === 'personal'): ?>
             <section class="mb-5" aria-labelledby="daily-expense-heading">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                     <div>
@@ -112,26 +110,26 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($dailyExpenses as $index => $daily)
-                                @include('superadmin.personal.expenses._daily_row', ['expense' => $daily, 'serial' => $index + 1])
-                            @empty
+                            <?php $__empty_1 = true; $__currentLoopData = $dailyExpenses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $daily): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                <?php echo $__env->make('superadmin.personal.expenses._daily_row', ['expense' => $daily, 'serial' => $index + 1], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr class="empty-state">
                                     <td colspan="9" class="text-center">No personal expenses uploaded yet.</td>
                                 </tr>
-                            @endforelse
+                            <?php endif; ?>
                         </tbody>
                         <tfoot class="table-light fw-bold">
                             <tr>
                                 <td colspan="2" class="text-end">Total:</td>
-                                <td id="dailyTotalAmount" class="text-end">{{ number_format($dailyExpenses->sum('amount'), 2) }}</td>
-                                <td id="dailyApprovedTotal" class="text-end">{{ number_format($dailyExpenses->sum('approved_amount'), 2) }}</td>
+                                <td id="dailyTotalAmount" class="text-end"><?php echo e(number_format($dailyExpenses->sum('amount'), 2)); ?></td>
+                                <td id="dailyApprovedTotal" class="text-end"><?php echo e(number_format($dailyExpenses->sum('approved_amount'), 2)); ?></td>
                                 <td colspan="5"></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             </section>
-        @endif
+        <?php endif; ?>
 
         <section aria-labelledby="checkedin-expense-heading">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -145,15 +143,15 @@
                 <div>
                     <!-- placeholder for potential actions -->
                 </div>
-                <form method="GET" action="{{ url()->current() }}" class="d-flex g-2 align-items-center">
+                <form method="GET" action="<?php echo e(url()->current()); ?>" class="d-flex g-2 align-items-center">
                     <input type="hidden" name="section" value="personal">
                     <label class="me-2 small mb-0">Rows:</label>
                     <select name="checkedin_per_page" class="form-select form-select-sm me-2" onchange="this.form.submit()">
-                        @foreach([10,15,25,50,100] as $pp)
-                            <option value="{{ $pp }}" {{ (isset($selected_checkedin_per_page) && (int)$selected_checkedin_per_page === $pp) ? 'selected' : '' }}>{{ $pp }}</option>
-                        @endforeach
+                        <?php $__currentLoopData = [10,15,25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($pp); ?>" <?php echo e((isset($selected_checkedin_per_page) && (int)$selected_checkedin_per_page === $pp) ? 'selected' : ''); ?>><?php echo e($pp); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
-                    <a href="{{ url()->current() }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                    <a href="<?php echo e(url()->current()); ?>" class="btn btn-sm btn-outline-secondary">Reset</a>
                 </form>
             </div>
             <div class="table-responsive shadow-sm rounded border">
@@ -169,7 +167,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @php
+                        <?php
                             $authUser = Auth::guard('web')->user() ?? Auth::user();
                             // Normalize checkedIn source (support paginator or plain array)
                             $checkedSource = (isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator) ? collect($checkedIn->items()) : collect($checkedIn ?? []);
@@ -207,49 +205,51 @@
                                 if ($filename && (stripos($filename, $authUser->user_code) !== false || stripos($filename, $authUser->name) !== false)) return true;
                                 return false;
                             })->values();
-                        @endphp
-                        @if($ownCheckedIn->isNotEmpty())
-                            @php
+                        ?>
+                        <?php if($ownCheckedIn->isNotEmpty()): ?>
+                            <?php
                                 $startIndex = (isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator) ? ($checkedIn->firstItem() ?? 1) : 1;
-                            @endphp
-                            @foreach($ownCheckedIn as $i => $it)
+                            ?>
+                            <?php $__currentLoopData = $ownCheckedIn; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $it): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <tr>
-                                    <td>{{ $startIndex + $i }}</td>
+                                    <td><?php echo e($startIndex + $i); ?></td>
                                     <td>
-                                        @if(!empty($it['meta']['person_name']))
-                                            {{ $it['meta']['person_name'] }}@if(!empty($it['meta']['person_code'])) ({{ $it['meta']['person_code'] }})@endif
-                                            <div class="muted small">{{ $it['filename'] }}</div>
-                                        @else
-                                            {{ $it['meta']['approved_section'] ? ucfirst($it['meta']['approved_section']) : '' }} {{ $it['filename'] }}
-                                        @endif
+                                        <?php if(!empty($it['meta']['person_name'])): ?>
+                                            <?php echo e($it['meta']['person_name']); ?><?php if(!empty($it['meta']['person_code'])): ?> (<?php echo e($it['meta']['person_code']); ?>)<?php endif; ?>
+                                            <div class="muted small"><?php echo e($it['filename']); ?></div>
+                                        <?php else: ?>
+                                            <?php echo e($it['meta']['approved_section'] ? ucfirst($it['meta']['approved_section']) : ''); ?> <?php echo e($it['filename']); ?>
+
+                                        <?php endif; ?>
                                     </td>
-                                    <td class="text-end">{{ number_format((float) ($it['meta']['approved_total'] ?? ($it['meta']['total_expenses'] ?? 0)), 2) }}</td>
-                                    <td>{{ $it['meta']['approver_name'] ?? '-' }}</td>
-                                    <td>{{ $it['meta']['created_at'] ?? '-' }}</td>
+                                    <td class="text-end"><?php echo e(number_format((float) ($it['meta']['approved_total'] ?? ($it['meta']['total_expenses'] ?? 0)), 2)); ?></td>
+                                    <td><?php echo e($it['meta']['approver_name'] ?? '-'); ?></td>
+                                    <td><?php echo e($it['meta']['created_at'] ?? '-'); ?></td>
                                     <td>
-                                        @php $pdfUrl = asset('storage/' . $it['path']); @endphp
-                                        <a href="{{ $pdfUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">Open PDF</a>
-                                        <a href="{{ $pdfUrl }}" download class="btn btn-sm btn-primary">Download</a>
+                                        <?php $pdfUrl = asset('storage/' . $it['path']); ?>
+                                        <a href="<?php echo e($pdfUrl); ?>" target="_blank" class="btn btn-sm btn-outline-primary">Open PDF</a>
+                                        <a href="<?php echo e($pdfUrl); ?>" download class="btn btn-sm btn-primary">Download</a>
                                     </td>
                                 </tr>
-                            @endforeach
-                        @else
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php else: ?>
                             <tr>
                                 <td colspan="6" class="text-center">No checked in personal expenses found.</td>
                             </tr>
-                        @endif
+                        <?php endif; ?>
                     </tbody>
                 </table>
-                @if(isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                <?php if(isset($checkedIn) && $checkedIn instanceof \Illuminate\Pagination\LengthAwarePaginator): ?>
                     <div class="d-flex justify-content-end mt-3">
-                        {{ $checkedIn->withQueryString()->links('pagination::bootstrap-5') }}
+                        <?php echo e($checkedIn->withQueryString()->links('pagination::bootstrap-5')); ?>
+
                     </div>
-                @endif
+                <?php endif; ?>
             </div>
         </section>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
 <!-- Receipt preview modal (used for daily row previews) -->
 <div class="modal fade" id="receiptPreviewModal" tabindex="-1" aria-hidden="true">
@@ -268,23 +268,23 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Prefill logged-in user's name/code for Personal upload (mirrors Office behaviour)
-        @php
+        <?php
             $authUser = Auth::guard('admin')->user() ?? Auth::guard('web')->user();
             $initialPersonName = $authUser->name ?? '';
             $initialPersonCode = $authUser->user_code ?? null;
             $formattedInitialName = trim($initialPersonName . ($initialPersonCode ? " (".$initialPersonCode.")" : ''));
-        @endphp
-        const initialName = @json($formattedInitialName);
-        const initialPlain = @json($initialPersonName);
-        const initialCode = @json($initialPersonCode);
+        ?>
+        const initialName = <?php echo json_encode($formattedInitialName, 15, 512) ?>;
+        const initialPlain = <?php echo json_encode($initialPersonName, 15, 512) ?>;
+        const initialCode = <?php echo json_encode($initialPersonCode, 15, 512) ?>;
 
         function csrfToken(){
             const meta = document.querySelector('meta[name="csrf-token"]');
-            return meta ? meta.getAttribute('content') : '{{ csrf_token() }}';
+            return meta ? meta.getAttribute('content') : '<?php echo e(csrf_token()); ?>';
         }
 
         function numberFormat(x){
@@ -299,7 +299,7 @@
         function buildPersonalQuery(){
             const params = new URLSearchParams(window.location.search);
             params.set('section', 'personal');
-            params.set('status', '{{ $status ?? 'all' }}');
+            params.set('status', '<?php echo e($status ?? 'all'); ?>');
             return params;
         }
 
@@ -383,13 +383,13 @@
         document.getElementById('btnExportPersonalPdf')?.addEventListener('click', (e) => {
             e.preventDefault();
             const params = buildPersonalQuery();
-            window.location.href = `{{ route('superadmin.personal.expenses.export.pdf') }}` + '?' + params.toString();
+            window.location.href = `<?php echo e(route('superadmin.personal.expenses.export.pdf')); ?>` + '?' + params.toString();
         });
 
         document.getElementById('btnExportPersonalExcel')?.addEventListener('click', (e) => {
             e.preventDefault();
             const params = buildPersonalQuery();
-            window.location.href = `{{ route('superadmin.personal.expenses.export.excel') }}` + '?' + params.toString();
+            window.location.href = `<?php echo e(route('superadmin.personal.expenses.export.excel')); ?>` + '?' + params.toString();
         });
 
         document.getElementById('btnUploadExpense')?.addEventListener('click', async () => {
@@ -455,7 +455,7 @@
             if(file) fd.append('pdf', file);
 
             try{
-                const resp = await fetch(`{{ route('superadmin.marketing.expenses.store') }}`, {
+                const resp = await fetch(`<?php echo e(route('superadmin.marketing.expenses.store')); ?>`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken(),
@@ -832,9 +832,9 @@
 
         // 'Send This Month for Approval' functionality removed.
     </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     /* Summary card visuals for Personal Expenses */
     .expense-summary-card { border-radius: 10px; }
@@ -848,4 +848,6 @@
     /* Slightly bolder tfoot totals */
     #personalDailyTable tfoot tr td { background: #fbfbfc; }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/personal/expenses/index.blade.php ENDPATH**/ ?>
