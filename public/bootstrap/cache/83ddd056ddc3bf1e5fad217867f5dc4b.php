@@ -1,22 +1,23 @@
-@extends('superadmin.layouts.app')
-@section('title', 'Show Booking Items List (Marketing)')
-@section('content')
 
-@if ($errors->any())
+<?php $__env->startSection('title', 'Show Booking Items List (Marketing)'); ?>
+<?php $__env->startSection('content'); ?>
+
+<?php if($errors->any()): ?>
 <div class="alert alert-danger">
     <ul class="mb-0">
-        @foreach ($errors->all() as $error)
-        <li>{{ $error }}</li>
-        @endforeach
+        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <li><?php echo e($error); ?></li>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </ul>
 </div>
-@endif
+<?php endif; ?>
 
-@if (session('success'))
+<?php if(session('success')): ?>
 <div class="alert alert-success">
-    {{ session('success') }}
+    <?php echo e(session('success')); ?>
+
 </div>
-@endif
+<?php endif; ?>
 
 <div class="content">
     <div class="page-header">
@@ -28,12 +29,12 @@
         </div>
         <ul class="table-top-head list-inline d-flex gap-3">
             <li class="list-inline-item">
-                @php $q = http_build_query(array_filter(request()->only(['search','month','year','marketing']))); @endphp
-                <a href="{{ route('superadmin.bookings.bookingByLetter.exportPdf') }}{{ $q ? ('?'.$q) : '' }}" data-bs-toggle="tooltip" title="PDF"><div class="fa fa-file-pdf"></div></a>
+                <?php $q = http_build_query(array_filter(request()->only(['search','month','year','marketing']))); ?>
+                <a href="<?php echo e(route('superadmin.bookings.bookingByLetter.exportPdf')); ?><?php echo e($q ? ('?'.$q) : ''); ?>" data-bs-toggle="tooltip" title="PDF"><div class="fa fa-file-pdf"></div></a>
             </li>
             <li class="list-inline-item">
-                @php $q = http_build_query(array_filter(request()->only(['search','month','year','marketing']))); @endphp
-                <a href="{{ route('superadmin.bookings.bookingByLetter.exportExcel') }}{{ $q ? ('?'.$q) : '' }}" data-bs-toggle="tooltip" title="Excel">
+                <?php $q = http_build_query(array_filter(request()->only(['search','month','year','marketing']))); ?>
+                <a href="<?php echo e(route('superadmin.bookings.bookingByLetter.exportExcel')); ?><?php echo e($q ? ('?'.$q) : ''); ?>" data-bs-toggle="tooltip" title="Excel">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" fill="green" viewBox="0 0 24 24">
                         <path d="M19 2H8c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 14-2-3 2-3H9l-1.5 2.25L6 10H4l2.5 3L4 16h2l1.5-2.25L9 16h1.5zM19 20H8V4h11v16z"/>
                     </svg>
@@ -50,50 +51,52 @@
 
             <!-- Search Form -->
             <div class="search-set">
-                <form method="GET" action="{{ route('superadmin.bookings.bookingByLetter.marketing') }}" class="d-flex input-group">
-                    <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search...">
-                    @if(request()->filled('month'))
-                        <input type="hidden" name="month" value="{{ request('month') }}">
-                    @endif
-                    @if(request()->filled('year'))
-                        <input type="hidden" name="year" value="{{ request('year') }}">
-                    @endif
-                    @if(request()->filled('marketing'))
-                        <input type="hidden" name="marketing" value="{{ request('marketing') }}">
-                    @endif
+                <form method="GET" action="<?php echo e(route('superadmin.bookings.bookingByLetter.marketing')); ?>" class="d-flex input-group">
+                    <input type="text" name="search" value="<?php echo e(request('search')); ?>" class="form-control" placeholder="Search...">
+                    <?php if(request()->filled('month')): ?>
+                        <input type="hidden" name="month" value="<?php echo e(request('month')); ?>">
+                    <?php endif; ?>
+                    <?php if(request()->filled('year')): ?>
+                        <input type="hidden" name="year" value="<?php echo e(request('year')); ?>">
+                    <?php endif; ?>
+                    <?php if(request()->filled('marketing')): ?>
+                        <input type="hidden" name="marketing" value="<?php echo e(request('marketing')); ?>">
+                    <?php endif; ?>
                     <button class="btn btn-outline-secondary" type="submit">🔍</button>
                 </form>
             </div>
 
             <!-- Month & Year Filter Form -->
             <div class="search-set">
-                <form method="GET" action="{{ route('superadmin.bookings.bookingByLetter.marketing') }}" class="d-flex input-group">
+                <form method="GET" action="<?php echo e(route('superadmin.bookings.bookingByLetter.marketing')); ?>" class="d-flex input-group">
                     <!-- Month Filter -->
                     <select name="month" class="form-control">
                         <option value="">Select Month</option>
-                        @foreach(range(1,12) as $m)
-                        <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                        <?php $__currentLoopData = range(1,12); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($m); ?>" <?php echo e(request('month') == $m ? 'selected' : ''); ?>>
+                            <?php echo e(\Carbon\Carbon::create()->month($m)->format('F')); ?>
+
                         </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
 
                     <!-- Year Filter -->
                     <select name="year" class="form-control">
                         <option value="">Select Year</option>
-                        @foreach(range(date('Y'), date('Y') - 10) as $y)
-                        <option value="{{ $y }}" {{ request('year') == $y ? 'selected' : '' }}>
-                            {{ $y }}
+                        <?php $__currentLoopData = range(date('Y'), date('Y') - 10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $y): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($y); ?>" <?php echo e(request('year') == $y ? 'selected' : ''); ?>>
+                            <?php echo e($y); ?>
+
                         </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
 
-                    @if(request()->filled('search'))
-                        <input type="hidden" name="search" value="{{ request('search') }}">
-                    @endif
-                    @if(request()->filled('marketing'))
-                        <input type="hidden" name="marketing" value="{{ request('marketing') }}">
-                    @endif
+                    <?php if(request()->filled('search')): ?>
+                        <input type="hidden" name="search" value="<?php echo e(request('search')); ?>">
+                    <?php endif; ?>
+                    <?php if(request()->filled('marketing')): ?>
+                        <input type="hidden" name="marketing" value="<?php echo e(request('marketing')); ?>">
+                    <?php endif; ?>
                     <button class="btn btn-outline-secondary" type="submit">Filter</button>
                 </form>
             </div>
@@ -118,31 +121,32 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($items as $item)
+                        <?php $__empty_1 = true; $__currentLoopData = $items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
                             <td class="checkbox-col"><label class="checkboxs mb-0" style="margin-right:2px;"><input type="checkbox"><span class="checkmarks"></span></label></td>
-                            <td class="job-order-cell compact-col" data-bs-toggle="tooltip" title="{{ $item->job_order_no }}">{{ $item->job_order_no }}</td>
+                            <td class="job-order-cell compact-col" data-bs-toggle="tooltip" title="<?php echo e($item->job_order_no); ?>"><?php echo e($item->job_order_no); ?></td>
                             <td class="ref-cell ref-col">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->booking?->reference_no ?? '-' }}">
-                                    {{ $item->booking?->reference_no ?? '-' }}
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->booking?->reference_no ?? '-'); ?>">
+                                    <?php echo e($item->booking?->reference_no ?? '-'); ?>
+
                                 </div>
                             </td>
                             <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->booking?->client_name ?? '-' }}">{{ $item->booking?->client_name ?? '-' }}</div>
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->booking?->client_name ?? '-'); ?>"><?php echo e($item->booking?->client_name ?? '-'); ?></div>
                             </td>
                             <td>
-                                <div class="cell-inner">{{ $item->sample_quality }}</div>
+                                <div class="cell-inner"><?php echo e($item->sample_quality); ?></div>
                             </td>
                             <td class="truncate-cell">
-                                <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->particulars }}">{{ $item->particulars }}</div>
+                                <div class="cell-inner" data-bs-toggle="tooltip" title="<?php echo e($item->particulars); ?>"><?php echo e($item->particulars); ?></div>
                             </td>
                             <td>
-                                <div class="cell-inner">{{ $item->amount !== null ? number_format($item->amount, 2) : '-' }}</div>
+                                <div class="cell-inner"><?php echo e($item->amount !== null ? number_format($item->amount, 2) : '-'); ?></div>
                             </td>
                             <td>
-                                <div class="cell-inner">{{ $item->lab_expected_date ? \Carbon\Carbon::parse($item->lab_expected_date)->format('d-M-Y') : '-' }}</div>
+                                <div class="cell-inner"><?php echo e($item->lab_expected_date ? \Carbon\Carbon::parse($item->lab_expected_date)->format('d-M-Y') : '-'); ?></div>
                             </td>
-                            @php
+                            <?php
                                 $status = $item->issue_date ? 'Issued' : ($item->received_at ? 'Received' : 'Pending');
                                 $statusClass = $item->issue_date ? 'bg-success' : ($item->received_at ? 'bg-info' : 'bg-warning');
                                 $receiverName = $item->received_by_name ?? optional($item->receivedBy)->name;
@@ -168,45 +172,46 @@
                                         $letterUrl = asset($path);
                                     }
                                 }
-                            @endphp
-                            <td><span class="badge {{ $statusClass }}" data-bs-toggle="tooltip" title="{{ $statusDetail }}">{{ $status }}</span></td>
+                            ?>
+                            <td><span class="badge <?php echo e($statusClass); ?>" data-bs-toggle="tooltip" title="<?php echo e($statusDetail); ?>"><?php echo e($status); ?></span></td>
                             <td>
-                                @if($letterUrl)
-                                    <a href="{{ $letterUrl }}" target="_blank" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View Letter" aria-label="View Letter">
+                                <?php if($letterUrl): ?>
+                                    <a href="<?php echo e($letterUrl); ?>" target="_blank" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View Letter" aria-label="View Letter">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                             <path d="M14 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6.5L14 4.5z"/>
                                             <path d="M5 7.5h6v1H5v-1zm0 2.5h6v1H5v-1z"/>
                                         </svg>
                                     </a>
-                                @else
+                                <?php else: ?>
                                     <span class="badge bg-light text-muted">No Letter</span>
-                                @endif
+                                <?php endif; ?>
                             </td>
                         </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="10" class="text-center">No items found.</td>
                         </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
 
                 <!-- Pagination -->
                 <div class="p-3">
                     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-                        <form method="GET" action="{{ route('superadmin.bookings.bookingByLetter.marketing') }}" class="d-flex align-items-center gap-2">
-                            @foreach(request()->except(['perPage','page']) as $key => $val)
-                                <input type="hidden" name="{{ $key }}" value="{{ $val }}">
-                            @endforeach
+                        <form method="GET" action="<?php echo e(route('superadmin.bookings.bookingByLetter.marketing')); ?>" class="d-flex align-items-center gap-2">
+                            <?php $__currentLoopData = request()->except(['perPage','page']); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <input type="hidden" name="<?php echo e($key); ?>" value="<?php echo e($val); ?>">
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             <label for="perPageSelect" class="me-1 mb-0 small">Rows per page:</label>
                             <select name="perPage" id="perPageSelect" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-                                @foreach([25,50,100] as $size)
-                                    <option value="{{ $size }}" {{ request('perPage',25)==$size ? 'selected' : '' }}>{{ $size }}</option>
-                                @endforeach
+                                <?php $__currentLoopData = [25,50,100]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $size): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($size); ?>" <?php echo e(request('perPage',25)==$size ? 'selected' : ''); ?>><?php echo e($size); ?></option>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </form>
                         <div>
-                            {{ $items->appends(request()->all())->links('pagination::bootstrap-5') }}
+                            <?php echo e($items->appends(request()->all())->links('pagination::bootstrap-5')); ?>
+
                         </div>
                     </div>
                 </div>
@@ -216,7 +221,7 @@
     </div>
 </div>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     /* Show full content for client/sample/particulars (no truncation) */
     .truncate-cell { max-width: 320px; }
@@ -268,6 +273,8 @@
         padding: 5px !important;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/showbooking/marketing/bookingByLetter.blade.php ENDPATH**/ ?>

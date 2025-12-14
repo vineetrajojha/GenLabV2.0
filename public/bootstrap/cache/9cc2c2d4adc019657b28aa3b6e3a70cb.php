@@ -1,9 +1,7 @@
-@extends('superadmin.layouts.app')
+<?php $__env->startSection('title', 'Marketing Executive Profile'); ?>
 
-@section('title', 'Marketing Executive Profile')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     // --- Data Pre-processing for Charts ---
     // 1. Booking Composition
     $billAmount = $stats['totalBillBookingAmount'] ?? 0;
@@ -43,11 +41,11 @@
     if(is_string($avatar) && $avatar) {
         $avatarUrl = str_starts_with($avatar, 'http') ? $avatar : asset('storage/'.ltrim($avatar, '/'));
     }
-@endphp
+?>
 
 <div class="container-fluid p-4 dashboard-container">
     
-    {{-- 1. Profile Hero Section --}}
+    
     <div class="row mb-4 animate-up">
         <div class="col-12">
             <div class="card border-0 shadow-lg profile-card">
@@ -57,23 +55,24 @@
                         <!-- Avatar -->
                         <div class="position-relative">
                             <div class="profile-avatar-wrapper">
-                                <img src="{{ $avatarUrl }}" alt="Profile" class="profile-avatar">
+                                <img src="<?php echo e($avatarUrl); ?>" alt="Profile" class="profile-avatar">
                             </div>
                             <span class="badge role-badge position-absolute bottom-0 start-50 translate-middle-x shadow-sm rounded-pill border border-2 border-white px-3">
-                                {{ $marketingPerson->role->role_name ?? $marketingPerson->role->name ?? 'Executive' }}
+                                <?php echo e($marketingPerson->role->role_name ?? $marketingPerson->role->name ?? 'Executive'); ?>
+
                             </span>
                         </div>
 
                         <!-- Info -->
                         <div class="text-center text-md-start flex-grow-1">
-                            <h2 class="fw-bold mb-1">{{ $marketingPerson->name }}</h2>
-                            <p class="mb-3"><i class="ti ti-id-badge me-1"></i> {{ $marketingPerson->user_code }} &bull; Marketing Dept</p>
+                            <h2 class="fw-bold mb-1"><?php echo e($marketingPerson->name); ?></h2>
+                            <p class="mb-3"><i class="ti ti-id-badge me-1"></i> <?php echo e($marketingPerson->user_code); ?> &bull; Marketing Dept</p>
                             
                             <div class="d-flex justify-content-center justify-content-md-start gap-2">
-                                <a href="mailto:{{ $marketingPerson->email }}" class="btn btn-sm btn-hero-outline">
+                                <a href="mailto:<?php echo e($marketingPerson->email); ?>" class="btn btn-sm btn-hero-outline">
                                     <i class="ti ti-mail me-1"></i> Email
                                 </a>
-                                <a href="tel:{{ $marketingPerson->phone }}" class="btn btn-sm btn-hero-outline">
+                                <a href="tel:<?php echo e($marketingPerson->phone); ?>" class="btn btn-sm btn-hero-outline">
                                     <i class="ti ti-phone me-1"></i> Call
                                 </a>
                                 <div class="dropdown">
@@ -85,16 +84,16 @@
                                             <label class="small text-muted mb-1">Month</label>
                                             <select name="month" id="filterMonth" class="form-select form-select-sm mb-2">
                                                 <option value="">All Months</option>
-                                                @for($m=1; $m<=12; $m++)
-                                                    <option value="{{ $m }}" {{ request('month')==$m ? 'selected':'' }}>{{ date('F', mktime(0,0,0,$m,1)) }}</option>
-                                                @endfor
+                                                <?php for($m=1; $m<=12; $m++): ?>
+                                                    <option value="<?php echo e($m); ?>" <?php echo e(request('month')==$m ? 'selected':''); ?>><?php echo e(date('F', mktime(0,0,0,$m,1))); ?></option>
+                                                <?php endfor; ?>
                                             </select>
                                             <label class="small text-muted mb-1">Year</label>
                                             <select name="year" id="filterYear" class="form-select form-select-sm mb-3">
                                                 <option value="">All Years</option>
-                                                @for($y=now()->year; $y>=now()->year-3; $y--)
-                                                    <option value="{{ $y }}" {{ request('year')==$y ? 'selected':'' }}>{{ $y }}</option>
-                                                @endfor
+                                                <?php for($y=now()->year; $y>=now()->year-3; $y--): ?>
+                                                    <option value="<?php echo e($y); ?>" <?php echo e(request('year')==$y ? 'selected':''); ?>><?php echo e($y); ?></option>
+                                                <?php endfor; ?>
                                             </select>
                                             <button type="submit" class="btn btn-primary btn-sm w-100">Apply Filter</button>
                                         </form>
@@ -106,10 +105,10 @@
 
                         <!-- Key Actions -->
                         <div class="d-flex flex-column gap-2">
-                            <!-- <a href="{{ route('superadmin.bookings.newbooking') }}" class="btn btn-hero shadow-sm fw-bold">
+                            <!-- <a href="<?php echo e(route('superadmin.bookings.newbooking')); ?>" class="btn btn-hero shadow-sm fw-bold">
                                 <i class="ti ti-plus me-1"></i> New
                             </a> -->
-                            <a href="{{ route('superadmin.marketing.expenses.view') }}" class="btn btn-hero-outline btn-glass">
+                            <a href="<?php echo e(route('superadmin.marketing.expenses.view')); ?>" class="btn btn-hero-outline btn-glass">
                                 <i class="ti ti-wallet me-1"></i> View Expenses
                             </a>
                         </div>
@@ -119,7 +118,7 @@
         </div>
     </div>
 
-    {{-- 2. KPI Cards (Top Stats) --}}
+    
     <div class="row g-3 mb-4 animate-up delay-1">
         <!-- Total Revenue -->
         <div class="col-lg-3 col-md-6">
@@ -129,10 +128,10 @@
                         <div class="avatar-sm bg-light-primary rounded-circle d-flex align-items-center justify-content-center">
                             <i class="ti ti-coin fs-4 text-primary"></i>
                         </div>
-                        <span class="badge bg-light-success text-success">+{{ number_format($stats['transactions'] ?? 0) }} Txns</span>
+                        <span class="badge bg-light-success text-success">+<?php echo e(number_format($stats['transactions'] ?? 0)); ?> Txns</span>
                     </div>
                     <h5 class="text-muted text-uppercase fs-11 fw-bold mb-1">Total Received</h5>
-                    <h3 class="fw-bold text-dark mb-0">₹{{ number_format($stats['totalTransactionsAmount'] ?? 0) }}</h3>
+                    <h3 class="fw-bold text-dark mb-0">₹<?php echo e(number_format($stats['totalTransactionsAmount'] ?? 0)); ?></h3>
                 </div>
             </div>
         </div>
@@ -144,10 +143,10 @@
                         <div class="avatar-sm bg-light-info rounded-circle d-flex align-items-center justify-content-center">
                             <i class="ti ti-calendar-stats fs-4 text-info"></i>
                         </div>
-                        <span class="badge bg-light text-dark">{{ $stats['totalBookings'] ?? 0 }} Total</span>
+                        <span class="badge bg-light text-dark"><?php echo e($stats['totalBookings'] ?? 0); ?> Total</span>
                     </div>
                     <h5 class="text-muted text-uppercase fs-11 fw-bold mb-1">Booking Value</h5>
-                    <h3 class="fw-bold text-dark mb-0">₹{{ number_format($stats['totalBookingAmount'] ?? 0) }}</h3>
+                    <h3 class="fw-bold text-dark mb-0">₹<?php echo e(number_format($stats['totalBookingAmount'] ?? 0)); ?></h3>
                 </div>
             </div>
         </div>
@@ -162,7 +161,7 @@
                         <span class="badge bg-light-danger text-danger">Action Needed</span>
                     </div>
                     <h5 class="text-muted text-uppercase fs-11 fw-bold mb-1">Unpaid Invoices</h5>
-                    <h3 class="fw-bold text-danger mb-0">₹{{ number_format($stats['totalUnpaidInvoiceAmount'] ?? 0) }}</h3>
+                    <h3 class="fw-bold text-danger mb-0">₹<?php echo e(number_format($stats['totalUnpaidInvoiceAmount'] ?? 0)); ?></h3>
                 </div>
             </div>
         </div>
@@ -176,13 +175,13 @@
                         </div>
                     </div>
                     <h5 class="text-muted text-uppercase fs-11 fw-bold mb-1">TDS Deducted</h5>
-                    <h3 class="fw-bold text-dark mb-0">₹{{ number_format($stats['tdsAmount'] ?? 0) }}</h3>
+                    <h3 class="fw-bold text-dark mb-0">₹<?php echo e(number_format($stats['tdsAmount'] ?? 0)); ?></h3>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- 3. Visual Analytics (Charts) --}}
+    
     <div class="row g-3 mb-4 animate-up delay-2">
         <div class="col-lg-3 col-md-6">
             <div class="card border-0 shadow-sm h-100">
@@ -193,7 +192,7 @@
                             <small class="text-muted">Approved vs Pending</small>
                         </div>
                         <div class="text-end">
-                            <div class="fw-bold">₹{{ number_format($personal_total_amount, 2) }}</div>
+                            <div class="fw-bold">₹<?php echo e(number_format($personal_total_amount, 2)); ?></div>
                             <small class="text-muted">Total</small>
                         </div>
                     </div>
@@ -202,7 +201,7 @@
                         <div id="personalExpenseChart" style="width:100%; max-width:320px; min-height:360px;"></div>
                         <div id="personalExpenseCenter" class="personal-expense-center text-center">
                             <div class="fs-6" style="font-size: 2.1rem">Approved</div>
-                            <div id="personalCenterAmount" class="fw-bold fs-5">₹{{ number_format($personal_approved_amount, 2) }}</div>
+                            <div id="personalCenterAmount" class="fw-bold fs-5">₹<?php echo e(number_format($personal_approved_amount, 2)); ?></div>
                         </div>
                     </div>
 
@@ -231,11 +230,11 @@
                     <div class="mt-3 text-center w-100">
                         <div class="row text-center mt-2">
                             <div class="col-6 border-end">
-                                <h5 class="fw-bold mb-0">₹{{ number_format($billAmount) }}</h5>
+                                <h5 class="fw-bold mb-0">₹<?php echo e(number_format($billAmount)); ?></h5>
                                 <small class="text-muted">Bill</small>
                             </div>
                             <div class="col-6">
-                                <h5 class="fw-bold mb-0">₹{{ number_format($cashAmount) }}</h5>
+                                <h5 class="fw-bold mb-0">₹<?php echo e(number_format($cashAmount)); ?></h5>
                                 <small class="text-muted">Cash/Letter</small>
                             </div>
                         </div>
@@ -245,7 +244,7 @@
         </div>
     </div>
 
-    {{-- 4. Quick Access Grid (The Detailed Stats) --}}
+    
     <div class="animate-up delay-3">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <h5 class="fw-bold text-dark m-0"><i class="ti ti-apps me-2"></i>Detailed Reports</h5>
@@ -263,7 +262,7 @@
         </div>
         
         <div class="row g-3" id="stats-grid">
-            @php
+            <?php
                  $cards = [
                     // Row: Bookings
                     ['id'=>'totalBookings', 'title'=>'Total Bookings', 'count'=>($stats['totalBookings'] ?? 0), 'amt'=>($stats['totalBookingAmount'] ?? 0), 'icon'=>'calendar', 'color'=>'primary', 'type'=>'all', 'url'=>route('superadmin.marketing.bookings',$marketingPerson->user_code)],
@@ -290,53 +289,54 @@
                     // Clients
                     ['id'=>'allClients', 'title'=>'Clients', 'count'=>($stats['allClients'] ?? 0), 'amt'=>($stats['totalBookingAmount'] ?? 0), 'icon'=>'users', 'color'=>'primary', 'type'=>'all', 'url'=>route('superadmin.marketing.allClients',$marketingPerson->user_code)],
                 ];
-            @endphp
+            ?>
 
-            @foreach($cards as $c)
-            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 stats-card-wrapper" data-type="{{ $c['type'] }}">
-                <div class="card border-0 shadow-sm mini-stat-card clickable h-100" data-url="{{ $c['url'] }}" role="button" tabindex="0" aria-label="{{ $c['title'] }}">
+            <?php $__currentLoopData = $cards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 stats-card-wrapper" data-type="<?php echo e($c['type']); ?>">
+                <div class="card border-0 shadow-sm mini-stat-card clickable h-100" data-url="<?php echo e($c['url']); ?>" role="button" tabindex="0" aria-label="<?php echo e($c['title']); ?>">
                     <div class="card-body p-3 text-center">
-                        <div class="avatar-sm bg-light-{{ $c['color'] }} rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center">
-                            <i class="ti ti-{{ $c['icon'] }} fs-5 text-{{ $c['color'] }}"></i>
+                        <div class="avatar-sm bg-light-<?php echo e($c['color']); ?> rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center">
+                            <i class="ti ti-<?php echo e($c['icon']); ?> fs-5 text-<?php echo e($c['color']); ?>"></i>
                         </div>
-                        <p class="text-muted small mb-1 text-truncate">{{ $c['title'] }}</p>
-                        <h5 class="fw-bold mb-0">{{ number_format($c['count'] ?? 0) }}</h5>
-                        @if($c['amt'] !== null)
-                        <small class="text-{{ $c['color'] }} fw-semibold fs-10">₹{{ number_format($c['amt']) }}</small>
-                        @endif
+                        <p class="text-muted small mb-1 text-truncate"><?php echo e($c['title']); ?></p>
+                        <h5 class="fw-bold mb-0"><?php echo e(number_format($c['count'] ?? 0)); ?></h5>
+                        <?php if($c['amt'] !== null): ?>
+                        <small class="text-<?php echo e($c['color']); ?> fw-semibold fs-10">₹<?php echo e(number_format($c['amt'])); ?></small>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
     </div>
 
-    {{-- 5. Dynamic Content Area --}}
+    
     <div class="row mt-4 animate-up delay-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white border-0 py-3">
                     <h5 class="fw-bold text-dark m-0">Detailed View</h5>
                 </div>
-                <div class="card-body p-0" id="dynamic-section" data-initial-loaded="{{ isset(
-                    $initialContent) ? '1' : '0' }}">
-                    @if(!empty($initialContent))
-                        {!! $initialContent !!}
-                    @else
+                <div class="card-body p-0" id="dynamic-section" data-initial-loaded="<?php echo e(isset(
+                    $initialContent) ? '1' : '0'); ?>">
+                    <?php if(!empty($initialContent)): ?>
+                        <?php echo $initialContent; ?>
+
+                    <?php else: ?>
                         <div class="text-center py-5">
                             <div class="spinner-grow text-primary opacity-50" role="status"></div>
                             <p class="mt-2 text-muted">Select a category above to load data</p>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     /* 1. Theme Variables & Fonts */
     :root {
@@ -451,12 +451,12 @@
     .personal-expense-center .fs-6 {
         font-size: .8rem !important; /* larger label */
         color: #374151 !important;
-        font-weight: 600;
+        font-weight: 500;
         letter-spacing: 0.2px;
         margin-bottom: 2px;
     }
     .personal-expense-center .fs-5 { font-size: 1rem; }
-    #personalCenterAmount { font-size: 1.9rem !important; line-height: 1; font-weight: 700; }
+    #personalCenterAmount { font-size: 1.9rem !important; line-height: 1; font-weight: 600; }
     #personalExpenseLegend .legend-item { display:flex; gap:8px; align-items:center; }
     #personalExpenseLegend .swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
     @media (max-width: 992px){ .personal-expense-center { width:180px; } }
@@ -465,10 +465,10 @@
         #personalCenterAmount { font-size: 2.1rem !important; }
     }
 </style
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
-{{-- Ensure ApexCharts is loaded --}}
+<?php $__env->startPush('scripts'); ?>
+
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
@@ -480,7 +480,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const invOptions = {
         series: [{
             name: 'Amount',
-            data: [{{ $paidInv }}, {{ $unpaidInv }}, {{ $partialInv }}]
+            data: [<?php echo e($paidInv); ?>, <?php echo e($unpaidInv); ?>, <?php echo e($partialInv); ?>]
         }],
         chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
         plotOptions: {
@@ -504,7 +504,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Chart B: Revenue Source (Donut Chart)
     const sourceOptions = {
-        series: [{{ $billAmount }}, {{ $cashAmount }}],
+        series: [<?php echo e($billAmount); ?>, <?php echo e($cashAmount); ?>],
         chart: { type: 'donut', height: 260, fontFamily: 'Inter, sans-serif' },
         labels: ['Bill Bookings', 'Cash/Letter'],
         colors: ['#4F46E5', '#6366f1'], // Deep Blue, Light Blue
@@ -524,8 +524,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // --- 3. Personal Expenses Donut (Approved vs Pending) ---
     try{
-        const approvedVal = Number({{ (float)$personal_approved_amount }} || 0);
-        const totalVal = Number({{ (float)$personal_total_amount }} || 0);
+        const approvedVal = Number(<?php echo e((float)$personal_approved_amount); ?> || 0);
+        const totalVal = Number(<?php echo e((float)$personal_total_amount); ?> || 0);
         const pendingVal = Math.max(0, totalVal - approvedVal);
         const percentApproved = totalVal > 0 ? Math.round((approvedVal / totalVal) * 100) : 0;
 
@@ -769,4 +769,5 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Mamp\htdocs\GenLabV2.0\resources\views/superadmin/accounts/marketingPerson/profile.blade.php ENDPATH**/ ?>
