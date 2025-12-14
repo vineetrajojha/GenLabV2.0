@@ -57,7 +57,26 @@
     padding: 6px 10px;
     font-size: 12px;
     word-wrap: break-word;
+} 
+
+/* Remove all borders inside the row */
+tr.item-row td {
+    border-top: none !important;
+    border-bottom: none !important;
+    /* border-left: none !important; */
+    border-right: none !important;
 }
+
+/* Keep ONLY left border on first column */
+tr.item-row td:first-child {
+    border-left: 1px solid #000 !important;
+}
+
+/* Keep ONLY right border on last column */
+tr.item-row td:last-child {
+    border-right: 1px solid #000 !important;
+}
+
 
 .invoice-preview th {
     background: #e9ecef;
@@ -90,11 +109,41 @@
 .item-row.selected {
     background: #fff3cd !important;
     outline: 2px solid #ffc107;
+} 
+
+
+.invoice-settings-card {
+    top: 90px;
+    max-height: calc(100vh - 110px); /* header + top gap */
+    display: flex;
+    flex-direction: column;
 }
 
+.invoice-settings-body {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 6px; /* avoids scrollbar overlap */
+}
+
+/* Optional: smooth scrollbar */
+.invoice-settings-body::-webkit-scrollbar {
+    width: 6px;
+}
+.invoice-settings-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+
 /* ================= PRINT ================= */
-@media print {
-    body { background: none; }
+@media print { 
+    body * {
+        visibility: hidden !important;
+    }
+    .a4-page,
+    .a4-page * {
+        visibility: visible !important;
+    } 
     .a4-page {
         box-shadow: none;
         margin: 0;
@@ -102,265 +151,294 @@
         width: 210mm;
         height: 297mm;
         page-break-after: always;
+    }  
+    .page-subtotal-row {
+        font-weight: bold;
+        background: #f1f1f1;
     }
+
 }
 </style>  
 
 
 <div class="row"> 
     {{-- ===================== INVOICE PAGE ===================== --}}
-    <div class="a4-page">
-        <div class="invoice-preview">
 
-            {{-- ===================== HEADER ===================== --}}
-            <table>
-                <thead>
-                    <tr>
-                        <th class="col-left text-uppercase" contenteditable="true">
-                            GSTIN: {{ $invoiceData['bankDetails']['gstin'] ?? '9113464642541' }}
-                        </th>
+        <div class="a4-page"> 
+            <div class="print-page-header">
+                <span class="page-number"></span>
+            </div> 
+            <form id="previewInvoiceForm"
+                method="POST"
+                action="{{ route('superadmin.bookingInvoiceStatuses.generateInvoice', $booking->id) }}">
 
-                        <th class="text-centre text-uppercase" colspan="2" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoiceType'] ?? 'Tax Invoice' }}
-                        </th>
+                @csrf
+                <input type="hidden" id="td_booking_id" name="booking_id" value="{{ $booking->id }}">
+                <input type="hidden" name="invoice_data" id="preview_invoice_data">
+                <input type="hidden" name="invoice_type" id="invoice_type" value="tax_invoice">
 
-                        <th class="text-centre">Scan to Pay</th>
-                    </tr>
-                </thead>
+                <div class="invoice-preview">
 
-                <tbody>
-                    {{-- ===================== BILL TO ===================== --}}
-                    <tr>
-                        <th class="col-left text-start">Bill Issue To:</th>
+                    {{-- ===================== HEADER ===================== --}}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="col-left text-uppercase" contenteditable="true">
+                                    GSTIN: {{ $booking->gstin ?? '9113464642541' }}
+                                </th>
 
-                        <td class="col-wide text-start text-uppercase" colspan="2" contenteditable="true">
-                            {{ $invoiceData['invoice']['bill_issue_to'] ?? '' }}<br>
-                            {!! nl2br(e($invoiceData['invoice']['address'] ?? '')) !!}<br>
-                            <span contenteditable="false" style="font-weight:bold;">
-                                GSTIN:
-                            </span> 
-                            {{ $invoiceData['invoice']['client_gstin'] ?? '' }}
-                        </td>
+                                <!-- <th class="text-centre text-uppercase" colspan="2" contenteditable="true">
+                                    {{ $invoiceData['invoice']['invoiceType'] ?? 'Tax Invoice' }}
+                                </th>   -->
+                                <th class="text-centre text-uppercase"
+                                    colspan="2"
+                                    id="invoiceTypeHeader"
+                                    contenteditable="true">
+                                    {{ $invoiceData['invoice']['invoiceType'] ?? 'Tax Invoice' }}
+                                </th>
 
-                        <td class="text-centre">
-                            @if(!empty($qrcode))
-                                <img src="data:image/svg+xml;base64,{{ $qrcode }}" width="100">
-                            @endif
-                        </td>
-                    </tr>
+                                <th class="text-centre">Scan to Pay</th>
+                            </tr>
+                        </thead>
 
-                    {{-- ===================== META DETAILS ===================== --}}
-                    <tr>
-                        <th class="text-start">Invoice No:</th>
-                        <td colspan="3" class="text-uppercase" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoice_no'] ?? '' }}
-                        </td>
-                    </tr>
+                        <tbody>
+                            {{-- ===================== BILL TO ===================== --}}
+                            <tr>
+                                <th class="col-left text-start">Bill Issue To:</th>
 
-                    <tr>
-                        <th class="text-start">Invoice Date:</th>
-                        <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['invoice_date'] ?? now()->format('d-m-Y') }}
-                        </td>
-                    </tr>
+                                <td class="col-wide text-start text-uppercase" colspan="2" contenteditable="true">
+                                    {{ $booking->name_of_work ?? '' }}<br>
+                                    <br>
+                                    <span contenteditable="false" style="font-weight:bold;">
+                                        GSTIN:
+                                    </span> 
+                                    {{ $booking->gstin ?? '' }}
+                                </td>
 
-                    <tr>
-                        <th class="text-start">Ref. No & Date:</th>
-                        <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['ref_no'] ?? '' }}
-                            {{ $invoiceData['invoice']['ref_date'] ?? '' }}
-                        </td>
-                    </tr>
+                                <td class="text-centre">
+                                    @if(!empty($qrcode))
+                                        <img src="data:image/svg+xml;base64,{{ $qrcode }}" width="100">
+                                    @endif
+                                </td>
+                            </tr>
 
-                    <tr>
-                        <th class="text-start">Name of Work:</th>
-                        <td colspan="3" contenteditable="true">
-                            {{ $invoiceData['invoice']['name_of_work'] ?? '' }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                            {{-- ===================== META DETAILS ===================== --}}
+                            <tr>
+                                <th class="text-start">Invoice No:</th>
+                                <td colspan="3" class="text-uppercase" contenteditable="true">
+                                    {{$booking->invoice_no ?? '00'}}
+                                </td>
+                            </tr>
 
+                            <tr>
+                                <th class="text-start">Invoice Date:</th>
+                                <td colspan="3" contenteditable="true">
+                                    {{ date('d-m-Y') ??'' }}
+                                </td>
+                            </tr>
 
-            {{-- ===================== ITEM DETAILS ===================== --}}
-            <table >
-                <thead>
-                    <tr>
-                        <!-- <th style="width:9%;">#</th> -->
-                        <th style="width:35%;">Description</th>
-                        <th style="width:20%;">Job Order No</th>
-                        <th style="width:10%;">SAC Code</th>
-                        <th style="width:10%;">Qty</th>
-                        <th style="width:20%;">Rate</th>
-                        <th style="width:25%;">Amount</th>
-                    </tr>
-                </thead>
+                            <tr>
+                                <th class="text-start">Ref. No & Date:</th>
+                                <td colspan="3" contenteditable="false">
+                                    {{ $booking->reference_no ?? ''}}  
+                                    &nbsp;&&nbsp;
+                                    {{ $booking->job_order_date ? \Carbon\Carbon::parse($booking->job_order_date)->format('d-m-Y') : '' }}
+                                </td>
+                            </tr>
 
-                <tbody>
-                @if($booking->items->isNotEmpty())
-                    @foreach($booking->items as $item)
-                        <tr class="item-row">
-                            <!-- <td contenteditable="true">{{ $loop->iteration }}</td> -->
-                            <td contenteditable="true" class="editable description">
-                                {{ $item->sample_description }}
-                            </td>
-                            <td>{{ $item->job_order_no }}</td>
-                            <td>{{ $booking->sac_code ?? '' }}</td>
-                            <td contenteditable="true" class="editable qty">
-                                {{ $item->qty ?? 1 }}
-                            </td>
-                            <td contenteditable="true" class="editable rate">
-                                {{ number_format($item->amount, 2) }}
-                            </td>
-                            <td class="amount">0.00</td>
-                        </tr>
-                    @endforeach
-                @else
-                    @for($i = 1; $i <= 9; $i++)
-                        <tr class="item-row">
-                            <td>{{ $i }}</td>
-                            <td contenteditable="true" class="editable description"></td>
-                            <td></td>
-                            <td></td>
-                            <td contenteditable="true" class="editable qty">1</td>
-                            <td contenteditable="true" class="editable rate">0.00</td>
-                            <td class="amount" contenteditable="true">0.00</td>
-                        </tr>
-                    @endfor
-                @endif
+                            <tr>
+                                <th class="text-start">Name of Work:</th>
+                                <td colspan="3" contenteditable="true">
+                                    {{ $booking->name_of_work ?? '' }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
 
-                {{-- ===================== TOTALS ===================== --}}
-                <tr class="total-row">
-                        <td colspan="5" class="text-right">Total Amount</td>
-                        <td id="totalAmount">0.00</td>
-                    </tr>
+                    {{-- ===================== ITEM DETAILS ===================== --}}
+                    <table >
+                        <thead>
+                            <tr>
+                                <!-- <th style="width:9%;">#</th> -->
+                                <th style="width:35%;">Description</th>
+                                <th style="width:20%;">Job Order No</th>
+                                <th style="width:10%;">SAC Code</th>
+                                <th style="width:10%;">Qty</th>
+                                <th style="width:20%;">Rate</th>
+                                <th style="width:25%;">Amount</th>
+                            </tr>
+                        </thead>
 
-                    <tr class="total-row" id="discountRow">
-                        <td colspan="5" class="text-right">
-                            Discount (
-                            <span contenteditable="true"
-                                id="discountPercent"
-                                class="editable-percent">0</span> %)
-                        </td>
-                        <td id="discountAmount">0.00</td>
-                    </tr>
+                        <tbody>
+                        @if($booking->items->isNotEmpty())
+                            @foreach($booking->items as $item)
+                                <tr class="item-row">
+                                    <!-- <td contenteditable="true">{{ $loop->iteration }}</td> -->
+                                    <td contenteditable="true" class="editable description ">
+                                        {{ $item->sample_description }}
+                                    </td>
+                                    <td >{{ $item->job_order_no }}</td>
+                                    <td >{{ $booking->sac_code ?? '' }}</td>
+                                    <td contenteditable="true" class="editable qty ">
+                                        {{ $item->qty ?? 1 }}
+                                    </td>
+                                    <td contenteditable="true" class="editable rate ">
+                                        {{ number_format($item->amount, 2) }}
+                                    </td>
+                                    <td class="amount">0.00</td>
+                                </tr>
+                            @endforeach
+                        @else
+                            @for($i = 1; $i <= 9; $i++)
+                                <tr class="item-row">
+                                    <td>{{ $i }}</td>
+                                    <td contenteditable="true" class="editable description"></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td contenteditable="true" class="editable qty">1</td>
+                                    <td contenteditable="true" class="editable rate">0.00</td>
+                                    <td class="amount" contenteditable="true">0.00</td>
+                                </tr>
+                            @endfor
+                        @endif
 
-                    <tr class="total-row" id="afterDiscountRow">
-                        <td colspan="5" class="text-right">After Discount</td>
-                        <td id="afterDiscount">0.00</td>
-                    </tr>
 
-                    <tr class="total-row">
-                        <td colspan="5" class="text-right">
-                            CGST (
-                            <span contenteditable="true"
-                                id="cgstPercent"
-                                class="editable-percent">0</span> %)
-                        </td>
-                        <td id="cgstAmount">0.00</td>
-                    </tr>
+                        {{-- ===================== TOTALS ===================== --}}
+                        <tr class="total-row">
+                                <td colspan="5" class="text-right">Total Amount</td>
+                                <td id="totalAmount">0.00</td>
+                            </tr>
 
-                    <tr class="total-row">
-                        <td colspan="5" class="text-right">
-                            SGST (
-                            <span contenteditable="true"
-                                id="sgstPercent"
-                                class="editable-percent">0</span> %)
-                        </td>
-                        <td id="sgstAmount">0.00</td>
-                    </tr>
+                            <tr class="total-row" id="discountRow">
+                                <td colspan="5" class="text-right">
+                                    Discount (
+                                    <span contenteditable="true"
+                                        id="discountPercent"
+                                        class="editable-percent">0</span> %)
+                                </td>
+                                <td id="discountAmount">0.00</td>
+                            </tr>
 
-                    <tr class="total-row">
-                        <td colspan="5" class="text-right">
-                            IGST (
-                            <span contenteditable="true"
-                                id="igstPercent"
-                                class="editable-percent">0</span> %)
-                        </td>
-                        <td id="igstAmount">0.00</td>
-                    </tr>
+                            <tr class="total-row" id="afterDiscountRow">
+                                <td colspan="5" class="text-right">After Discount</td>
+                                <td id="afterDiscount">0.00</td>
+                            </tr>
 
-                    <tr class="total-row" id="roundOffRow">
-                        <td colspan="5" class="text-right">Round Off</td>
-                        <td id="roundOff">0.00</td>
-                    </tr>
+                            <tr class="total-row">
+                                <td colspan="5" class="text-right">
+                                    CGST (
+                                    <span contenteditable="true"
+                                        id="cgstPercent"
+                                        class="editable-percent">0</span> %)
+                                </td>
+                                <td id="cgstAmount">0.00</td>
+                            </tr>
 
-                    <tr class="total-row">
-                        <td colspan="5" class="text-right">Payable Amount</td>
-                        <td id="payableAmount">0.00</td>
-                    </tr>
+                            <tr class="total-row">
+                                <td colspan="5" class="text-right">
+                                    SGST (
+                                    <span contenteditable="true"
+                                        id="sgstPercent"
+                                        class="editable-percent">0</span> %)
+                                </td>
+                                <td id="sgstAmount">0.00</td>
+                            </tr>
 
-                    <tr>
-                        <th colspan="6" id="amountInWords" class="text-centre">
-                            Amount in Words:
-                        </th>
-                    </tr>
+                            <tr class="total-row">
+                                <td colspan="5" class="text-right">
+                                    IGST (
+                                    <span contenteditable="true"
+                                        id="igstPercent"
+                                        class="editable-percent">0</span> %)
+                                </td>
+                                <td id="igstAmount">0.00</td>
+                            </tr>
 
-                </tbody>
-            </table> 
-            {{-- ===================== BANK DETAILS ===================== --}}
-            <!-- Bank Details -->
-            <table class="bank-table">
-                <tbody>
-                    <tr>
-                        <th class="text-start">INSTRUCTIONS:</th>
-                        <td colspan="2">{{ $bankInfo->instructions ?? '' }}</td>
-                    </tr>
-                    <tr>
-                        <th class="text-start">BANK NAME:</th>
-                        <td>{{ $bankInfo->name ?? '' }}</td>
-                        <td class="text-centre text-uppercase">For {{$companyName ?? ''}}</td>
-                    </tr>
-                    <tr>
-                        <th class="text-start">ACCOUNT NO:</th>
-                        <td>{{ $bankInfo->account_no ?? '' }}</td>
-                        <td rowspan="5" class="text-bottom">Authorised Signatory</td>
-                    </tr>
-                    <tr><th class="text-start">BRANCH:</th><td class="text-uppercase">{{ $bankInfo->branch ?? '' }}</td></tr>
-                    <tr><th class="text-start">IFSC CODE:</th><td class="text-uppercase">{{ $bankInfo->ifsc_code ?? '' }}</td></tr>
-                    <tr><th class="text-start">PAN NO:</th><td class="text-uppercase">{{ $bankInfo->pan_no ?? '' }}</td></tr>
-                    <tr><th class="text-start">GSTIN:</th><td class="text-uppercase">{{ $bankInfo->gstin ?? '' }}</td></tr>
-                </tbody>
-            </table>
+                            <tr class="total-row" id="roundOffRow">
+                                <td colspan="5" class="text-right">Round Off</td>
+                                <td id="roundOff">0.00</td>
+                            </tr>
 
-        </div>
-    </div>
+                            <tr class="total-row">
+                                <td colspan="5" class="text-right">Payable Amount</td>
+                                <td id="payableAmount">0.00</td>
+                            </tr>
 
+                            <tr>
+                                <th colspan="6" id="amountInWords" class="text-centre">
+                                    Amount in Words:
+                                </th>
+                            </tr>
+
+                        </tbody>
+                    </table> 
+                    {{-- ===================== BANK DETAILS ===================== --}}
+                    <!-- Bank Details -->
+                    <table class="bank-table">
+                        <tbody>
+                            <tr>
+                                <th class="text-start">INSTRUCTIONS:</th>
+                                <td colspan="2">{{ $bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">BANK NAME:</th>
+                                <td>{{ $bankInfo->name ?? 'SBI' }}</td>
+                                <td class="text-centre text-uppercase">For {{$companyName ?? ''}}</td>
+                            </tr>
+                            <tr>
+                                <th class="text-start">ACCOUNT NO:</th>
+                                <td>{{ $bankInfo->account_no ?? '' }}</td>
+                                <td rowspan="5" class="text-bottom">Authorised Signatory</td>
+                            </tr>
+                            <tr><th class="text-start">BRANCH:</th><td class="text-uppercase">{{ $bankInfo->branch ?? '' }}</td></tr>
+                            <tr><th class="text-start">IFSC CODE:</th><td class="text-uppercase">{{ $bankInfo->ifsc_code ?? '' }}</td></tr>
+                            <tr><th class="text-start">PAN NO:</th><td class="text-uppercase">{{ $bankInfo->pan_no ?? '' }}</td></tr>
+                            <tr><th class="text-start">GSTIN:</th><td class="text-uppercase">{{ $bankInfo->gstin ?? '' }}</td></tr>
+                        </tbody>
+                    </table>
+
+                </div> 
+            </form>
+        </div> 
+    
    {{-- ================= EDIT PANEL (RIGHT SIDE) ================= --}}
-    <div class="col-lg-3">
-        <div class="card shadow-sm position-sticky" style="top: 90px;">
-            <div class="card-header fw-semibold">
-                Invoice Settings
+   <div class="col-lg-3">
+        <div class="card shadow-sm position-sticky invoice-settings-card">
+            <div class="card-header fw-semibold d-flex align-items-center gap-2">
+                ⚙️ Invoice Settings
             </div>
+            <!--  Make body scrollable -->
+             <div class="card-body invoice-settings-body">
 
-            <div class="card-body">
-                <div class="form-check mb-2">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           id="enableRoundOff"
-                           checked>
-
-                    <label class="form-check-label fw-semibold"
-                           for="enableRoundOff">
-                        Enable Round Off
+                {{-- ================= INVOICE TYPE ================= --}}
+                <div class="mb-3">
+                    <label class="fw-semibold mb-1 d-block">
+                        Invoice Type
                     </label>
-                </div>  
 
-                <div class="form-check mb-2">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           id="enableDiscount"
-                           checked>
-
-                    <label class="form-check-label fw-semibold"
-                           for="enableDiscount">
-                        Dicount Applicable
-                    </label>
-                </div>  
+                    <select class="form-select form-select-sm" id="invoiceTypeSelector">
+                        <option value="tax_invoice" selected>Tax Invoice</option>
+                        <option value="proforma_invoice">Proforma Invoice</option>
+                    </select>
+                </div>
 
                 <hr>
 
+                {{-- ================= MARKETING PERSON ================= --}}
+                <div class="mb-3">
+                    <label class="fw-semibold mb-1 d-block">
+                        Marketing Person
+                    </label>
+
+                    <div class="btn btn-sm btn-outline-primary w-100 text-start">
+                        👤 {{ $booking->marketingPerson->name ?? '-' }}
+                    </div>
+                </div>
+
+                <hr>
+
+                {{-- ================= ROW ACTIONS ================= --}}
                 <div class="fw-semibold mb-2">Item Row Actions</div>
 
                 <button type="button"
@@ -374,21 +452,198 @@
                         onclick="removeSelectedRow()">
                     ❌ Remove Selected Row
                 </button>
-                
+
                 <div class="mt-3 small text-muted">
-                    💡 <strong>Tip:</strong> Select a row and press 
-                    <kbd>Ctrl</kbd> + <kbd>M</kbd> to merge it into a single line.
+                    💡 <strong>Tip:</strong> Select a row and press
+                    <kbd>Ctrl</kbd> + <kbd>M</kbd> to merge it.
                 </div>
-                <!-- future controls -->
-                <!-- <hr>
+
+                <hr>
+
+                {{-- ================= CALCULATION OPTIONS ================= --}}
+                <div class="fw-semibold mb-2">Calculation Options</div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input"
+                        type="checkbox"
+                        id="enableRoundOff"
+                        checked>
+                    <label class="form-check-label fw-semibold">
+                        Enable Round Off
+                    </label>
+                </div>
+
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <label class="form-check-label">Show GST</label>
-                </div> -->
+                    <input class="form-check-input"
+                        type="checkbox"
+                        id="enableDiscount"
+                        checked>
+                    <label class="form-check-label fw-semibold">
+                        Discount Applicable
+                    </label>
+                </div>
+                <hr> 
+                 {{-- ================= Generat Invoice ================= --}}
+                <div class="d-flex">
+                    <button type="submit"
+                            class="btn btn-success w-100"
+                            form="previewInvoiceForm">
+                        <i class="fa fa-file-pdf me-2"></i> Generate Invoice
+                    </button>
+                </div>
+
+                <hr>
+                {{-- ================= UPLOAD Bill INVOICE ================= --}}
+                <div>
+                    <div class="card shadow-sm h-100 border-0">
+                        <div class="card-body p-4">
+
+                            <!-- Header -->
+                            <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                                <span class="bg-primary bg-opacity-10 text-primary rounded-circle p-2">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </span>
+                                Upload Invoice
+                            </h6>
+
+                            <form id="gstinUploadForm"
+                                enctype="multipart/form-data"
+                                method="POST"
+                                action="{{ route('superadmin.gstin.upload') }}">
+
+                                @csrf
+                                <input type="hidden"
+                                    name="invoice_id"
+                                    value="{{ $booking->generatedInvoice?->id ?? '0' }}">
+
+                                <!-- Hidden File Input -->
+                                <input type="file"
+                                    id="gstinFile"
+                                    name="gstin_file"
+                                    class="d-none"
+                                    onchange="document.getElementById('fileName').innerText = this.files[0]?.name || 'No file selected'">
+
+                                <!-- Upload Area -->
+                                <label for="gstinFile"
+                                    class="w-100 border border-dashed rounded-3 p-4 text-center bg-light mb-3"
+                                    style="cursor:pointer">
+                                    <i class="bi bi-cloud-upload fs-3 text-primary mb-1 d-block"></i>
+                                    <div class="fw-medium">Click to upload invoice</div>
+                                    <small class="text-muted">PDF, JPG, PNG</small>
+                                </label>
+
+                                <!-- Footer Actions -->
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
+                                    <small id="fileName" class="text-muted">
+                                        No file selected
+                                    </small>
+
+                                    <div class="d-flex gap-2">
+
+                                        <!-- View Button -->
+                                        <a href="{{ $booking->generatedInvoice?->invoice_letter_path
+                                                    ? url($booking->generatedInvoice->invoice_letter_path)
+                                                    : '#' }}"
+                                        target="_blank"
+                                        class="btn btn-outline-secondary btn-sm
+                                        {{ empty($booking->generatedInvoice?->invoice_letter_path) ? 'disabled' : '' }}">
+                                            <i class="bi bi-eye">View</i>
+                                        </a>
+
+                                        <!-- Save Button -->
+                                        <button type="submit" class="btn btn-success btn-sm px-3">
+                                            <i class="bi bi-check-circle me-1"></i> Save
+                                        </button>
+
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>  
             </div>
         </div>
     </div>
+
 </div>
+
+{{-- ===================== PREVIEW FORM SUBMISSION ===================== --}}
+<script>
+    document.getElementById('previewInvoiceForm')
+    .addEventListener('submit', function () {
+
+        recalculateAll(); // ensure totals are correct
+
+        // invoice type
+        // document.getElementById('invoice_type').value =
+        //     document.getElementById('invoiceTypeHeader').innerText.trim().toLowerCase();
+
+        let invoiceData = {
+
+            booking_info: {
+                booking_id: "{{ $booking->id }}",
+                client_name: "{{ $booking->client->name ?? '' }}",
+                marketing_person: "{{ $booking->marketingPerson->name ?? '' }}",
+                invoice_no: document.querySelector('[contenteditable][data-invoice-no]')?.innerText
+                            || "{{ $booking->invoice_no ?? '' }}",
+                reference_no: "{{ $booking->reference_no ?? '' }}",
+                invoice_date: "{{ date('d-m-Y') }}",
+                letter_date: "{{ $booking->job_order_date
+                    ? \Carbon\Carbon::parse($booking->job_order_date)->format('d-m-Y')
+                    : '' }}",
+                name_of_work: document.querySelector('[contenteditable][data-name-of-work]')?.innerText
+                            || "{{ $booking->name_of_work ?? '' }}",
+                bill_issue_to: document.querySelector('[contenteditable][data-bill-issue]')?.innerText
+                            || "",
+                client_gstin: "{{ $booking->gstin ?? '' }}",
+                address: ""
+            },
+
+            items: [],
+
+            totals: {
+                total_amount: document.getElementById('totalAmount').innerText,
+                discount_percent: document.getElementById('discountPercent').innerText,
+                discount_amount: document.getElementById('discountAmount').innerText,
+                after_discount: document.getElementById('afterDiscount').innerText,
+                cgst_percent: document.getElementById('cgstPercent').innerText,
+                cgst_amount: document.getElementById('cgstAmount').innerText,
+                sgst_percent: document.getElementById('sgstPercent').innerText,
+                sgst_amount: document.getElementById('sgstAmount').innerText,
+                igst_percent: document.getElementById('igstPercent').innerText,
+                igst_amount: document.getElementById('igstAmount').innerText,
+                round_off: document.getElementById('roundOff').innerText,
+                payable_amount: document.getElementById('payableAmount').innerText
+            },
+
+            bank_info: {
+                instructions: "{{ $bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD' }}",
+                name: "{{ $bankInfo->name ?? 'SBI' }}",
+                branch_name: "{{ $bankInfo->branch ?? 'Harauli' }}",
+                account_no: "{{ $bankInfo->account_no ?? '000121210' }}",
+                ifsc_code: "{{ $bankInfo->ifsc_code ?? 'SB00001' }}",
+                pan_no: "{{ $bankInfo->pan_no ?? 'AHTPJ45454' }}",
+                gstin: "{{ $bankInfo->gstin ?? '87457187441417644' }}"
+            }
+        };
+
+        // ITEMS (match OLD controller exactly)
+        document.querySelectorAll('.item-row').forEach(row => {
+            invoiceData.items.push({
+                description: row.querySelector('.description')?.innerText || '',
+                job_order_no: row.children[1]?.innerText || '',
+                qty: row.querySelector('.qty')?.innerText || 0,
+                rate: row.querySelector('.rate')?.innerText || 0,
+                amount: row.querySelector('.amount')?.innerText || 0
+            });
+        });
+
+        document.getElementById('preview_invoice_data').value =
+            JSON.stringify(invoiceData);
+    });
+</script>
+
 
 
 
@@ -673,11 +928,7 @@ document.getElementById('enableDiscount')
         recalculateAll();
     }
 
-    function renumberRows() {
-        document.querySelectorAll('.item-row').forEach((row, index) => {
-            row.children[0].innerText = index + 1;
-        });
-    }
+    
 </script> 
 
 
@@ -702,6 +953,9 @@ document.getElementById('enableDiscount')
         recalculateAll();
     });
 </script>
+
+
+
 
 {{-- ===================== KEYBOARD SHORTCUTS ===================== --}}
 <script>
@@ -734,8 +988,6 @@ document.getElementById('enableDiscount')
     ${cells[0].innerText}
     Job: ${cells[1].innerText}
     SAC: ${cells[2].innerText}
-    Qty: ${cells[3].innerText}
-    Rate: ${cells[4].innerText}
     `.trim();
 
         // Save original row (for future undo)
@@ -747,10 +999,12 @@ document.getElementById('enableDiscount')
         // - Amount column preserved
         row.innerHTML = `
             <td contenteditable="true"
-                colspan="5"
+                colspan="3"
                 class="editable description">
                 ${combinedText}
             </td>
+            <td contenteditable="true" class="editable qty ">${cells[3].innerText}</td>
+            <td contenteditable="true" class="editable rate ">${cells[4].innerText}</td>
             <td contenteditable="true" class="amount">${cells[5].innerText}</td>
         `;
 
@@ -758,9 +1012,80 @@ document.getElementById('enableDiscount')
     }
 </script>
 
+{{-- ===================== INVOICE TYPE SELECTOR ===================== --}} 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selector = document.getElementById('invoiceTypeSelector');
+        const header   = document.getElementById('invoiceTypeHeader');
 
+        // Set dropdown from header on load
+        selector.value = header.innerText.trim();
 
+        // Change header when dropdown changes
+        selector.addEventListener('change', function () {
+            header.innerText = this.value;
+        });
+    });
+</script> 
 
+{{-- ===================== PRINT PAGE SUBTOTALS ===================== --}}
+<script>
+    function addPageSubtotalsForPrint() {
 
+        // Remove old subtotal rows if re-print
+        document.querySelectorAll('.page-subtotal-row')
+            .forEach(r => r.remove());
+
+        const rows = Array.from(document.querySelectorAll('.item-row'));
+        if (!rows.length) return;
+
+        let pageHeight = 297 * 3.78; // A4 height in px
+        let pageTop = rows[0].getBoundingClientRect().top + window.scrollY;
+
+        let runningTotal = 0;
+
+        rows.forEach((row, index) => {
+
+            const rect = row.getBoundingClientRect();
+            const rowBottom = rect.bottom + window.scrollY;
+
+            const amountCell = row.querySelector('.amount');
+            const amount = parseFloat(amountCell?.innerText || 0);
+            runningTotal += amount;
+
+            const nextRow = rows[index + 1];
+
+            // Check page overflow
+            if (
+                nextRow &&
+                nextRow.getBoundingClientRect().top + window.scrollY - pageTop > pageHeight - 120
+            ) {
+                insertSubtotalRow(row, runningTotal);
+                runningTotal = 0;
+                pageTop = nextRow.getBoundingClientRect().top + window.scrollY;
+            }
+
+            // Last row
+            if (!nextRow) {
+                insertSubtotalRow(row, runningTotal);
+            }
+        });
+    }
+
+    function insertSubtotalRow(afterRow, total) {
+        const tr = document.createElement('tr');
+        tr.className = 'page-subtotal-row';
+        tr.innerHTML = `
+            <td colspan="5" class="text-right">
+                Sub Total (This Page)
+            </td>
+            <td>${total.toFixed(2)}</td>
+        `;
+        afterRow.after(tr);
+    }
+
+    // Hook into print
+    window.addEventListener('beforeprint', addPageSubtotalsForPrint);
+</script>
 
 @endsection

@@ -146,6 +146,7 @@ class MarketingPersonStatsService
             ->join('booking_items as bi', 'new_bookings.id', '=', 'bi.new_booking_id')
             ->sum('bi.amount');
 
+            
         /** -------------------------
          *  Cash Payments Stats
          * ------------------------ */
