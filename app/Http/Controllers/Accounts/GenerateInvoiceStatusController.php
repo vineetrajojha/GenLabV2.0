@@ -185,6 +185,8 @@ class GenerateInvoiceStatusController extends Controller
 
     private function storeInvoiceData(array $invoiceData, string $invoiceType)
     {   
+ 
+
 
         $bookingId = $invoiceData['booking_id'] ?? null;
         $booking = null;
@@ -254,8 +256,10 @@ class GenerateInvoiceStatusController extends Controller
     public function generateInvoice(GenerateInvoiceRequest $request)
     {
         try { 
-
-            $invoiceType = $request->input('typeOption');
+            
+            // dd($request->all());     
+            // exit; 
+            $invoiceType = $request->input('invoice_type');
             $invoiceData = $this->billingService->generateInvoiceData($request);
             
             $invoiceData['booking_id'] = $request->booking_id;
