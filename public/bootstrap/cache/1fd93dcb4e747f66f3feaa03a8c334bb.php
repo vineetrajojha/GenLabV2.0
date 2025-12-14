@@ -1,0 +1,852 @@
+<?php
+    use Illuminate\Support\Str;
+?>
+
+
+
+<?php $__env->startSection('title', 'Invoice Report'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php if($errors->any()): ?>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <li><?php echo e($error); ?></li>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
+<?php if(session('success')): ?>
+    <div class="alert alert-success">
+        <?php echo e(session('success')); ?>
+
+    </div>
+<?php endif; ?>
+
+
+
+
+<div class="row g-4 p-4">
+
+    <!-- CARD 1: GSTIN SEARCH -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white fw-bold">
+                GSTIN Lookup
+            </div>
+
+            <div class="card-body">
+                <form id="gstinForm" method="POST" class="row g-2">
+                    <?php echo csrf_field(); ?>
+
+                    <div class="col-12">
+                        <label class="form-label">Enter GSTIN</label>
+                        <input type="text"
+                               id="gstinInput"
+                               name="gstin"
+                               class="form-control"
+                               placeholder="Enter GSTIN"
+                               required>
+                    </div>
+
+                    <div class="col-12 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa fa-search me-1"></i> Search GSTIN
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD 2: MARKETING PERSON / CLIENT / REF NO -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-secondary text-white fw-bold">
+                Booking Related Details
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-4">
+
+                    <!-- Marketing Person -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label">Search Marketing Person</label>
+                        <input type="text"
+                               id="marketingInput"
+                               class="form-control"
+                               placeholder="Enter user code or name"
+                               autocomplete="off">
+
+                        <div id="suggestions"
+                             class="list-group position-absolute w-100 mt-1 d-none"
+                             style="z-index: 1050;">
+                        </div>
+                    </div>
+
+                    <!-- Client Search -->
+                    <div class="col-md-6 position-relative">
+                        <label class="form-label">Select Client</label>
+                        <input type="text"
+                               id="clientInput"
+                               class="form-control"
+                               placeholder="Search Client..."
+                               autocomplete="off">
+
+                        <div id="clientDropdown"
+                             class="list-group position-absolute w-100 mt-1 d-none"
+                             style="z-index: 1050;">
+                        </div>
+
+                        <input type="hidden" id="client_id" name="client_id">
+                    </div>
+
+                    <!-- Reference Numbers -->
+                    <div class="col-12 position-relative">
+                        <label class="form-label">Reference Numbers</label>
+
+                        <!-- Selected Tags -->
+                        <div id="refSelected"
+                             class="d-flex  flex-wrap gap-2 border rounded p-2"
+                             style="min-height: 45px;">
+                        </div> 
+        
+
+                        <!-- Search Field -->
+                        <input type="text"
+                               id="refSearch"
+                               class="form-control mt-2"
+                               placeholder="Search Reference No">
+
+                        <!-- Dropdown -->
+                        <div id="refDropdown"
+                            class="list-group bg-white position-absolute w-100 mt-1 d-none shadow-sm"
+                            style="z-index: 1050;">
+                        </div>
+
+                        <input type="hidden" id="referenceHidden" name="reference_numbers">
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- GSTIN Modal (unchanged) -->
+
+
+
+<!-- GSTIN Details / Error Modal -->
+<div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="gstinModalLabel">GSTIN Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="gstinError" class="alert alert-danger d-none"></div>
+        <div id="gstinDetails" class="d-none">
+          <p><strong>Business Name:</strong> <span id="tradeNam"></span></p>
+          <p><strong>PAN No:</strong> <span id="panNo"></span></p>
+          <p><strong>Legal Name:</strong> <span id="legalName"></span></p>
+          <p><strong>Address:</strong> <span id="address"></span></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="content">
+    <form id="invoiceForm" method="POST">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" id="td_booking_id" name="booking_id" value="">
+        <input type="hidden" id="td_invoice_id" name="invoice_id" value="">
+
+        <div class="page-header d-flex justify-content-between align-items-center">
+            <div class="page-title">
+                <h4 class="fw-bold text-uppercase">Blank Invoice</h4>
+                <h6>PDF</h6>
+            </div>
+            <!-- <div class="page-btn">
+                <button type="submit" class="btn btn-danger" formaction="">
+                    <i class="fa fa-file-pdf me-2"></i>Download PDF
+                </button>
+            </div> -->
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+
+                <!-- Invoice Information -->
+                <h5 class="fw-bold mb-2">Invoice Information</h5>
+                <table class="table table-bordered mb-4">
+                    <tr>
+                        <th style="width: 190px;">Client Name</th>
+                        <td contenteditable="true" class="editable" id="td_client_name"></td>
+                        <th style="width: 190px;">Marketing Person</th>
+                        <td contenteditable="true" class="editable" id="td_marketing_person"></td>
+                    </tr>
+                    <tr>
+                        <th style="width: 190px;">Invoice No</th>
+                        <td contenteditable="true" class="editable" id="td_invoice_no"></td>
+                        <th>Reference No</th>
+                        <td contenteditable="true" class="editable" id="td_reference_no"></td>
+                    </tr>
+                    <tr>
+                        <th style="width: 190px;">Invoice Date</th>
+                        <td contenteditable="true" class="editable" id="td_invoice_date"></td>
+                        <th>Letter Date</th>
+                        <td contenteditable="true" class="editable" id="td_letter_date"></td>
+                    </tr>
+                    <tr>
+                        <th style="width: 190px;">Name of Work</th>
+                        <td contenteditable="true" class="editable" id="td_name_of_work"></td>
+                        <th style="width: 190px;">Bill Issue To</th>
+                        <td contenteditable="true" class="editable" id="td_bill_issue_to"></td>
+                    </tr>
+                    <tr>
+                        <th style="width: 190px;">Client GSTIN</th>
+                        <td contenteditable="true" class="editable" id="td_client_gstin"></td>
+                        <th style="width: 190px;">Address</th>
+                        <td contenteditable="true" class="editable" id="td_address"></td>
+                    </tr>
+                </table>
+
+                <!-- Data Fields -->
+                <h5 class="fw-bold mb-2">Data Fields</h5>
+                <table class="table table-bordered mb-4" id="invoiceTable">
+                    <thead style="background:#e9ecef;">
+                        <tr>
+                            <th>#</th>
+                            <th>Sample Description</th>
+                            <th>Job Order No</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php for($j = 0; $j < 9; $j++): ?>
+                            <tr>
+                                <td><?php echo e($j); ?></td>
+                                <td contenteditable="true" class="editable"></td>
+                                <td contenteditable = "true" class ="editable"> </td>
+                                <!-- <td contenteditable="true" class="editable qty"></td> -->
+                                <td contenteditable="true" class="editable qty"></td>
+                                <td contenteditable="true" class="editable rate"></td>
+                                <td class="amount">0.00</td>
+                            </tr>
+                        <?php endfor; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="5" class="text-end">Total</th>
+                            <th id="totalAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-end">Discount %</th>
+                            <td contenteditable="true" class="editable" id="discountPercent"></td>
+                            <th id="discountAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="5" class="text-end">After Discount Amount</th>
+                            <th id="afterDiscount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-end">CGST %</th>
+                            <td contenteditable="true" class="editable" id="cgstPercent">0</td>
+                            <th id="cgstAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-end">SGST %</th>
+                            <td contenteditable="true" class="editable" id="sgstPercent">0</td>
+                            <th id="sgstAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-end">IGST %</th>
+                            <td contenteditable="true" class="editable" id="igstPercent">0</td>
+                            <th id="igstAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="4" class="text-end">Round Off</th>
+                            <td><input type="checkbox" id="roundOffCheckbox"></td>
+                            <th id="roundOffAmount">0.00</th>
+                        </tr>
+                        <tr>
+                            <th colspan="5" class="text-end">Payable Amount</th>
+                            <th id="payableAmount">0.00</th>
+                        </tr>
+                    </tfoot>
+                </table> 
+                 <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" id="addRowBtn" class="btn btn-primary"><i class="fa fa-plus me-1"></i> Add Row</button>
+                    <button type="button" id="deleteRowBtn" class="btn btn-danger"><i class="fa fa-trash me-1"></i> Delete Row</button>
+                </div>
+
+                <!-- Banking Information -->
+                <h5 class="fw-bold mb-2">Banking Information</h5>
+                <table class="table table-bordered mb-4">
+                    <tr>
+                        <th>Instructions</th>
+                        <td class="noteditable" id="td_bank_instructions"><?php echo e($bankInfo->instructions ?? 'ABCSVHGVGHVSVGHSVD'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>Bank Name</th>
+                        <td class="noteditable" id="td_bank_name"><?php echo e($bankInfo->name ?? 'SBI'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>Branch Name</th>
+                        <td class="noteditable" id="td_branch_name"><?php echo e($bankInfo->branch ?? 'Harauli'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>Account No</th>
+                        <td class="noteditable" id="td_account_no"><?php echo e($bankInfo->account_no ?? '000121210'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>IFSC CODE</th>
+                        <td class="noteditable" id="td_ifsc_code"><?php echo e($bankInfo->ifsc_code ?? 'SB00001'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>Pan No</th>
+                        <td class="noteditable" id="td_pan_no"><?php echo e($bankInfo->pan_no ?? 'AHTPJ45454'); ?></td>
+                    </tr>
+                    <tr>
+                        <th>GSTIN</th>
+                        <td class="noteditable" id="td_gstin"><?php echo e($bankInfo->gstin ?? '87457187441417644'); ?></td>
+                    </tr>
+                </table>
+
+                <!-- Hidden inputs -->
+                <input type="hidden" name="invoice_data" id="invoice_data">
+                <input type="hidden" id="invoice_type" name="invoice_type" value="">
+
+                <!-- Type Option -->
+                <div class="d-flex justify-content-end align-items-center gap-3 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="typeOption" id="typeInvoice" value="tax_invoice" checked>
+                        <label class="form-check-label" for="typeInvoice">Tax Invoice</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="typeOption" id="typePI" value="proforma_invoice">
+                        <label class="form-check-label" for="typePI">Proforma Invoice</label>
+                    </div>
+                </div>
+
+                <!-- <div class="d-flex justify-content-end gap-2 mb-3">
+                    <button type="button" id="addRowBtn" class="btn btn-primary"><i class="fa fa-plus me-1"></i> Add Row</button>
+                    <button type="button" id="deleteRowBtn" class="btn btn-danger"><i class="fa fa-trash me-1"></i> Delete Row</button>
+                </div> -->
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success" formaction="<?php echo e(route('superadmin.blank-invoices.store')); ?>">
+                        <i class="fa fa-file-pdf me-2"></i>Save Invoice
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+<?php $__env->startPush('styles'); ?>
+<style>
+    .table-bordered th, .table-bordered td {
+        border: 1px solid #000 !important;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+    .table th {
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+    .editable {
+        background-color: #fff9c4;
+        cursor: text;
+    }
+    .editable.edited {
+        background-color: #c2f0c2;
+    }
+    .noteditable {
+        font-weight: bold;
+    }
+</style> 
+
+
+<?php $__env->stopPush(); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<script>
+    // Get today's date in dd-mm-yyyy format
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const yyyy = today.getFullYear();
+    const formattedDate = dd + '-' + mm + '-' + yyyy;
+
+    // Set the content of the editable TDs
+    document.getElementById('td_invoice_date').innerText = formattedDate;
+    document.getElementById('td_letter_date').innerText = formattedDate;
+</script>
+<?php $__env->stopPush(); ?>
+
+
+<?php $__env->startPush('scripts'); ?>
+<script>
+    function updateAmounts() {
+        let total = 0;
+        document.querySelectorAll('#invoiceTable tbody tr').forEach(function(row) {
+            let qty = parseFloat(row.querySelector('.qty')?.textContent) || 0;
+            let rate = parseFloat(row.querySelector('.rate')?.textContent.replace(/,/g,'')) || 0;
+            let amount = qty * rate;
+            row.querySelector('.amount').textContent = amount.toFixed(2);
+            total += amount;
+        });
+
+        document.getElementById('totalAmount').textContent = total.toFixed(2);
+
+        let discountPercent = parseFloat(document.getElementById('discountPercent')?.textContent) || 0;
+        let discountAmount = total * discountPercent / 100;
+        document.getElementById('discountAmount').textContent = discountAmount.toFixed(2);
+
+        let afterDiscount = total - discountAmount;
+        document.getElementById('afterDiscount').textContent = afterDiscount.toFixed(2);
+
+        let cgstPercent = parseFloat(document.getElementById('cgstPercent')?.textContent) || 0;
+        let sgstPercent = parseFloat(document.getElementById('sgstPercent')?.textContent) || 0;
+        let igstPercent = parseFloat(document.getElementById('igstPercent')?.textContent) || 0;
+
+        let cgstAmount = afterDiscount * cgstPercent / 100;
+        let sgstAmount = afterDiscount * sgstPercent / 100;
+        let igstAmount = afterDiscount * igstPercent / 100;
+
+        document.getElementById('cgstAmount').textContent = cgstAmount.toFixed(2);
+        document.getElementById('sgstAmount').textContent = sgstAmount.toFixed(2);
+        document.getElementById('igstAmount').textContent = igstAmount.toFixed(2);
+
+        let payable = afterDiscount + cgstAmount + sgstAmount + igstAmount;
+
+        let roundOffAmount = 0;
+        if (document.getElementById('roundOffCheckbox').checked) {
+            let roundedPayable = Math.round(payable);
+            roundOffAmount = (roundedPayable - payable).toFixed(2);
+            payable = roundedPayable;
+        }
+        document.getElementById('roundOffAmount').textContent = roundOffAmount;
+        document.getElementById('payableAmount').textContent = payable.toFixed(2);
+    }
+
+    document.getElementById('invoiceForm').addEventListener('submit', function(e){
+        updateAmounts();
+        const selectedType = document.querySelector('input[name="typeOption"]:checked').value;
+        document.getElementById('invoice_type').value = selectedType;
+
+        let invoiceData = {
+            booking_info: { 
+                booking_id: document.getElementById('td_booking_id').value, 
+                invoice_id: document.getElementById('td_invoice_id').value, 
+                client_name: document.getElementById('td_client_name').textContent,
+                marketing_person: document.getElementById('td_marketing_person').textContent,
+                invoice_no: document.getElementById('td_invoice_no').textContent,
+                reference_no: document.getElementById('td_reference_no').textContent,
+                invoice_date: document.getElementById('td_invoice_date').textContent,
+                letter_date: document.getElementById('td_letter_date').textContent,
+                name_of_work: document.getElementById('td_name_of_work').textContent,
+                bill_issue_to: document.getElementById('td_bill_issue_to').textContent,
+                client_gstin: document.getElementById('td_client_gstin').textContent,
+                address: document.getElementById('td_address').innerHTML.replace(/<div>/g, '\n').replace(/<\/div>/g, '').replace(/<br>/g, '\n')
+
+            },
+            items: [],
+            totals: {
+                total_amount: document.getElementById('totalAmount').textContent,
+                discount_percent: document.getElementById('discountPercent').textContent,
+                discount_amount: document.getElementById('discountAmount').textContent,
+                after_discount: document.getElementById('afterDiscount').textContent,
+                cgst_percent: document.getElementById('cgstPercent').textContent,
+                cgst_amount: document.getElementById('cgstAmount').textContent,
+                sgst_percent: document.getElementById('sgstPercent').textContent,
+                sgst_amount: document.getElementById('sgstAmount').textContent,
+                igst_percent: document.getElementById('igstPercent').textContent,
+                igst_amount: document.getElementById('igstAmount').textContent,
+                round_off: document.getElementById('roundOffAmount').textContent,
+                payable_amount: document.getElementById('payableAmount').textContent
+            },
+            bank_info: {
+                instructions: document.getElementById('td_bank_instructions').textContent,
+                name: document.getElementById('td_bank_name').textContent,
+                branch_name: document.getElementById('td_branch_name').textContent,
+                account_no: document.getElementById('td_account_no').textContent,
+                ifsc_code: document.getElementById('td_ifsc_code').textContent,
+                pan_no: document.getElementById('td_pan_no').textContent,
+                gstin: document.getElementById('td_gstin').textContent
+            }
+        };
+
+        document.querySelectorAll('#invoiceTable tbody tr').forEach(function(row){
+            invoiceData.items.push({
+                description: row.cells[1].textContent,
+                job_order_no: row.cells[2].textContent,
+                qty: row.cells[3].textContent,
+                rate: row.cells[4].textContent,
+                amount: row.cells[5].textContent
+            });
+        });
+
+        document.getElementById('invoice_data').value = JSON.stringify(invoiceData);
+    });
+
+    document.querySelectorAll('.editable').forEach(function(cell){
+        cell.addEventListener('input', function() {
+            this.classList.add('edited');
+            updateAmounts();
+        });
+        cell.addEventListener('blur', updateAmounts);
+    });
+
+    document.getElementById('roundOffCheckbox').addEventListener('change', updateAmounts);
+    window.addEventListener('DOMContentLoaded', updateAmounts);
+</script>
+<?php $__env->stopPush(); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<script>
+    document.getElementById('gstinForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let gstin = document.getElementById('gstinInput').value;
+
+        fetch(`http://sheet.gstincheck.co.in/check/c3b7f08e18bb7426407abad5af5d7712/${gstin}`)
+            .then(response => response.json())
+            .then(data => {
+                var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
+                var detailsDiv = document.getElementById('gstinDetails');
+                var errorDiv = document.getElementById('gstinError');
+
+                if(data.flag) {
+                    document.getElementById('tradeNam').textContent = data.data.tradeNam || 'N/A';
+                    document.getElementById('panNo').textContent = data.data.gstin ? data.data.gstin.substring(2, 12) : 'N/A';
+                    document.getElementById('legalName').textContent = data.data.lgnm || 'N/A';
+                    document.getElementById('address').textContent = data.data.pradr?.adr || 'N/A';
+                    detailsDiv.classList.remove('d-none');
+                    errorDiv.classList.add('d-none');
+                } else {
+                    errorDiv.textContent = data.message || 'GSTIN not found';
+                    errorDiv.classList.remove('d-none');
+                    detailsDiv.classList.add('d-none');
+                }
+                gstinModal.show();
+            })
+            .catch(err => {
+                var gstinModal = new bootstrap.Modal(document.getElementById('gstinModal'));
+                var detailsDiv = document.getElementById('gstinDetails');
+                var errorDiv = document.getElementById('gstinError');
+                errorDiv.textContent = 'Something went wrong. Please try again.';
+                errorDiv.classList.remove('d-none');
+                detailsDiv.classList.add('d-none');
+                gstinModal.show();
+                console.error(err);
+            });
+    });
+</script>
+<?php $__env->stopPush(); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<script>
+    const invoiceTableBody = document.querySelector('#invoiceTable tbody');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const deleteRowBtn = document.getElementById('deleteRowBtn');
+
+    addRowBtn.addEventListener('click', function() {
+        const rowCount = invoiceTableBody.rows.length;
+        const row = invoiceTableBody.insertRow();
+
+        row.insertCell(0).textContent = rowCount;
+        row.insertCell(1).contentEditable = "true"; row.cells[1].classList.add('editable');
+        row.insertCell(2).contentEditable = "true"; row.cells[2].classList.add('editable');
+        row.insertCell(3).contentEditable = "true"; row.cells[3].classList.add('editable','qty');
+        row.insertCell(4).contentEditable = "true"; row.cells[4].classList.add('editable','rate');
+        row.insertCell(5).textContent = "0.00"; row.cells[5].classList.add('amount');
+
+        row.querySelectorAll('.editable').forEach(function(cell){
+            cell.addEventListener('input', function() {
+                this.classList.add('edited');
+                updateAmounts();
+            });
+            cell.addEventListener('blur', updateAmounts);
+        });
+
+        updateAmounts();
+    });
+
+    deleteRowBtn.addEventListener('click', function() {
+        const rowCount = invoiceTableBody.rows.length;
+        if (rowCount > 1) {
+            invoiceTableBody.deleteRow(rowCount - 1);
+            updateAmounts();
+        }
+    }); 
+</script>   
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const marketingInput = document.getElementById("marketingInput");
+        const suggestions = document.getElementById("suggestions");
+
+        let currentRequest = null;
+
+        // Debounce function
+        function debounce(fn, delay = 400) {
+            let timer = null;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        marketingInput.addEventListener("input", debounce(function () {
+            const query = marketingInput.value.trim();
+
+            suggestions.innerHTML = "";
+
+            if (query.length < 2) {
+                suggestions.classList.add("d-none");
+                return;
+            }
+
+            if (currentRequest) currentRequest.abort();
+
+            currentRequest = $.ajax({
+                url: "<?php echo e(route('superadmin.bookings.autocomplete')); ?>",
+                method: "GET",
+                data: { term: query, type: "marketing" },
+                success: function (data) {
+                    suggestions.innerHTML = "";
+                    
+                    if (data.length === 0) {
+                        suggestions.classList.add("d-none");
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const node = document.createElement("a");
+                        node.href = "#";
+                        node.className = "list-group-item list-group-item-action";
+                        node.dataset.id = item.user_code;
+                        node.dataset.name = item.name;
+                        node.textContent = `${item.label}`;
+
+                        node.onclick = function (e) {
+                            e.preventDefault();
+
+                            marketingInput.value = `${item.label}`;
+                            document.getElementById('td_marketing_person').textContent = item.label;
+
+                            suggestions.innerHTML = "";
+                            suggestions.classList.add("d-none");
+                        };
+
+                        suggestions.appendChild(node);
+                    });
+
+                    suggestions.classList.remove("d-none");
+                }
+            });
+        }, 400));
+    });
+</script>
+
+<script>
+    let selectedRefs = [];
+    let refXHR = null;
+
+    const refSearch = document.getElementById('refSearch');
+    const refDropdown = document.getElementById('refDropdown');
+    const refSelected = document.getElementById('refSelected');
+    const refHidden = document.getElementById('referenceHidden');
+
+    // Debounce
+    function debounce(fn, delay = 400) {
+        let timer = null;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    function renderSelectedRefs() {
+        refSelected.innerHTML = "";
+        selectedRefs.forEach(ref => {
+            const tag = document.createElement("div");
+            tag.className = "selected-tag";
+            tag.innerHTML = `${ref} <span onclick="removeRef('${ref}')">&times;</span>`;
+            refSelected.appendChild(tag);
+        });
+        refHidden.value = JSON.stringify(selectedRefs);
+        document.getElementById('td_reference_no').textContent = selectedRefs.join(", ");
+    }
+
+    function addRef(ref) {
+        if (!selectedRefs.includes(ref)) {
+            selectedRefs.push(ref);
+            renderSelectedRefs();
+        }
+        refSearch.value = "";
+        refDropdown.classList.add("d-none");
+    }
+
+    function removeRef(ref) {
+        selectedRefs = selectedRefs.filter(r => r !== ref);
+        renderSelectedRefs();
+    }
+
+    // Autocomplete request
+    refSearch.addEventListener('input', debounce(function () {
+        const query = refSearch.value.trim();
+
+        if (query.length < 2) {
+            refDropdown.classList.add("d-none");
+            return;
+        }
+
+        if (refXHR) refXHR.abort();
+
+        refXHR = $.ajax({
+            url: "<?php echo e(route('superadmin.bookings.get.ref_no')); ?>",
+            method: "GET",
+            data: { term: query },
+            success: function (data) {
+                refDropdown.innerHTML = "";
+
+                if (data.length === 0) {
+                    refDropdown.classList.add("d-none");
+                    return;
+                }
+
+                 data.forEach(item => {
+                const div = document.createElement("a");
+                div.href = "#";
+                div.className = "list-group-item list-group-item-action";
+                div.textContent = item.reference_no;
+
+                div.onclick = function (e) {
+                    e.preventDefault();
+                    addRef(item.reference_no);
+                };
+
+                refDropdown.appendChild(div);
+            });
+
+                refDropdown.classList.remove("d-none");
+            }
+        });
+
+    }, 400));
+
+    document.addEventListener("click", function (e) {
+        if (!refDropdown.contains(e.target) && e.target !== refSearch) {
+            refDropdown.classList.add("d-none");
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const clientInput = document.getElementById("clientInput");
+        const clientDropdown = document.getElementById("clientDropdown");
+
+        let clientXHR = null;
+
+        function debounce(fn, delay = 400) {
+            let timer = null;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        clientInput.addEventListener("input", debounce(function () {
+            const query = clientInput.value.trim();
+
+            clientDropdown.innerHTML = "";
+
+            if (query.length < 2) {
+                clientDropdown.classList.add("d-none");
+                return;
+            }
+
+            if (clientXHR) clientXHR.abort();
+
+            clientXHR = $.ajax({
+                url: "<?php echo e(route('superadmin.get.clients')); ?>",
+                method: "GET",
+                data: { term: query },
+                success: function (data) {
+                    clientDropdown.innerHTML = "";
+
+                    if (data.length === 0) {
+                        clientDropdown.classList.add("d-none");
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const node = document.createElement("a");
+                        node.href = "#";
+                        node.className = "list-group-item list-group-item-action";
+                        node.textContent = item.label;
+
+                        node.onclick = function (e) {
+                            e.preventDefault();
+
+                            // Fill input box
+                            clientInput.value = item.label;
+
+                            // Fill invoice table fields
+                            document.getElementById('td_client_name').textContent = item.name;
+                            document.getElementById('td_client_gstin').textContent = item.gstin;
+                            document.getElementById('td_address').textContent = item.address;
+
+                            document.getElementById('client_id').value = item.id;
+
+                            clientDropdown.innerHTML = "";
+                            clientDropdown.classList.add("d-none");
+                        };
+
+                        clientDropdown.appendChild(node);
+                    });
+
+                    clientDropdown.classList.remove("d-none");
+                }
+            });
+        }, 400));
+
+        // Hide dropdown on outside click
+        document.addEventListener("click", function (e) {
+            if (!clientDropdown.contains(e.target) && e.target !== clientInput) {
+                clientDropdown.classList.add("d-none");
+            }
+        });
+
+    });
+</script>
+
+
+
+<?php $__env->stopPush(); ?>
+
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('superadmin.layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH A:\GenTech\htdocs\GenlabV3.0\GenLabV3.0\resources\views/superadmin/accounts/invoiceList/blank.blade.php ENDPATH**/ ?>
