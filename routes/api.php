@@ -164,6 +164,9 @@ Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function
     // Reports by Job Order (mobile API) - mirrors view-by-job-order.blade.php
     Route::get('{user_code}/reports/by-job-order', [MarketingPersonInfo::class, 'viewByJobOrderApi'])->name('api.marketing.reports.by-job-order');
 
+    // Pending reports (mobile) - mirrors reporting/pendings.blade.php
+    Route::get('{user_code}/reports/pendings', [MarketingPersonInfo::class, 'pendingsApi'])->name('api.marketing.reports.pendings');
+
     // Fetch Without Bill Bookings
     Route::get('{user_code}/bookings/without-bill', 
         [MarketingPersonInfo::class, 'WithoutBillBookings']
@@ -194,6 +197,9 @@ Route::middleware(['multi_jwt:api'])->prefix('marketing-person')->group(function
     Route::get('{user_code}/clients',
         [MarketingPersonInfo::class, 'fetchClients']
     );
+
+    // Client profile (mobile)
+    Route::get('{user_code}/clients/{client_id}/profile', [MarketingPersonInfo::class, 'clientProfileApi'])->name('api.marketing.client.profile');
 
     // Personal expenses (mobile): list and create
     Route::get('{user_code}/personal/expenses', [MarketingPersonInfo::class, 'personalExpensesListApi'])->name('api.marketing.personal.expenses.list');
