@@ -135,7 +135,7 @@
 
 <!-- GSTIN Details / Error Modal -->
 
-    <div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
+<div class="modal fade" id="gstinModal" tabindex="-1" aria-labelledby="gstinModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -156,7 +156,7 @@
       </div>
     </div>
   </div>
-    </div>
+</div>
 
 
 <div class="content">
@@ -348,10 +348,7 @@
                         <i class="fa fa-file-pdf me-2"></i>Save Invoice
                     </button>
                 </div>
-                
             </div>
-
-
         </div>
     </form>
 </div>

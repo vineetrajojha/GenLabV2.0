@@ -24,7 +24,7 @@ class ChatController extends Controller
         $admin = auth('admin')->user();
         $apiAdmin = config('auth.guards.api_admin') ? auth('api_admin')->user() : null;
         $web = auth('web')->user();
-
+        
         return $super ?: ($admin ?: ($apiAdmin ?: $web));
     }
     protected function guardName()
