@@ -109,8 +109,10 @@
                             <th class="compact-col">Job Order No</th>
                             <th class="ref-col">Reference No</th>
                             <th style="width:180px;">Client Name</th>
-                            <th>Sample Quality</th>
+                            <th style="width:120px;">Sample Quality</th>
                             <th style="width:240px;">Particulars</th>
+                            <th style="width:80px;">Amount</th>
+                            <th style="width:120px;">Expected Date</th>
                             <th>Status</th>
                             <th>Letter</th>
                         </tr>
@@ -133,6 +135,12 @@
                             </td>
                             <td class="truncate-cell">
                                 <div class="cell-inner" data-bs-toggle="tooltip" title="{{ $item->particulars }}">{{ $item->particulars }}</div>
+                            </td>
+                            <td>
+                                <div class="cell-inner">{{ $item->amount !== null ? number_format($item->amount, 2) : '-' }}</div>
+                            </td>
+                            <td>
+                                <div class="cell-inner">{{ $item->lab_expected_date ? \Carbon\Carbon::parse($item->lab_expected_date)->format('d-M-Y') : '-' }}</div>
                             </td>
                             @php
                                 $status = $item->issue_date ? 'Issued' : ($item->received_at ? 'Received' : 'Pending');
@@ -164,7 +172,12 @@
                             <td><span class="badge {{ $statusClass }}" data-bs-toggle="tooltip" title="{{ $statusDetail }}">{{ $status }}</span></td>
                             <td>
                                 @if($letterUrl)
-                                    <a href="{{ $letterUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">View Letter</a>
+                                    <a href="{{ $letterUrl }}" target="_blank" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View Letter" aria-label="View Letter">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                            <path d="M14 4.5V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6.5L14 4.5z"/>
+                                            <path d="M5 7.5h6v1H5v-1zm0 2.5h6v1H5v-1z"/>
+                                        </svg>
+                                    </a>
                                 @else
                                     <span class="badge bg-light text-muted">No Letter</span>
                                 @endif

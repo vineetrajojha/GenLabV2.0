@@ -186,7 +186,7 @@ class ReportingLettersController extends Controller
             SendMarketingNotificationJob::dispatch(
                 $marketingUser,
                 "New Report Uploaded",
-                "New reports have been uploaded for Booking Ref: {$booking->reference_no}.\n\n"
+                "{$booking->client_name} With Ref_no: {$booking->reference_no}.\n\n"
                 ."Total Reports: {$reportCount}\n\n"
                 ."Download Links:\n{$linksText}",
                 [

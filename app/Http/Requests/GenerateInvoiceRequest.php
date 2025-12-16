@@ -13,13 +13,20 @@ class GenerateInvoiceRequest extends FormRequest
 
     public function rules(): array
     {
+        // return [
+        //     'booking_id'   => 'required|integer|exists:new_bookings,id',
+        //     'invoice_data' => 'required|json',
+        //     'invoice_type' => 'nullable|string|in:proforma_invoice,tax_invoice|required_without:typeOption',
+        //     'typeOption'   => 'nullable|string|in:proforma_invoice,tax_invoice|required_without:invoice_type',
+        // ];
         return [
             'booking_id'   => 'required|integer|exists:new_bookings,id',
             'invoice_data' => 'required|json',
-            'invoice_type' => 'nullable|string|in:proforma_invoice,tax_invoice|required_without:typeOption',
+            'invoice_type' => 'nullable',
             'typeOption'   => 'nullable|string|in:proforma_invoice,tax_invoice|required_without:invoice_type',
         ];
     
+
     }
 
     public function withValidator($validator)

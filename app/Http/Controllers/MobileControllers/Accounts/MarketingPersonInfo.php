@@ -361,6 +361,228 @@ class MarketingPersonInfo extends Controller
 
 
     /**
+     * GET /api/marketing-person/{user_code}/clients/{client_id}/profile
+     * Return client profile and summary stats for mobile.
+     */
+    public function clientProfileApi(Request $request, $user_code, $client_id)
+    {
+        $marketingPerson = User::where('user_code', $user_code)->firstOrFail();
+
+        $client = \App\Models\Client::findOrFail($client_id);
+
+        // Bookings
+        $totalBookings = \App\Models\NewBooking::where('client_id', $client->id)->count();
+        $totalBookingAmount = \App\Models\BookingItem::whereHas('booking', function($q) use ($client){ $q->where('client_id', $client->id); })->sum('amount');
+
+        // Invoices and payments
+        $totalInvoiceAmount = \App\Models\Invoice::where('client_id', $client->id)->sum('total_amount');
+        $paidAmount = \App\Models\InvoiceTransaction::where('client_id', $client->id)->sum('amount_received');
+        $unpaidAmount = max(0, $totalInvoiceAmount - $paidAmount);
+
+        // Transactions
+        $transactionsCount = \App\Models\InvoiceTransaction::where('client_id', $client->id)->count();
+
+        // Cash letters summary
+        $cashPaidLetters = \App\Models\CashLetterPayment::where('client_id', $client->id)->where('transaction_status', 2);
+        $cashUnpaidLetters = \App\Models\CashLetterPayment::where('client_id', $client->id)->where('transaction_status', '!=', 2);
+
+        $cashPaidCount = $cashPaidLetters->count();
+        $cashPaidAmount = $cashPaidLetters->sum('amount_received');
+        $cashUnpaidCount = $cashUnpaidLetters->count();
+        $cashUnpaidAmount = $cashUnpaidLetters->sum('total_amount');
+
+        // TDS (not available in models by default) — default to 0
+        $tdsAmount = 0;
+
+        $stats = [
+            'totalBookings' => $totalBookings,
+            'totalBookingAmount' => (float) number_format($totalBookingAmount, 2, '.', ''),
+            'totalInvoiceAmount' => (float) number_format($totalInvoiceAmount, 2, '.', ''),
+            'paidAmount' => (float) number_format($paidAmount, 2, '.', ''),
+            'unpaidAmount' => (float) number_format($unpaidAmount, 2, '.', ''),
+            'tdsAmount' => (float) number_format($tdsAmount, 2, '.', ''),
+            'transactions' => $transactionsCount,
+            'cashPaidLetters' => $cashPaidCount,
+            'totalCashPaidLettersAmount' => (float) number_format($cashPaidAmount, 2, '.', ''),
+            'cashUnpaidLetters' => $cashUnpaidCount,
+            'totalCashUnpaidAmounts' => (float) number_format($cashUnpaidAmount, 2, '.', ''),
+        ];
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Client profile fetched',
+            'data' => [
+                'client' => [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone ?? null,
+                    'address' => $client->address ?? null,
+                    'profile_picture' => $client->profile_picture ?? null,
+                ],
+                'stats' => $stats,
+            ],
+        ], 200);
+    }
+
+
+    /**
+     * GET /api/marketing-person/{user_code}/reports/pendings
+     * Returns pending reports (mode = 'job' or 'reference') with pagination.
+     */
+    public function pendingsApi(Request $request, $user_code)
+    {
+        $marketingPerson = User::where('user_code', $user_code)->firstOrFail();
+
+        $mode = $request->get('mode', 'job'); // 'job' or 'reference'
+        $perPage = (int) $request->get('perPage', 25);
+
+        $search = $request->get('search');
+        $department = $request->get('department');
+        $month = $request->get('month');
+        $year = $request->get('year');
+        $marketing = $request->get('marketing');
+        $isOverdue = $request->filled('overdue');
+
+        if ($mode === 'reference') {
+            $query = \App\Models\NewBooking::with(['items' => function($q) use ($isOverdue) {
+                $q->whereNull('issue_date');
+                if ($isOverdue) {
+                    $q->whereNotNull('lab_expected_date')->where('lab_expected_date', '<', now());
+                }
+            }])->whereHas('items', function($q) use ($isOverdue){
+                $q->whereNull('issue_date');
+                if ($isOverdue) {
+                    $q->whereNotNull('lab_expected_date')->where('lab_expected_date', '<', now());
+                }
+            });
+
+            if ($department) { $query->where('department_id', $department); }
+            if ($marketing) { $query->where('marketing_id', $marketing); }
+            else { $query->where('marketing_id', $marketingPerson->user_code); }
+
+            if ($month) { $query->whereMonth('created_at', $month); }
+            if ($year) { $query->whereYear('created_at', $year); }
+
+            if ($search) {
+                $s = $search;
+                $query->where(function($q) use ($s){
+                    $q->where('reference_no', 'like', "%{$s}%")->orWhere('client_name', 'like', "%{$s}%");
+                });
+            }
+
+            $bookings = $query->latest()->paginate($perPage);
+
+            $data = $bookings->getCollection()->map(function($b){
+                // compute upload letter url
+                $letterUrl = null; $path = $b->upload_letter_path ?? null;
+                if ($path) {
+                    if (preg_match('#^https?://#i', $path)) { $letterUrl = $path; }
+                    else { try{ $letterUrl = \Illuminate\Support\Facades\Storage::disk('public')->exists($path) ? \Illuminate\Support\Facades\Storage::url($path) : asset($path); }catch(\Exception $_){ $letterUrl = asset($path); } }
+                }
+
+                $pendingItems = collect($b->items)->map(function($pi){
+                    return [
+                        'job_order_no' => $pi->job_order_no,
+                        'sample_description' => $pi->sample_description,
+                        'sample_quality' => $pi->sample_quality,
+                        'particulars' => $pi->particulars,
+                        'receiver' => $pi->received_by_name ?? optional($pi->receivedBy)->name,
+                    ];
+                })->values();
+
+                return [
+                    'id' => $b->id,
+                    'client_name' => $b->client_name,
+                    'reference_no' => $b->reference_no,
+                    'pending_items_count' => $pendingItems->count(),
+                    'upload_letter_url' => $letterUrl,
+                    'pending_items' => $pendingItems,
+                ];
+            })->values();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Pending bookings fetched',
+                'data' => [
+                    'bookings' => $data,
+                    'meta' => [
+                        'total' => $bookings->total(),
+                        'per_page' => $bookings->perPage(),
+                        'current_page' => $bookings->currentPage(),
+                        'last_page' => $bookings->lastPage(),
+                    ],
+                ],
+            ], 200);
+
+        } else {
+            // job mode: return booking items pending
+            $query = \App\Models\BookingItem::with('booking')->whereNull('issue_date');
+            if ($isOverdue) { $query->whereNotNull('lab_expected_date')->where('lab_expected_date', '<', now()); }
+
+            if ($department) {
+                $query->whereHas('booking', function($q) use ($department){ $q->where('department_id', $department); });
+            }
+
+            if ($marketing) {
+                $query->whereHas('booking', function($q) use ($marketing){ $q->where('marketing_id', $marketing); });
+            } else {
+                $query->whereHas('booking', function($q) use ($marketingPerson){ $q->where('marketing_id', $marketingPerson->user_code); });
+            }
+
+            if ($month) { $query->whereMonth('created_at', $month); }
+            if ($year) { $query->whereYear('created_at', $year); }
+
+            if ($search) {
+                $s = $search;
+                $query->where(function($q) use ($s){
+                    $q->where('job_order_no', 'like', "%{$s}%")
+                      ->orWhere('sample_description', 'like', "%{$s}%")
+                      ->orWhere('sample_quality', 'like', "%{$s}%")
+                      ->orWhere('particulars', 'like', "%{$s}%")
+                      ->orWhereHas('booking', function($qb) use ($s){ $qb->where('reference_no','like',"%{$s}%")->orWhere('client_name','like',"%{$s}%"); });
+                });
+            }
+
+            $items = $query->latest()->paginate($perPage);
+
+            $data = $items->through(function($it){
+                $path = $it->booking?->upload_letter_path ?? null; $letterUrl = null;
+                if ($path) { if (preg_match('#^https?://#i', $path)) { $letterUrl = $path; } else { try{ $letterUrl = \Illuminate\Support\Facades\Storage::disk('public')->exists($path) ? \Illuminate\Support\Facades\Storage::url($path) : asset($path); }catch(\Exception $_){ $letterUrl = asset($path); } } }
+
+                $receiver = $it->received_by_name ?? optional($it->receivedBy)->name;
+
+                return [
+                    'id' => $it->id,
+                    'job_order_no' => $it->job_order_no,
+                    'client_name' => $it->booking?->client_name ?? null,
+                    'sample_description' => $it->sample_description,
+                    'sample_quality' => $it->sample_quality,
+                    'particulars' => $it->particulars,
+                    'status' => $receiver ? 'Received' : 'Pending',
+                    'receiver' => $receiver,
+                    'upload_letter_url' => $letterUrl,
+                ];
+            });
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Pending items fetched',
+                'data' => [
+                    'items' => $data,
+                    'meta' => [
+                        'total' => $items->total(),
+                        'per_page' => $items->perPage(),
+                        'current_page' => $items->currentPage(),
+                        'last_page' => $items->lastPage(),
+                    ],
+                ],
+            ], 200);
+        }
+    }
+
+
+    /**
      * Booking Items list (mobile) - mirrors the bookingByLetter Blade view
      * GET /api/marketing-person/{user_code}/bookings/by-letter
      */
@@ -372,8 +594,15 @@ class MarketingPersonInfo extends Controller
             ->whereHas('booking', function($q) use ($marketingPerson) {
                 $q->where('marketing_id', $marketingPerson->user_code);
             });
+        // Filters: search across multiple fields, department, marketing override, month/year (on booking)
+        if ($request->filled('department')) {
+            $query->whereHas('booking', function($q) use ($request) { $q->where('department_id', $request->department); });
+        }
 
-        // Search across job order, reference, client name, sample quality and particulars
+        if ($request->filled('marketing')) {
+            $query->whereHas('booking', function($q) use ($request) { $q->where('marketing_id', $request->marketing); });
+        }
+
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function($q) use ($s) {
@@ -387,7 +616,7 @@ class MarketingPersonInfo extends Controller
             });
         }
 
-        // Month/Year filter (applied to booking created_at)
+        // Month/Year filter (apply to booking created_at)
         if ($request->filled('year')) {
             $query->whereHas('booking', function($q) use ($request) { $q->whereYear('created_at', $request->year); });
         }
@@ -399,21 +628,18 @@ class MarketingPersonInfo extends Controller
 
         $items = $query->latest()->paginate($perPage);
 
-        // Transform items to match Blade columns
         $data = $items->through(function($item) {
             $booking = $item->booking;
+
+            // upload letter url resolution
             $path = $booking->upload_letter_path ?? null;
             $letterUrl = null;
             if ($path) {
                 try {
-                    if (\Illuminate\Support\Str::startsWith($path, ['http://','https://'])){
+                    if (\Illuminate\Support\Str::startsWith($path, ['http://','https://'])) {
                         $letterUrl = $path;
                     } else {
-                        if(\Illuminate\Support\Facades\Storage::disk('public')->exists($path)){
-                            $letterUrl = \Illuminate\Support\Facades\Storage::url($path);
-                        } else {
-                            $letterUrl = asset($path);
-                        }
+                        $letterUrl = \Illuminate\Support\Facades\Storage::disk('public')->exists($path) ? \Illuminate\Support\Facades\Storage::url($path) : asset($path);
                     }
                 } catch (\Exception $e) {
                     $letterUrl = asset($path);
@@ -421,7 +647,6 @@ class MarketingPersonInfo extends Controller
             }
 
             $status = $item->issue_date ? 'Issued' : ($item->received_at ? 'Received' : 'Pending');
-            $statusClass = $item->issue_date ? 'success' : ($item->received_at ? 'info' : 'pending');
             $receiverName = $item->received_by_name ?? optional($item->receivedBy)->name;
             $statusDetail = null;
             if (!is_null($item->issue_date)) {
@@ -439,16 +664,15 @@ class MarketingPersonInfo extends Controller
                 'client_name' => $booking->client_name ?? null,
                 'sample_quality' => $item->sample_quality,
                 'particulars' => $item->particulars,
+                'amount' => $item->amount !== null ? (float) $item->amount : null,
+                'lab_expected_date' => $item->lab_expected_date ? $item->lab_expected_date->toDateString() : null,
                 'status' => $status,
-                'status_class' => $statusClass,
                 'status_detail' => $statusDetail,
-                'letter_url' => $letterUrl,
-                'received_at' => $item->received_at ? $item->received_at->toDateTimeString() : null,
-                'issue_date' => $item->issue_date ? $item->issue_date->toDateString() : null,
+                'receiver' => $receiverName,
+                'upload_letter_url' => $letterUrl,
             ];
         });
 
-        // Keep meta (pagination) consistent
         return response()->json([
             'status' => true,
             'message' => 'Booking items fetched',

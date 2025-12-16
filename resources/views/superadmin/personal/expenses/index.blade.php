@@ -41,6 +41,53 @@
                 }
             }
         @endphp
+        {{-- Summary Cards: Total / Approved / Pending for personal expenses --}}
+        <div class="row g-3 mb-4">
+            @php
+                $daily_total = (float) ($dailyExpenses->sum('amount') ?? 0);
+                $daily_approved = (float) ($dailyExpenses->sum('approved_amount') ?? 0);
+                $daily_pending = max(0, $daily_total - $daily_approved);
+            @endphp
+            <div class="col-md-4">
+                <div class="card expense-summary-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="small text-muted">Total Expenses</div>
+                            <div id="totalExp" class="h5 mb-0 fw-bold">₹{{ number_format($daily_total, 2) }}</div>
+                        </div>
+                        <div class="avatar-sm bg-light-primary rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="ti ti-wallet text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card expense-summary-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="small text-muted">Approved</div>
+                            <div id="totalApproved" class="h5 mb-0 fw-bold text-success">₹{{ number_format($daily_approved, 2) }}</div>
+                        </div>
+                        <div class="avatar-sm bg-light-success rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="ti ti-check text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card expense-summary-card shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="small text-muted">Pending</div>
+                            <div id="totalDue" class="h5 mb-0 fw-bold text-warning">₹{{ number_format($daily_pending, 2) }}</div>
+                        </div>
+                        <div class="avatar-sm bg-light-warning rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="ti ti-clock text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         @if(($section ?? 'personal') === 'personal')
             <section class="mb-5" aria-labelledby="daily-expense-heading">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -55,7 +102,8 @@
                             <tr>
                                 <th>#</th>
                                 <th>Description</th>
-                                <th>Amount</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">Approved Amount</th>
                                 <th>Expense Date</th>
                                 <th>Receipt</th>
                                 <th>Approved By</th>
@@ -68,15 +116,15 @@
                                 @include('superadmin.personal.expenses._daily_row', ['expense' => $daily, 'serial' => $index + 1])
                             @empty
                                 <tr class="empty-state">
-                                    <td colspan="8" class="text-center">No personal expenses uploaded yet.</td>
+                                    <td colspan="9" class="text-center">No personal expenses uploaded yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                         <tfoot class="table-light fw-bold">
                             <tr>
-                                <td class="text-end">Total:</td>
-                                <td></td>
-                                <td id="dailyTotalAmount">{{ number_format($dailyExpenses->sum('amount'), 2) }}</td>
+                                <td colspan="2" class="text-end">Total:</td>
+                                <td id="dailyTotalAmount" class="text-end">{{ number_format($dailyExpenses->sum('amount'), 2) }}</td>
+                                <td id="dailyApprovedTotal" class="text-end">{{ number_format($dailyExpenses->sum('approved_amount'), 2) }}</td>
                                 <td colspan="5"></td>
                             </tr>
                         </tfoot>
@@ -275,6 +323,14 @@
             totalCell.innerText = numberFormat(next);
         }
 
+        function updateDailyApprovedTotals(delta){
+            const totalCell = document.getElementById('dailyApprovedTotal');
+            if(!totalCell){ return; }
+            const current = toNumber(totalCell.innerText.replace(/,/g,''));
+            const next = Math.max(0, current + toNumber(delta));
+            totalCell.innerText = numberFormat(next);
+        }
+
         function hasDailyRows(){
             const body = document.querySelector('#personalDailyTable tbody');
             if(!body){ return false; }
@@ -311,12 +367,16 @@
 
             const emptyRow = document.createElement('tr');
             emptyRow.className = 'empty-state';
-            emptyRow.innerHTML = '<td colspan="6" class="text-center">No personal expenses uploaded yet.</td>';
+            emptyRow.innerHTML = '<td colspan="9" class="text-center">No personal expenses uploaded yet.</td>';
             body.appendChild(emptyRow);
 
             const totalCell = document.getElementById('dailyTotalAmount');
             if(totalCell){
                 totalCell.innerText = numberFormat(0);
+            }
+            const approvedCell = document.getElementById('dailyApprovedTotal');
+            if(approvedCell){
+                approvedCell.innerText = numberFormat(0);
             }
         }
 
@@ -462,6 +522,7 @@
                         dailyBody.insertBefore(dailyRow, dailyBody.firstChild);
                         renumberDailyRows();
                         updateDailyTotals(data.amount || 0);
+                        updateDailyApprovedTotals(data.approved_amount || 0);
                     }
                 }
 
@@ -639,6 +700,7 @@
                     const diffDue = toNumber(data.due_amount) - (data.previous_due !== undefined ? toNumber(data.previous_due) : previousDue);
 
                     updateDailyTotals(diffAmount);
+                    updateDailyApprovedTotals(diffApproved);
                     if(data.submitted_for_approval){
                         adjustSummaryTotals(diffAmount, diffApproved, diffDue);
                     }
@@ -755,6 +817,7 @@
                     const dueDelta = -(data.due_amount !== undefined ? toNumber(data.due_amount) : previousDue);
 
                     updateDailyTotals(amountDelta);
+                    updateDailyApprovedTotals(approvedDelta);
                     if(data.submitted_for_approval){
                         adjustSummaryTotals(amountDelta, approvedDelta, dueDelta);
                     }
@@ -769,4 +832,20 @@
 
         // 'Send This Month for Approval' functionality removed.
     </script>
+@endpush
+
+@push('styles')
+<style>
+    /* Summary card visuals for Personal Expenses */
+    .expense-summary-card { border-radius: 10px; }
+    .expense-summary-card .card-body { padding: 1rem 1.1rem; }
+    .expense-summary-card .small { font-size: .78rem; color: #6b7280; }
+    .expense-summary-card .h5 { font-size: 1.05rem; }
+    /* Improve table look */
+    #personalDailyTable tbody tr td { vertical-align: middle; }
+    #personalDailyTable .empty-state td { padding: 2.5rem; color: #6b7280; }
+    .table-responsive.shadow-sm { border-radius: 10px; overflow: hidden; }
+    /* Slightly bolder tfoot totals */
+    #personalDailyTable tfoot tr td { background: #fbfbfc; }
+</style>
 @endpush

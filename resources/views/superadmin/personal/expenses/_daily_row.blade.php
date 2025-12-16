@@ -20,7 +20,14 @@
 >
     <td>{{ $serial ?? '—' }}</td>
     <td>{{ $expense->description ? \Illuminate\Support\Str::limit($expense->description, 60) : '-' }}</td>
-    <td>{{ number_format($amount, 2) }}</td>
+    <td class="text-end">{{ number_format($amount, 2) }}</td>
+    <td class="text-end">
+        @if($approved > 0)
+            {{ number_format($approved, 2) }}
+        @else
+            -
+        @endif
+    </td>
     <td>{{ optional($expense->from_date)->format('d M Y') }}</td>
     <td>
         @if($receiptUrl && $receiptExists)
